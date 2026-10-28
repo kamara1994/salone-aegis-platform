@@ -70,6 +70,10 @@ function idem(): string {
   return crypto.randomUUID();
 }
 
+function unwrapItems<R>(value: R[] | { items: R[] }): R[] {
+  return Array.isArray(value) ? value : value.items;
+}
+
 export class LiveApi implements AegisApi {
   readonly mode = 'live' as const;
   constructor(
@@ -108,7 +112,7 @@ export class LiveApi implements AegisApi {
   }
 
   getMe = () => this.req<T.Me>('getMe', 'GET', '/me');
-  listClients = () => this.req<T.Client[]>('listClients', 'GET', '/clients');
+  listClients = () => this.req<T.Client[] | { items: T.Client[] }>('listClients', 'GET', '/clients').then(unwrapItems);
   getClient = (id: string) => this.req<T.Client>('getClient', 'GET', `/clients/${id}`);
   getTopology = (clientId?: string) => this.req<T.Topology>('getTopology', 'GET', `/topology${qs({ client_id: clientId })}`);
   getNode = (id: string) => this.req<T.NodeDetail>('getNode', 'GET', `/nodes/${id}`);
@@ -124,7 +128,7 @@ export class LiveApi implements AegisApi {
   updateTicket = (id: string, patch: T.TicketPatch) => this.req<T.TicketDetail>('updateTicket', 'PATCH', `/tickets/${id}`, patch);
   resolveTicket = (id: string, resolutionNote: string) =>
     this.req<T.Job>('resolveTicket', 'POST', `/tickets/${id}/resolve`, { resolution_note: resolutionNote }, { 'Idempotency-Key': idem() });
-  listChat = (ticketId: string) => this.req<T.ChatMessage[]>('listChat', 'GET', `/tickets/${ticketId}/chat`);
+  listChat = (ticketId: string) => this.req<T.ChatMessage[] | { items: T.ChatMessage[] }>('listChat', 'GET', `/tickets/${ticketId}/chat`).then(unwrapItems);
   postChat = (ticketId: string, body: T.ChatPost) => this.req<T.ChatMessage>('postChat', 'POST', `/tickets/${ticketId}/chat`, body);
   verifyIdentity = (ticketId: string, body: T.IdentityVerificationRequest) =>
     this.req<T.IdentityVerificationResult>('verifyIdentity', 'POST', `/tickets/${ticketId}/chat/verify-identity`, body);
@@ -132,7 +136,7 @@ export class LiveApi implements AegisApi {
   answerDebrief = (debriefId: string, questionId: string, answer: string) =>
     this.req<T.Debrief>('answerDebrief', 'POST', `/debriefs/${debriefId}/answers`, { question_id: questionId, answer });
   deferDebrief = (debriefId: string) => this.req<T.Debrief>('deferDebrief', 'POST', `/debriefs/${debriefId}/defer`);
-  listScenarios = (tags?: string[]) => this.req<T.ScenarioSummary[]>('listScenarios', 'GET', `/scenarios${qs({ tag: tags })}`);
+  listScenarios = (tags?: string[]) => this.req<T.ScenarioSummary[] | { items: T.ScenarioSummary[] }>('listScenarios', 'GET', `/scenarios${qs({ tag: tags })}`).then(unwrapItems);
   createScenarioRun = (body: T.ScenarioRunCreate) =>
     this.req<T.Job>('createScenarioRun', 'POST', '/scenario-runs', body, { 'Idempotency-Key': idem() });
   getScenarioRun = (id: string) => this.req<T.ScenarioRun>('getScenarioRun', 'GET', `/scenario-runs/${id}`);
@@ -141,11 +145,11 @@ export class LiveApi implements AegisApi {
   listAlerts = (q: { state?: T.AlertState[] } = {}) => this.req<T.AlertPage>('listAlerts', 'GET', `/alerts${qs(q)}`);
   claimAlert = (id: string) => this.req<T.Alert>('claimAlert', 'POST', `/alerts/${id}/claim`);
   classifyAlert = (id: string, body: T.AlertClassification) => this.req<T.Alert>('classifyAlert', 'PATCH', `/alerts/${id}`, body);
-  listEvidence = (ticketId: string) => this.req<T.EvidenceRecord[]>('listEvidence', 'GET', `/evidence${qs({ ticket_id: ticketId })}`);
+  listEvidence = (ticketId: string) => this.req<T.EvidenceRecord[] | { items: T.EvidenceRecord[] }>('listEvidence', 'GET', `/evidence${qs({ ticket_id: ticketId })}`).then(unwrapItems);
   getScorecards = () => this.req<T.Scorecards>('getScorecards', 'GET', '/scorecards');
   listSkills = () => this.req<T.SkillScore[]>('listSkills', 'GET', '/skills');
   listControlResults = () => this.req<T.ControlResult[]>('listControlResults', 'GET', '/controls');
-  listFlows = (edgeId: string, since?: string) => this.req<T.Flow[]>('listFlows', 'GET', `/flows${qs({ edge_id: edgeId, since })}`);
+  listFlows = (edgeId: string, since?: string) => this.req<T.Flow[] | { items: T.Flow[] }>('listFlows', 'GET', `/flows${qs({ edge_id: edgeId, since })}`).then(unwrapItems);
   getReplay = (ticketId: string) => this.req<T.ReplayTimeline>('getReplay', 'GET', `/replay/${ticketId}`);
   restoreBaseline = (confirmationToken: string, clientId?: string) =>
     this.req<T.Job>('restoreBaseline', 'POST', '/lab/baseline/restore', { confirmation_token: confirmationToken, client_id: clientId }, { 'Idempotency-Key': idem() });

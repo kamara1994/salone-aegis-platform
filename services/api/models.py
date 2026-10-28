@@ -25,16 +25,25 @@ class Identity(Input):
     answers: dict[str, str] = Field(max_length=10)
 
 class Launch(Input):
-    client_id: UUID
+    client_id: UUID | None = None
     scenario_id: UUID
+    mode: Literal['practice', 'exam'] = 'practice'
 
 class Body(Input):
-    body: str = Field(min_length=1, max_length=8000)
+    # `body` is retained for the original API; the shared contract uses answer/question_id.
+    body: str | None = Field(default=None, min_length=1, max_length=8000)
+    question_id: str | None = Field(default=None, max_length=200)
+    answer: str | None = Field(default=None, min_length=1, max_length=8000)
 
 class AlertPatch(Input):
     verdict: Literal['true_positive', 'false_positive', 'benign']
     rationale: str = Field(min_length=1, max_length=8000)
     open_ticket: bool = False
+
+class SettingsPayload(Input):
+    schedule: dict = Field(default_factory=dict)
+    notifications: dict = Field(default_factory=dict)
+    on_call: bool = False
 
 class Restore(Input):
     client_id: UUID

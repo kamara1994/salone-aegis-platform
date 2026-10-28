@@ -25,7 +25,7 @@ from services.orchestrator.service import Orchestrator
 from services.orchestrator.scenarios import public as public_scenario
 from .auth import Auth
 from .projections import public_node, client_detail, node_detail
-from .models import Action, AlertPatch, Console, TicketPatch, Chat, Identity, Launch, Body, Restore, Tenant, Subscribe, ConsoleConnect
+from .models import Action, AlertPatch, Console, TicketPatch, Chat, Identity, Launch, Body, Restore, SettingsPayload, Tenant, Subscribe, ConsoleConnect
 
 log = logging.getLogger('aegis.api')
 
@@ -285,9 +285,11 @@ def create_app(settings=None, store=None):
 
     @app.post(prefix + '/scenario-runs', status_code=202)
     def launch(body: Launch, idempotency_key: str = Header(), actor=Depends(principal)):
-        actor.require(str(body.client_id), write=True, admin=True)
+        client_id = str(body.client_id or (actor.client_ids[0] if actor.client_ids else ''))
+        actor.require(client_id, write=True)
         with store.transaction() as tx:
-            return enqueue(tx, actor, 'scenario.launch', str(body.client_id), {'scenario_id': str(body.scenario_id)}, idempotency_key)
+            return enqueue(tx, actor, 'scenario.launch', client_id,
+                           {'scenario_id': str(body.scenario_id), 'mode': body.mode}, idempotency_key)
 
     @app.post(prefix + '/scenario-runs/{identifier}/hint')
     def hint(identifier: UUID, actor=Depends(principal)):
@@ -373,6 +375,11 @@ def create_app(settings=None, store=None):
                 'notifications': {'push_p1': True, 'sound': True, 'quiet_hours': '22:00-07:00'},
                 'on_call': False}
 
+    @app.put(prefix + '/settings')
+    def settings_update(body: SettingsPayload, actor=Depends(principal)):
+        actor.require(write=True)
+        return {'schedule': body.schedule, 'notifications': body.notifications, 'on_call': body.on_call}
+
     @app.get(prefix + '/tickets/{identifier}/debrief')
     def debrief(identifier: UUID, actor=Depends(principal)):
         with store.transaction() as tx:
@@ -384,9 +391,13 @@ def create_app(settings=None, store=None):
 
     @app.post(prefix + '/debriefs/{identifier}/answers', status_code=202)
     def answer(identifier: UUID, body: Body, idempotency_key: str = Header(), actor=Depends(principal)):
+        answer_text = body.answer or body.body
+        if not answer_text:
+            raise DomainError('validation_error', 'An answer is required', 422)
         with store.transaction() as tx:
             item = owned(tx, 'debrief', identifier, actor, write=True)
-            return enqueue(tx, actor, 'debrief.answer', item['client_id'], {'debrief_id': item['id'], 'body': body.body}, idempotency_key)
+            return enqueue(tx, actor, 'debrief.answer', item['client_id'],
+                           {'debrief_id': item['id'], 'body': answer_text, 'question_id': body.question_id}, idempotency_key)
 
     @app.post(prefix + '/debriefs/{identifier}/defer')
     def defer(identifier: UUID, actor=Depends(principal)):
@@ -408,7 +419,8 @@ def create_app(settings=None, store=None):
             return page(evidence.records(tx, ticket['client_id'], ticket['id']), cursor, limit)
 
     @app.get(prefix + '/scorecards')
-    def scorecards(client_id: UUID, actor=Depends(principal)):
+    def scorecards(client_id: UUID | None = None, actor=Depends(principal)):
+        client_id = client_id or UUID(actor.client_ids[0])
         actor.require(str(client_id))
         with store.transaction() as tx:
             return evidence.scorecard(tx, str(client_id))
