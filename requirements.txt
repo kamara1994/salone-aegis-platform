@@ -5,7 +5,7 @@ psycopg[binary]==3.2.6
 alembic==1.15.2
 SQLAlchemy==2.0.40
 redis==5.2.1
-PyJWT[crypto]==2.10.1
+PyJWT[crypto]==2.15.1
 httpx==0.28.1
 PyYAML==6.0.2
 jsonschema==4.23.0
