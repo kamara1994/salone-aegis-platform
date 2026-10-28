@@ -1,0 +1,41 @@
+id: net-access-port-vlan
+version: 1
+title: "PC has no network"
+client: salone-mutual
+category: network
+tags: [ccna, interview, release-1]
+difficulty: 1
+estimated_minutes: 15
+sla: { priority: P3, resolve_within: 4h }
+notification:
+  kind: break_fix
+  channel: chat
+  persona: mariama-ops
+  title: "No network on WS-OPS-03"
+  opening: "Hi, my computer says 'No internet' and I can't get on anything. The cable is plugged in, I checked."
+persona: { name: Mariama Kanu, role: Operations Coordinator, traits: [polite, non-technical] }
+affected_nodes: [SW-ACC-01, WS-OPS-03]
+setup:
+  - { target: SW-ACC-01, run: scripts/inject.ios }
+cleanup:
+  - { target: SW-ACC-01, run: scripts/restore.ios }
+client_facts:
+  - { ask: [ipconfig, ip address, what ip], tool: read.ipconfig, target: WS-OPS-03 }
+  - { ask: [lights, link light, cable], answer: "There's a green light on the back where the cable goes in." }
+  - { ask: [which port, wall port, port number], answer: "The sticker on the wall says Port 12." }
+hints:
+  - "A 169.254.x.x address means the PC never heard back from DHCP."
+  - "Check what VLAN the switch port is in: show interfaces status."
+  - "Gi0/12 is in VLAN 99 (unused). Put it back in access VLAN 20."
+checks:
+  - { id: port-vlan, label: "Gi0/12 is an access port in VLAN 20", target: SW-ACC-01, run: scripts/check_vlan.ios }
+  - { id: client-dhcp, label: "WS-OPS-03 has a 10.10.20.x lease", target: WS-OPS-03, run: scripts/check_lease.ps1 }
+debrief:
+  interviewer: senior-network-engineer
+  root_cause: "Access port Gi0/12 was assigned to VLAN 99, which has no DHCP scope or gateway, so the PC self-assigned APIPA."
+  must_cover: [vlan, access port, dhcp, apipa, show interfaces status]
+  what_ifs:
+    - "The port is in VLAN 20 but the PC still gets 169.254. What next?"
+    - "How do you prevent one wrong VLAN change on 500 switch ports?"
+  prevention: "Port configs from templates in NetBox, pushed by automation, with drift detection."
+  rubric: { root_cause: 30, safe_fix: 25, verification: 20, documentation: 15, client_explanation: 10 }

@@ -1,0 +1,172 @@
+[
+  {
+    "id": "id-finance-share-access",
+    "version": 1,
+    "title": "Can't open the Finance share",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "interview",
+      "security-plus",
+      "it-support",
+      "release-1"
+    ],
+    "difficulty": 2,
+    "priority": "P3",
+    "interviewer": "hiring-manager",
+    "estimated_minutes": 15
+  },
+  {
+    "id": "id-lockout-stale-device",
+    "version": 1,
+    "title": "Locked out every 10 minutes",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "interview",
+      "it-support",
+      "security-plus",
+      "release-1"
+    ],
+    "difficulty": 3,
+    "priority": "P2",
+    "interviewer": "hiring-manager",
+    "estimated_minutes": 25
+  },
+  {
+    "id": "net-access-port-vlan",
+    "version": 1,
+    "title": "PC has no network",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "ccna",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 1,
+    "priority": "P3",
+    "interviewer": "senior-network-engineer",
+    "estimated_minutes": 15
+  },
+  {
+    "id": "net-dhcp-dns-option",
+    "version": 1,
+    "title": "Can't reach anything by name",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "ccna",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 2,
+    "priority": "P2",
+    "interviewer": "senior-network-engineer",
+    "estimated_minutes": 20
+  },
+  {
+    "id": "net-duplex-mismatch",
+    "version": 1,
+    "title": "The network is slow",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "ccna",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 2,
+    "priority": "P3",
+    "interviewer": "senior-network-engineer",
+    "estimated_minutes": 25
+  },
+  {
+    "id": "net-gateway-wrong",
+    "version": 3,
+    "title": "PC has an IP but can't leave its subnet",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "ccna",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 2,
+    "priority": "P3",
+    "interviewer": "senior-network-engineer",
+    "estimated_minutes": 15
+  },
+  {
+    "id": "onb-new-hire-finance",
+    "version": 1,
+    "title": "New hire starts Monday in Finance",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "interview",
+      "it-support",
+      "release-1"
+    ],
+    "difficulty": 1,
+    "priority": "P3",
+    "interviewer": "hiring-manager",
+    "estimated_minutes": 20
+  },
+  {
+    "id": "se-cfo-mfa-reset",
+    "version": 1,
+    "title": "Urgent: reset my MFA, I'm travelling",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "security-plus",
+      "interview",
+      "social-engineering"
+    ],
+    "difficulty": 7,
+    "priority": "P1",
+    "interviewer": "ciso",
+    "estimated_minutes": 15
+  },
+  {
+    "id": "sec-db-firewall-rule",
+    "version": 1,
+    "title": "Users can reach the payments database directly",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "security-plus",
+      "interview",
+      "ccna",
+      "release-1"
+    ],
+    "difficulty": 3,
+    "priority": "P2",
+    "interviewer": "ciso",
+    "estimated_minutes": 25
+  },
+  {
+    "id": "soc-password-spray-triage",
+    "version": 1,
+    "title": "Alert: 50 failed logins in 5 minutes",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "security-plus",
+      "soc",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 3,
+    "priority": "P2",
+    "interviewer": "soc-lead",
+    "estimated_minutes": 30
+  },
+  {
+    "id": "svc-dc-outage-cascade",
+    "version": 1,
+    "title": "Everything is down",
+    "client_slug": "salone-mutual",
+    "tags": [
+      "interview",
+      "ccnp",
+      "it-support",
+      "release-1"
+    ],
+    "difficulty": 5,
+    "priority": "P1",
+    "interviewer": "hiring-manager",
+    "estimated_minutes": 30
+  }
+]

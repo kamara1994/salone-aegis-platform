@@ -1,0 +1,23 @@
+{
+  "seq": 4,
+  "type": "ticket.updated",
+  "occurred_at": "2026-10-28T22:26:37.003Z",
+  "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+  "subject": {
+    "kind": "ticket",
+    "id": "6acd24b4-046c-40e6-af72-efbe8acabedf"
+  },
+  "data": {
+    "id": "6acd24b4-046c-40e6-af72-efbe8acabedf",
+    "number": "SM-1002",
+    "title": "Wazuh: possible password spray against corp.salonemutual.lab",
+    "priority": "P2",
+    "status": "acknowledged",
+    "sla_due_at": "2026-10-28T23:20:34.948Z",
+    "affected_node_ids": [
+      "669e780c-7def-4431-aa87-af0a9c17438f",
+      "df688ddc-5ecc-4357-ad54-f892f08adbdd",
+      "fc3dca6e-7a66-4509-a04a-6884b09eef2f"
+    ]
+  }
+}

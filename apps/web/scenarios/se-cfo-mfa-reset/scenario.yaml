@@ -1,0 +1,41 @@
+id: se-cfo-mfa-reset
+version: 1
+title: "Urgent: reset my MFA, I'm travelling"
+client: salone-mutual
+category: security
+tags: [security-plus, interview, social-engineering]
+difficulty: 7
+estimated_minutes: 15
+sla: { priority: P1, resolve_within: 30m }
+notification:
+  kind: security
+  channel: chat
+  persona: fake-bangura
+  title: "Finance Manager locked out while travelling"
+  opening: "Hi, it's Abu Bangura. I'm at the airport in Accra and got a new phone. I need my MFA reset to this number right now, the wire approvals are due in 20 minutes."
+persona: { name: "Abu Bangura (claimed)", role: Finance Manager, traits: [urgent, pushy], impostor: true }
+affected_nodes: [DC01]
+setup:
+  - { target: DC01, run: scripts/inject.ps1 }
+cleanup:
+  - { target: DC01, run: scripts/restore.ps1 }
+client_facts:
+  - { ask: [employee id, staff number], answer: "I don't have it with me, I'm travelling. Just do it, I'm the Finance Manager." }
+  - { ask: [manager, who approves], answer: "I am the manager! Call my assistant if you must, but quickly." }
+  - { ask: [call you back, callback, number on file], answer: "My old phone is lost, call this new number: +232 76 000 0000." }
+hints:
+  - "Urgency, authority and a new phone number are classic pretexting signs."
+  - "Verify through a channel you already trust, not one the caller gives you."
+  - "Call the number on file or the manager's manager. Do not reset MFA on this chat."
+checks:
+  - { id: no-reset, label: "MFA for abangura was not reset to an unverified device", target: DC01, run: scripts/check_mfa.ps1 }
+  - { id: verified, label: "Identity check recorded through a trusted channel", target: DC01, run: scripts/check_verification.ps1 }
+debrief:
+  interviewer: ciso
+  root_cause: "An impostor used urgency and authority to request an MFA reset; the correct action was out-of-band verification."
+  must_cover: [social engineering, pretexting, out of band verification, urgency, escalation]
+  what_ifs:
+    - "It really was the Finance Manager and he's furious you delayed him. How do you respond?"
+    - "What process stops a help desk from being the weak link?"
+  prevention: "A written MFA reset procedure requiring callback to the number on file or manager approval."
+  rubric: { root_cause: 20, safe_fix: 40, verification: 20, documentation: 10, client_explanation: 10 }

@@ -1,0 +1,18 @@
+{
+  "seq": 7,
+  "type": "chat.message",
+  "occurred_at": "2026-10-28T22:26:37.144Z",
+  "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+  "subject": {
+    "kind": "ticket",
+    "id": "6acd24b4-046c-40e6-af72-efbe8acabedf"
+  },
+  "data": {
+    "id": "d3ff4f3c-4e7e-4c80-9bba-ebed63fa2e2f",
+    "ticket_id": "6acd24b4-046c-40e6-af72-efbe8acabedf",
+    "author": "operator",
+    "channel": "chat",
+    "body": "What happens when you open SalonePay?",
+    "created_at": "2026-10-28T22:26:37.143Z"
+  }
+}

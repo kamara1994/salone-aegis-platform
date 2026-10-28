@@ -1,0 +1,5 @@
+! Check "duplex" for net-duplex-mismatch: Gi0/3 negotiates full duplex
+! The runner sends each command line to SW-ACC-01 and matches the combined output against
+! every "! expect:" (must match) and "! expect-not:" (must not match) regex. All must hold to pass.
+show interfaces GigabitEthernet0/3 status
+! expect: Gi0/3\s+.*connected\s+\S+\s+(a-)?full\s+(a-)?1000

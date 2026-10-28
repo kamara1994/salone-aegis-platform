@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aegis.local/contracts/scenario.schema.json",
+  "title": "AEGIS scenario pack",
+  "description": "Contract 4. One folder per scenario in scenarios/: scenario.yaml plus its scripts. Lifecycle: setup (inject a reversible fault) -> check -> solve -> cleanup, plus a client persona, a hint ladder and a debrief.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "title", "client", "tags", "difficulty", "sla", "category", "notification", "affected_nodes", "setup", "cleanup", "hints", "checks", "debrief"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 5 },
+    "client": { "type": "string", "description": "Client slug, e.g. salone-mutual" },
+    "category": { "enum": ["network", "identity", "security", "endpoint", "cloud", "onboarding", "service"] },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Where this shows up in the real world: ccna, ccnp, ccie, security-plus, aws, interview, release-1, ..."
+    },
+    "difficulty": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9,
+      "description": "1 single clear fault, 2 vague ticket, 3 red herring, 4 two faults, 5 cascade, 6 overlapping incidents, 7 human pressure, 8 night page, 9 sabotage"
+    },
+    "estimated_minutes": { "type": "integer", "minimum": 1 },
+    "sla": {
+      "type": "object",
+      "required": ["priority", "resolve_within"],
+      "properties": {
+        "priority": { "enum": ["P1", "P2", "P3", "P4"] },
+        "resolve_within": { "type": "string", "pattern": "^[0-9]+(m|h|d)$" }
+      }
+    },
+    "notification": {
+      "type": "object",
+      "required": ["channel", "persona", "opening"],
+      "properties": {
+        "kind": { "enum": ["growth", "break_fix", "security", "advisory"] },
+        "channel": { "enum": ["chat", "email", "voice"] },
+        "persona": { "type": "string" },
+        "opening": { "type": "string" },
+        "title": { "type": "string" }
+      }
+    },
+    "persona": {
+      "type": "object",
+      "description": "Inline persona definition (or reference by notification.persona to scenarios/_personas/<id>.yaml)",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "traits": { "type": "array", "items": { "type": "string" } },
+        "impostor": { "type": "boolean", "description": "true = identity verification must fail; a sensitive action without verify-identity is a social-engineering failure" }
+      }
+    },
+    "affected_nodes": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "setup": { "$ref": "#/$defs/Steps" },
+    "cleanup": { "$ref": "#/$defs/Steps" },
+    "solve": { "$ref": "#/$defs/Steps" },
+    "client_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ask"],
+        "properties": {
+          "ask": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Phrases that trigger this fact" },
+          "tool": { "type": "string", "description": "Allowlisted read-only tool, e.g. read.ipconfig" },
+          "target": { "type": "string" },
+          "answer": { "type": "string", "description": "Fixed answer when no tool is used" }
+        },
+        "oneOf": [{ "required": ["tool", "target"] }, { "required": ["answer"] }]
+      }
+    },
+    "hints": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 5 },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "target", "run"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "target": { "type": "string" },
+          "run": { "type": "string" }
+        }
+      }
+    },
+    "debrief": {
+      "type": "object",
+      "required": ["interviewer", "root_cause", "must_cover", "what_ifs", "rubric"],
+      "properties": {
+        "interviewer": { "enum": ["senior-network-engineer", "soc-lead", "hiring-manager", "ciso", "recruiter-screen"] },
+        "root_cause": { "type": "string" },
+        "must_cover": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "what_ifs": { "type": "array", "items": { "type": "string" } },
+        "prevention": { "type": "string" },
+        "rubric": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" },
+          "description": "Criterion -> points; must sum to 100"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "Steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target", "run"],
+        "properties": {
+          "target": { "type": "string" },
+          "run": { "type": "string" }
+        }
+      }
+    }
+  }
+}

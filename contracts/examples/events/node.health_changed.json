@@ -1,0 +1,16 @@
+{
+  "seq": 13,
+  "type": "node.health_changed",
+  "occurred_at": "2026-10-28T22:26:38.003Z",
+  "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+  "subject": {
+    "kind": "node",
+    "id": "e3508dfc-ce92-44ab-ac77-de8252b95b91"
+  },
+  "data": {
+    "health": "degraded",
+    "power": "running",
+    "cpu_pct": 65,
+    "ram_pct": 71
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "58853b23-b3e2-4962-a878-364d6f40cdbc",
+  "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+  "interviewer": "ciso",
+  "state": "scored",
+  "current_question_id": null,
+  "overall_score": 91,
+  "questions": [
+    {
+      "id": "q1",
+      "depth": 1,
+      "kind": "behavioral",
+      "text": "Walk me through SM-953, \"Urgent: reset my MFA, I'm travelling\". What was reported, what did you check first, and how did you find the cause?",
+      "answer": "(answer recorded in the session)",
+      "score": {
+        "total": 87,
+        "feedback": "Recorded in an earlier session."
+      }
+    },
+    {
+      "id": "q2",
+      "depth": 2,
+      "kind": "technical",
+      "text": "Explain social engineering and pretexting, and the part they played in this ticket.",
+      "answer": "(answer recorded in the session)",
+      "score": {
+        "total": 91,
+        "feedback": "Recorded in an earlier session."
+      }
+    },
+    {
+      "id": "q4",
+      "depth": 3,
+      "kind": "what_if",
+      "text": "It really was the Finance Manager and he's furious you delayed him. How do you respond?",
+      "answer": "(answer recorded in the session)",
+      "score": {
+        "total": 95,
+        "feedback": "Recorded in an earlier session."
+      }
+    }
+  ],
+  "study_list": [],
+  "assigned_scenarios": []
+}

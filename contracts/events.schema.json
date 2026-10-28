@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aegis.local/contracts/events.schema.json",
+  "title": "AEGIS platform event",
+  "description": "Contract 3. Every message on GET /api/v1/events uses this envelope. Clients subscribe by sending {\"op\":\"subscribe\",\"topics\":[...],\"resume_from_seq\":N}; the server replays everything after N, then streams live. Topics are event-type prefixes (ticket, chat, node, flow, ...) or '*'.",
+  "type": "object",
+  "required": ["seq", "type", "occurred_at", "subject", "data"],
+  "properties": {
+    "seq": { "type": "integer", "minimum": 1, "description": "Strictly increasing per server" },
+    "type": { "$ref": "#/$defs/EventType" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "client_id": { "type": ["string", "null"], "format": "uuid" },
+    "subject": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["ticket", "node", "scenario_run", "debrief", "notification", "alert", "client", "job", "link"] },
+        "id": { "type": "string" }
+      }
+    },
+    "data": { "type": "object" }
+  },
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "notification.created" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/NotificationCreated" } } } },
+    { "if": { "properties": { "type": { "const": "ticket.created" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/TicketData" } } } },
+    { "if": { "properties": { "type": { "const": "ticket.updated" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/TicketData" } } } },
+    { "if": { "properties": { "type": { "const": "ticket.status_changed" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/StatusChanged" } } } },
+    { "if": { "properties": { "type": { "const": "chat.message" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/ChatMessage" } } } },
+    { "if": { "properties": { "type": { "const": "chat.typing" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/ChatTyping" } } } },
+    { "if": { "properties": { "type": { "const": "scenario.state_changed" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/ScenarioState" } } } },
+    { "if": { "properties": { "type": { "const": "check.result" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/CheckResult" } } } },
+    { "if": { "properties": { "type": { "const": "node.health_changed" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/NodeHealth" } } } },
+    { "if": { "properties": { "type": { "const": "flow.batch" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/FlowBatch" } } } },
+    { "if": { "properties": { "type": { "const": "alert.fired" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/AlertFired" } } } },
+    { "if": { "properties": { "type": { "const": "alert.updated" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/AlertFired" } } } },
+    { "if": { "properties": { "type": { "const": "debrief.started" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/DebriefStarted" } } } },
+    { "if": { "properties": { "type": { "const": "debrief.question" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/DebriefQuestion" } } } },
+    { "if": { "properties": { "type": { "const": "debrief.scored" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/DebriefScored" } } } },
+    { "if": { "properties": { "type": { "const": "job.completed" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/JobDone" } } } },
+    { "if": { "properties": { "type": { "const": "job.failed" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/JobDone" } } } }
+  ],
+  "$defs": {
+    "EventType": {
+      "enum": [
+        "notification.created",
+        "ticket.created", "ticket.updated", "ticket.status_changed",
+        "chat.message", "chat.typing",
+        "scenario.state_changed",
+        "check.result",
+        "node.health_changed",
+        "flow.batch",
+        "alert.fired", "alert.updated",
+        "debrief.started", "debrief.question", "debrief.scored",
+        "job.completed", "job.failed"
+      ]
+    },
+    "Priority": { "enum": ["P1", "P2", "P3", "P4"] },
+    "TicketStatus": { "enum": ["new", "acknowledged", "investigating", "pending_verification", "verified", "client_explanation", "debrief", "closed"] },
+    "NotificationCreated": {
+      "type": "object",
+      "required": ["id", "kind", "severity", "title", "body", "source"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "enum": ["growth", "break_fix", "security", "advisory", "system"] },
+        "severity": { "$ref": "#/$defs/Priority" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "source": { "enum": ["scenario", "cisa_kev", "patch_tuesday", "monitor", "client", "vendor_advisory"] },
+        "ticket_id": { "type": "string" },
+        "push": { "type": "boolean", "description": "true for P1 when push_p1 is enabled" }
+      }
+    },
+    "TicketData": {
+      "type": "object",
+      "required": ["id", "number", "title", "priority", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "string" },
+        "title": { "type": "string" },
+        "priority": { "$ref": "#/$defs/Priority" },
+        "status": { "$ref": "#/$defs/TicketStatus" },
+        "sla_due_at": { "type": "string", "format": "date-time" },
+        "affected_node_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "StatusChanged": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "$ref": "#/$defs/TicketStatus" },
+        "to": { "$ref": "#/$defs/TicketStatus" },
+        "reason": { "type": "string" }
+      }
+    },
+    "ChatMessage": {
+      "type": "object",
+      "required": ["id", "ticket_id", "author", "channel", "body"],
+      "properties": {
+        "id": { "type": "string" },
+        "ticket_id": { "type": "string" },
+        "author": { "enum": ["operator", "client", "system"] },
+        "channel": { "enum": ["chat", "email", "voice"] },
+        "body": { "type": "string" },
+        "attachments": { "type": "array" }
+      }
+    },
+    "ChatTyping": {
+      "type": "object",
+      "required": ["ticket_id", "typing"],
+      "properties": { "ticket_id": { "type": "string" }, "typing": { "type": "boolean" } }
+    },
+    "ScenarioState": {
+      "type": "object",
+      "required": ["scenario_id", "state"],
+      "properties": {
+        "scenario_id": { "type": "string" },
+        "state": { "enum": ["scheduled", "injecting", "running", "resolved", "aborted", "failed"] },
+        "ticket_id": { "type": "string" },
+        "affected_node_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "CheckResult": {
+      "type": "object",
+      "required": ["ticket_id", "check_id", "passed"],
+      "properties": {
+        "ticket_id": { "type": "string" },
+        "check_id": { "type": "string" },
+        "label": { "type": "string" },
+        "passed": { "type": ["boolean", "null"] },
+        "output": { "type": "string" }
+      }
+    },
+    "NodeHealth": {
+      "type": "object",
+      "required": ["health"],
+      "properties": {
+        "health": { "enum": ["healthy", "degraded", "down", "unknown"] },
+        "power": { "enum": ["running", "stopped", "unknown"] },
+        "cpu_pct": { "type": "number" },
+        "ram_pct": { "type": "number" }
+      }
+    },
+    "FlowBatch": {
+      "type": "object",
+      "required": ["window_s", "edges"],
+      "properties": {
+        "window_s": { "type": "integer", "const": 2 },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["edge_id", "bytes_per_s", "allowed", "denied"],
+            "properties": {
+              "edge_id": { "type": "string" },
+              "bytes_per_s": { "type": "number" },
+              "allowed": { "type": "integer" },
+              "denied": { "type": "integer" },
+              "top_app": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "AlertFired": {
+      "type": "object",
+      "required": ["id", "rule", "severity", "state"],
+      "properties": {
+        "id": { "type": "string" },
+        "rule": { "type": "string" },
+        "severity": { "$ref": "#/$defs/Priority" },
+        "node_id": { "type": "string" },
+        "state": { "enum": ["new", "claimed", "classified"] },
+        "verdict": { "enum": ["true_positive", "false_positive", "benign_true_positive", "insufficient_evidence"] }
+      }
+    },
+    "DebriefStarted": {
+      "type": "object",
+      "required": ["debrief_id", "ticket_id", "interviewer"],
+      "properties": {
+        "debrief_id": { "type": "string" },
+        "ticket_id": { "type": "string" },
+        "interviewer": { "enum": ["senior_network_engineer", "soc_lead", "hiring_manager", "ciso", "recruiter_screen"] }
+      }
+    },
+    "DebriefQuestion": {
+      "type": "object",
+      "required": ["debrief_id", "question_id", "text", "depth"],
+      "properties": {
+        "debrief_id": { "type": "string" },
+        "question_id": { "type": "string" },
+        "text": { "type": "string" },
+        "depth": { "type": "integer" },
+        "kind": { "type": "string" }
+      }
+    },
+    "DebriefScored": {
+      "type": "object",
+      "required": ["debrief_id"],
+      "properties": {
+        "debrief_id": { "type": "string" },
+        "question_id": { "type": "string" },
+        "score": { "type": "number" },
+        "overall_score": { "type": ["number", "null"] },
+        "final": { "type": "boolean" }
+      }
+    },
+    "JobDone": {
+      "type": "object",
+      "required": ["job_id", "kind"],
+      "properties": {
+        "job_id": { "type": "string" },
+        "kind": { "type": "string" },
+        "result": { "type": "object" },
+        "error": { "type": "string" }
+      }
+    }
+  }
+}

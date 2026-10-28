@@ -1,0 +1,41 @@
+id: sec-db-firewall-rule
+version: 1
+title: "Users can reach the payments database directly"
+client: salone-mutual
+category: security
+tags: [security-plus, interview, ccna, release-1]
+difficulty: 3
+estimated_minutes: 25
+sla: { priority: P2, resolve_within: 8h }
+notification:
+  kind: security
+  channel: email
+  persona: musa-auditor
+  title: "Audit finding: corporate VLAN reaches DB01:5432"
+  opening: "During this morning's audit walkthrough I connected from a Finance PC straight to the payments database on port 5432. That should not be possible. Please fix and confirm before Friday."
+persona: { name: Musa Turay, role: Internal Auditor, traits: [precise, formal] }
+affected_nodes: [FW01, DB01]
+setup:
+  - { target: FW01, run: scripts/inject.sh }
+cleanup:
+  - { target: FW01, run: scripts/restore.sh }
+client_facts:
+  - { ask: [which pc, source, from where], answer: "From WS-FIN-02, using a database client on port 5432." }
+  - { ask: [when, time], answer: "Around 9:40 this morning." }
+hints:
+  - "Which zone is allowed to talk to the database VLAN, and on what port?"
+  - "List the firewall rules on the VLAN 20 interface and look for anything broad."
+  - "Rule 14 allows VLAN 20 to VLAN 40 any port. Delete it; only VLAN 30 should reach 5432."
+checks:
+  - { id: no-broad-rule, label: "No rule allows VLAN 20 to reach VLAN 40", target: FW01, run: scripts/check_rules.sh }
+  - { id: db-blocked, label: "WS-FIN-02 to DB01:5432 is denied and logged", target: WS-FIN-02, run: scripts/check_denied.ps1 }
+  - { id: app-still-works, label: "APP01 still reaches DB01:5432", target: APP01, run: scripts/check_app_db.sh }
+debrief:
+  interviewer: ciso
+  root_cause: "A temporary troubleshooting rule (VLAN 20 to VLAN 40, any) was never removed, breaking segmentation."
+  must_cover: [segmentation, least privilege, change management, deny by default, logging]
+  what_ifs:
+    - "The rule was added by a senior engineer during an outage. How do you handle that conversation?"
+    - "How would you detect a rule like this automatically?"
+  prevention: "Firewall rules as code with expiry dates, plus the Control Validation Engine testing the deny path nightly."
+  rubric: { root_cause: 25, safe_fix: 30, verification: 20, documentation: 15, client_explanation: 10 }

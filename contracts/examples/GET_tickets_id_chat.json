@@ -1,0 +1,10 @@
+[
+  {
+    "id": "72a8853f-5a09-4a68-8390-41d454e46b27",
+    "ticket_id": "6acd24b4-046c-40e6-af72-efbe8acabedf",
+    "author": "client",
+    "channel": "chat",
+    "body": "Automated alert: 52 failed Kerberos pre-authentications (event 4771) across 3 accounts in 5 minutes. Rule 100410, ATT&CK T1110.003.",
+    "created_at": "2026-10-28T22:20:34.948Z"
+  }
+]

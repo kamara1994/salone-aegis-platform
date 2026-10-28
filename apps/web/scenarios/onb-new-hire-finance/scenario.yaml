@@ -1,0 +1,44 @@
+id: onb-new-hire-finance
+version: 1
+title: "New hire starts Monday in Finance"
+client: salone-mutual
+category: onboarding
+tags: [interview, it-support, release-1]
+difficulty: 1
+estimated_minutes: 20
+sla: { priority: P3, resolve_within: 3d }
+notification:
+  kind: growth
+  channel: email
+  persona: fatmata-hr
+  title: "New hire: Aminata Koroma, Finance, starts Monday"
+  opening: "Hi IT, Aminata Koroma joins Finance on Monday as an Accounts Clerk. She needs her account, the Finance share, and MFA set up before 8am please."
+persona: { name: Fatmata Sesay, role: HR Officer, traits: [organised, non-technical] }
+affected_nodes: [DC01]
+setup:
+  - { target: DC01, run: scripts/inject.ps1 }
+cleanup:
+  - { target: DC01, run: scripts/restore.ps1 }
+solve:
+  - { target: DC01, run: scripts/solve.ps1 }
+client_facts:
+  - { ask: [username, naming, account name], answer: "We use first initial plus last name, so akoroma I think?" }
+  - { ask: [manager, reports to], answer: "She reports to Mr. Bangura, the Finance Manager." }
+  - { ask: [laptop, device], answer: "Finance said she gets the spare laptop WS-FIN-07." }
+hints:
+  - "Joiner work has three parts: identity, access, and authentication."
+  - "Create the account in the Finance OU, then add it to the Finance security group."
+  - "New-ADUser akoroma in OU=Finance, Add-ADGroupMember GG-Finance, then Enable-MFA."
+checks:
+  - { id: user-exists, label: "Account akoroma exists and is enabled", target: DC01, run: scripts/check_user.ps1 }
+  - { id: in-finance-group, label: "akoroma is in GG-Finance", target: DC01, run: scripts/check_group.ps1 }
+  - { id: mfa-enrolled, label: "MFA enrollment is required at first sign-in", target: DC01, run: scripts/check_mfa.ps1 }
+debrief:
+  interviewer: hiring-manager
+  root_cause: "Not a fault: a joiner request. Account, least-privilege group access, and MFA before day one."
+  must_cover: [ou, security group, least privilege, mfa, naming convention]
+  what_ifs:
+    - "HR sends the request on Monday at 7:55am. What do you do first?"
+    - "How would you automate onboarding for 200 hires a month?"
+  prevention: "A joiner-mover-leaver workflow triggered from HR, with group membership by role."
+  rubric: { root_cause: 20, safe_fix: 30, verification: 20, documentation: 15, client_explanation: 15 }

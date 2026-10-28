@@ -1,0 +1,61 @@
+{
+  "items": [
+    {
+      "id": "8a2ff9dd-bcfe-4a7c-85bb-869c7c4dcde9",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "rule": "Possible password spray (Kerberos pre-auth failures)",
+      "rule_id": "100410",
+      "attack_technique": "T1110.003",
+      "severity": "P2",
+      "node_id": "669e780c-7def-4431-aa87-af0a9c17438f",
+      "fields": {
+        "failures": "52 in 5 min",
+        "event_id": "4771",
+        "accounts": "svc-backup, svc-sql",
+        "source_ip": "10.10.70.15 (BKP01)",
+        "failure_code": "0x18 (bad password)"
+      },
+      "state": "new",
+      "claimed_by": null,
+      "linked_ticket_id": "6acd24b4-046c-40e6-af72-efbe8acabedf",
+      "created_at": "2026-10-28T22:20:34.948Z"
+    },
+    {
+      "id": "e3493858-1f01-4342-85ab-c4f0ed2911c0",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "rule": "Encoded PowerShell command executed",
+      "rule_id": "100230",
+      "attack_technique": "T1059.001",
+      "severity": "P3",
+      "node_id": "bdc26555-7972-427a-ad09-da3ffb53d57c",
+      "fields": {
+        "user": "CORP\\mkanu",
+        "parent": "C:\\IT\\inventory\\collect.cmd",
+        "command_line": "powershell -enc SQBuAHYAZQBuAHQAbwByAHkA...",
+        "signed_script": "yes (IT inventory)"
+      },
+      "state": "new",
+      "claimed_by": null,
+      "created_at": "2026-10-28T21:56:34.948Z"
+    },
+    {
+      "id": "08042684-25c4-4166-9517-91bde9f191d8",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "rule": "Impossible travel: sign-in from two countries",
+      "rule_id": "100511",
+      "attack_technique": "T1078",
+      "severity": "P2",
+      "node_id": "669e780c-7def-4431-aa87-af0a9c17438f",
+      "fields": {
+        "user": "mturay",
+        "locations": "Freetown SL, Frankfurt DE",
+        "gap_minutes": "6",
+        "frankfurt_ip_owner": "Salone Mutual VPN egress (AWS eu-central-1)"
+      },
+      "state": "new",
+      "claimed_by": null,
+      "created_at": "2026-10-28T21:56:34.948Z"
+    }
+  ],
+  "next_cursor": null
+}

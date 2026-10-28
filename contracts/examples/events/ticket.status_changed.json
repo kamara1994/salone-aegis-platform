@@ -1,0 +1,14 @@
+{
+  "seq": 3,
+  "type": "ticket.status_changed",
+  "occurred_at": "2026-10-28T22:26:37.003Z",
+  "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+  "subject": {
+    "kind": "ticket",
+    "id": "6acd24b4-046c-40e6-af72-efbe8acabedf"
+  },
+  "data": {
+    "from": "new",
+    "to": "acknowledged"
+  }
+}

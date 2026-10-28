@@ -1,0 +1,112 @@
+[
+  {
+    "id": "CV-01",
+    "control": "Network segmentation",
+    "family": "Network",
+    "attempt": "Corporate client opens DB01:5432",
+    "expected": "Blocked and logged",
+    "passed": true,
+    "evidence": "Blocked (filtered) by rule 99",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-02",
+    "control": "Guest isolation",
+    "family": "Network",
+    "attempt": "Guest host 10.10.80.37 to DC01:445",
+    "expected": "Blocked",
+    "passed": true,
+    "evidence": "block by rule 99",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-03",
+    "control": "Admin path",
+    "family": "Network",
+    "attempt": "User VLAN to FW01 SSH",
+    "expected": "Refused except from jump host",
+    "passed": true,
+    "evidence": "block by rule 99",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-04",
+    "control": "MFA for privileged access",
+    "family": "Identity",
+    "attempt": "Tier 1 admin sign-in without second factor",
+    "expected": "Denied",
+    "passed": true,
+    "evidence": "MFA enforced for adm-jkamara",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-05",
+    "control": "Least privilege",
+    "family": "Identity",
+    "attempt": "GG-Finance members outside OU=Finance",
+    "expected": "None",
+    "passed": true,
+    "evidence": "All GG-Finance members are Finance staff",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-06",
+    "control": "IaC guardrails",
+    "family": "Platform",
+    "attempt": "PR adds 0.0.0.0/0 on port 22",
+    "expected": "CI blocks the merge",
+    "passed": true,
+    "evidence": "OPA policy deny-open-admin-ports blocked the test PR",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-07",
+    "control": "Change control",
+    "family": "Platform",
+    "attempt": "Firewall rule without an approved change",
+    "expected": "Detected within one cycle",
+    "passed": true,
+    "evidence": "No unapproved rules in the running config",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-08",
+    "control": "Lateral movement",
+    "family": "Endpoint",
+    "attempt": "Workstation to workstation SMB",
+    "expected": "Blocked by host firewall",
+    "passed": true,
+    "evidence": "Windows Firewall blocked 445 between WS-FIN-02 and WS-OPS-03",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-09",
+    "control": "Egress control",
+    "family": "Network",
+    "attempt": "DB01 to the internet on 443",
+    "expected": "Blocked",
+    "passed": true,
+    "evidence": "block by rule 99",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-10",
+    "control": "Backup integrity",
+    "family": "Recover",
+    "attempt": "Nightly backup job authenticates and completes",
+    "expected": "Succeeds",
+    "passed": false,
+    "evidence": "BackupAgent failing to authenticate as svc-backup",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  },
+  {
+    "id": "CV-11",
+    "control": "Identity redundancy",
+    "family": "Recover",
+    "attempt": "Both domain controllers answer DNS",
+    "expected": "Both up",
+    "passed": true,
+    "evidence": "DC01 and DC02 healthy",
+    "ran_at": "2026-10-28T22:26:36.667Z"
+  }
+]

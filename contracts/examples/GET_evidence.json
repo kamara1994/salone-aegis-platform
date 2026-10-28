@@ -1,0 +1,115 @@
+[
+  {
+    "id": "a28023fb-ec03-43fc-bad5-30aa4dc3515e",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "status_change",
+    "payload": {
+      "from": null,
+      "to": "new"
+    },
+    "created_at": "2026-10-26T09:26:34.948Z",
+    "hash": "b77ac6d0707be8b8"
+  },
+  {
+    "id": "f24ad6f0-0e22-4798-9b34-bc9a33b5e851",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "status_change",
+    "payload": {
+      "from": "new",
+      "to": "acknowledged"
+    },
+    "created_at": "2026-10-26T09:30:34.948Z",
+    "hash": "699e455088d5b0de"
+  },
+  {
+    "id": "5587b52b-90fe-41ad-be23-490241d577ec",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "status_change",
+    "payload": {
+      "from": "acknowledged",
+      "to": "investigating"
+    },
+    "created_at": "2026-10-26T09:32:34.948Z",
+    "hash": "f8e2d0ac61d9749a"
+  },
+  {
+    "id": "a6f2a4f7-043c-43b1-a0b9-aff6cf468f21",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "chat",
+    "payload": {
+      "author": "client",
+      "body": "Hi, it's Abu Bangura. I'm at the airport in Accra and got a new phone. I need my MFA reset to this number right now, the wire approvals are due in 20 minutes."
+    },
+    "created_at": "2026-10-26T09:33:34.948Z",
+    "hash": "6c739adcdc4810d2"
+  },
+  {
+    "id": "2d4e1cbc-7274-4dda-8089-3043d942b368",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "command",
+    "payload": {
+      "node": "DC01",
+      "command": "Get-ADUser -Properties *",
+      "output": "(recorded)"
+    },
+    "created_at": "2026-10-26T09:35:34.948Z",
+    "hash": "ed1593cab26e62ce"
+  },
+  {
+    "id": "adade422-8327-44fe-b509-6f0f685ba5cd",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "status_change",
+    "payload": {
+      "from": "investigating",
+      "to": "pending_verification"
+    },
+    "created_at": "2026-10-26T09:50:34.948Z",
+    "hash": "72fea6d7c9357d7d"
+  },
+  {
+    "id": "73bf0214-c95e-4c45-9a72-c005456043e2",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "check",
+    "payload": {
+      "check_id": "no-reset",
+      "label": "MFA for abangura was not reset to an unverified device",
+      "passed": true
+    },
+    "created_at": "2026-10-26T09:51:34.948Z",
+    "hash": "4de74ef51d12cee3"
+  },
+  {
+    "id": "229f17f9-2dad-4088-ac21-fc407dab3133",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "check",
+    "payload": {
+      "check_id": "verified",
+      "label": "Identity check recorded through a trusted channel",
+      "passed": true
+    },
+    "created_at": "2026-10-26T09:51:34.948Z",
+    "hash": "b5fa52c290702180"
+  },
+  {
+    "id": "f50a9da4-b9e5-4384-aa25-6c8528e49a85",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "chat",
+    "payload": {
+      "author": "operator",
+      "body": "Explained the cause and fix in plain words."
+    },
+    "created_at": "2026-10-26T09:56:34.948Z",
+    "hash": "a9fe41a13a15d89f"
+  },
+  {
+    "id": "5b014e0c-4fc2-405c-8927-a49dec7b5ba4",
+    "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+    "kind": "debrief_answer",
+    "payload": {
+      "overall_score": 91,
+      "final": true
+    },
+    "created_at": "2026-10-26T10:06:34.948Z",
+    "hash": "4550cfbc0b041538"
+  }
+]

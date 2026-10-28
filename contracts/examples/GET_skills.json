@@ -1,0 +1,204 @@
+[
+  {
+    "skill": "VLANs and access ports",
+    "domain": "networking",
+    "frameworks": [
+      "CCNA"
+    ],
+    "level": 3,
+    "evidence_ids": [
+      "d2426d02-29aa-443b-a122-98888fff8651",
+      "65bd8967-3090-4b76-a34e-6145e5518d14"
+    ],
+    "updated_at": "2026-10-20T10:10:34.948Z"
+  },
+  {
+    "skill": "IP addressing and default gateways",
+    "domain": "networking",
+    "frameworks": [
+      "CCNA"
+    ],
+    "level": 1,
+    "evidence_ids": [
+      "7963a250-71ce-41eb-a081-14eeff403421"
+    ],
+    "updated_at": "2026-10-12T22:30:34.948Z"
+  },
+  {
+    "skill": "DHCP and DNS",
+    "domain": "networking",
+    "frameworks": [
+      "CCNA",
+      "Network+"
+    ],
+    "level": 3,
+    "evidence_ids": [
+      "bc7ef9ed-36d1-48ca-a970-2073462accc8",
+      "f7ed38bc-9ca3-4dcd-a9cd-04fea00a0867"
+    ],
+    "updated_at": "2026-10-24T22:02:34.948Z"
+  },
+  {
+    "skill": "Layer 1-2 troubleshooting (duplex, errors)",
+    "domain": "networking",
+    "frameworks": [
+      "CCNA",
+      "CCNP"
+    ],
+    "level": 2,
+    "evidence_ids": [
+      "ff16019a-e43f-47c9-a0c5-2980fbe466d7"
+    ],
+    "updated_at": "2026-10-17T10:22:34.948Z"
+  },
+  {
+    "skill": "Routing: OSPF and BGP",
+    "domain": "networking",
+    "frameworks": [
+      "CCNP",
+      "CCIE"
+    ],
+    "level": 0,
+    "evidence_ids": [],
+    "updated_at": "2026-10-28T22:26:36.544Z"
+  },
+  {
+    "skill": "Firewall segmentation",
+    "domain": "security_ops",
+    "frameworks": [
+      "Security+",
+      "CCNP Security"
+    ],
+    "level": 2,
+    "evidence_ids": [
+      "7867a413-3ac6-475a-a8e4-3e69b4de3120"
+    ],
+    "updated_at": "2026-10-14T10:34:34.948Z"
+  },
+  {
+    "skill": "Active Directory administration",
+    "domain": "identity",
+    "frameworks": [
+      "Microsoft",
+      "Interview"
+    ],
+    "level": 2,
+    "evidence_ids": [
+      "3d3f9b8d-3724-46a4-a759-7d27ea26aea6",
+      "a9ada85c-f97b-4433-a15c-4f469ab6f6bd"
+    ],
+    "updated_at": "2026-10-11T10:25:34.948Z"
+  },
+  {
+    "skill": "Account lockout investigation",
+    "domain": "identity",
+    "frameworks": [
+      "Interview",
+      "Security+"
+    ],
+    "level": 3,
+    "evidence_ids": [
+      "4ec8212c-84d3-4a0b-aea9-9e2a222623f9",
+      "4032e238-39c7-4ca9-ae66-928e87b8d8ef"
+    ],
+    "updated_at": "2026-10-23T10:18:34.948Z"
+  },
+  {
+    "skill": "Alert triage",
+    "domain": "security_ops",
+    "frameworks": [
+      "Security+",
+      "SOC"
+    ],
+    "level": 2,
+    "evidence_ids": [
+      "02052bc6-5d32-403d-ae6f-0d047559a49b"
+    ],
+    "updated_at": "2026-10-18T22:26:34.948Z"
+  },
+  {
+    "skill": "Social engineering defence",
+    "domain": "security_ops",
+    "frameworks": [
+      "Security+"
+    ],
+    "level": 3,
+    "evidence_ids": [
+      "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+    ],
+    "updated_at": "2026-10-26T10:06:34.948Z"
+  },
+  {
+    "skill": "Outage triage and incident command",
+    "domain": "endpoint",
+    "frameworks": [
+      "CCNP",
+      "ITIL"
+    ],
+    "level": 2,
+    "evidence_ids": [
+      "3d76d12a-f0ab-4e3f-a4e5-b648a4fdf45d"
+    ],
+    "updated_at": "2026-10-21T22:14:34.948Z"
+  },
+  {
+    "skill": "AWS networking and IAM",
+    "domain": "cloud",
+    "frameworks": [
+      "AWS"
+    ],
+    "level": 0,
+    "evidence_ids": [],
+    "updated_at": "2026-10-28T22:26:36.544Z"
+  },
+  {
+    "skill": "Explaining fixes to clients",
+    "domain": "communication",
+    "frameworks": [
+      "Interview"
+    ],
+    "level": 5,
+    "evidence_ids": [
+      "d2426d02-29aa-443b-a122-98888fff8651",
+      "3d3f9b8d-3724-46a4-a759-7d27ea26aea6",
+      "bc7ef9ed-36d1-48ca-a970-2073462accc8",
+      "a9ada85c-f97b-4433-a15c-4f469ab6f6bd",
+      "7963a250-71ce-41eb-a081-14eeff403421",
+      "7867a413-3ac6-475a-a8e4-3e69b4de3120",
+      "4ec8212c-84d3-4a0b-aea9-9e2a222623f9",
+      "ff16019a-e43f-47c9-a0c5-2980fbe466d7",
+      "02052bc6-5d32-403d-ae6f-0d047559a49b",
+      "65bd8967-3090-4b76-a34e-6145e5518d14",
+      "3d76d12a-f0ab-4e3f-a4e5-b648a4fdf45d",
+      "4032e238-39c7-4ca9-ae66-928e87b8d8ef",
+      "f7ed38bc-9ca3-4dcd-a9cd-04fea00a0867",
+      "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+    ],
+    "updated_at": "2026-10-26T10:06:34.948Z"
+  },
+  {
+    "skill": "Defending your work in interviews",
+    "domain": "interview",
+    "frameworks": [
+      "Interview"
+    ],
+    "level": 5,
+    "evidence_ids": [
+      "d2426d02-29aa-443b-a122-98888fff8651",
+      "3d3f9b8d-3724-46a4-a759-7d27ea26aea6",
+      "bc7ef9ed-36d1-48ca-a970-2073462accc8",
+      "a9ada85c-f97b-4433-a15c-4f469ab6f6bd",
+      "7963a250-71ce-41eb-a081-14eeff403421",
+      "7867a413-3ac6-475a-a8e4-3e69b4de3120",
+      "4ec8212c-84d3-4a0b-aea9-9e2a222623f9",
+      "ff16019a-e43f-47c9-a0c5-2980fbe466d7",
+      "02052bc6-5d32-403d-ae6f-0d047559a49b",
+      "65bd8967-3090-4b76-a34e-6145e5518d14",
+      "3d76d12a-f0ab-4e3f-a4e5-b648a4fdf45d",
+      "4032e238-39c7-4ca9-ae66-928e87b8d8ef",
+      "f7ed38bc-9ca3-4dcd-a9cd-04fea00a0867",
+      "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+    ],
+    "updated_at": "2026-10-26T10:06:34.948Z"
+  }
+]

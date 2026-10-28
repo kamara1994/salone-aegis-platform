@@ -1,0 +1,80 @@
+test_auth_required (test_api.APITests.test_auth_required) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_bad_cursor (test_api.APITests.test_bad_cursor) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_clients_pagination (test_api.APITests.test_clients_pagination) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_duplicate_chat_has_one_operator_message (test_api.APITests.test_duplicate_chat_has_one_operator_message) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_fake_console_is_explicitly_unavailable (test_api.APITests.test_fake_console_is_explicitly_unavailable) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_health (test_api.APITests.test_health) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_http_complete_loop (test_api.APITests.test_http_complete_loop) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_openapi_contains_all_blueprint_operations (test_api.APITests.test_openapi_contains_all_blueprint_operations) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_unknown_resource (test_api.APITests.test_unknown_resource) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_validation_and_unknown_fields (test_api.APITests.test_validation_and_unknown_fields) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_websocket_replay (test_api.APITests.test_websocket_replay) ... skipped 'FastAPI/httpx dependencies are unavailable in this execution environment'
+test_baseline_attempts_every_node_after_one_fails (test_audit_regressions.AuditRegressions.test_baseline_attempts_every_node_after_one_fails) ... ok
+test_cleanup_attempts_remaining_targets_after_failure (test_audit_regressions.AuditRegressions.test_cleanup_attempts_remaining_targets_after_failure) ... ok
+test_client_health_summary_is_scoped (test_audit_regressions.AuditRegressions.test_client_health_summary_is_scoped) ... ok
+test_duplicate_pack_ids_are_rejected (test_audit_regressions.AuditRegressions.test_duplicate_pack_ids_are_rejected) ... ok
+test_empty_identity_configuration_never_verifies (test_audit_regressions.AuditRegressions.test_empty_identity_configuration_never_verifies) ... ok
+test_lifecycle_ids_are_distinct_between_runs (test_audit_regressions.AuditRegressions.test_lifecycle_ids_are_distinct_between_runs) ... ok
+test_lifecycle_requires_positive_completion (test_audit_regressions.AuditRegressions.test_lifecycle_requires_positive_completion) ... ok
+test_multi_node_action_ids_are_distinct_and_stable (test_audit_regressions.AuditRegressions.test_multi_node_action_ids_are_distinct_and_stable) ... ok
+test_no_resolve_job_for_aborted_scenario (test_audit_regressions.AuditRegressions.test_no_resolve_job_for_aborted_scenario) ... ok
+test_node_details_include_related_ticket_without_private_state (test_audit_regressions.AuditRegressions.test_node_details_include_related_ticket_without_private_state) ... ok
+test_pending_verification_cannot_be_manually_bypassed (test_audit_regressions.AuditRegressions.test_pending_verification_cannot_be_manually_bypassed) ... ok
+test_production_rejects_cleartext_jwks (test_audit_regressions.AuditRegressions.test_production_rejects_cleartext_jwks) ... ok
+test_record_identity_is_never_written_into_the_api_error (test_audit_regressions.AuditRegressions.test_record_identity_is_never_written_into_the_api_error) ... ok
+test_scenario_slug_must_match_its_pack_folder (test_audit_regressions.AuditRegressions.test_scenario_slug_must_match_its_pack_folder) ... ok
+test_unallowlisted_read_tool_fails_pack_validation (test_audit_regressions.AuditRegressions.test_unallowlisted_read_tool_fails_pack_validation) ... ok
+test_unconfirmed_action_is_not_reported_completed (test_audit_regressions.AuditRegressions.test_unconfirmed_action_is_not_reported_completed) ... ok
+test_unicode_bearer_token_is_rejected_without_crashing (test_audit_regressions.AuditRegressions.test_unicode_bearer_token_is_rejected_without_crashing) ... ok
+test_unicode_identity_answers_do_not_crash (test_audit_regressions.AuditRegressions.test_unicode_identity_answers_do_not_crash) ... ok
+test_abort_restores_baseline (test_domain.BackendTests.test_abort_restores_baseline) ... ok
+test_alert_deduplication (test_domain.BackendTests.test_alert_deduplication) ... ok
+test_all_systems_have_fake_adapters (test_domain.BackendTests.test_all_systems_have_fake_adapters) ... ok
+test_baseline_restore_blocks_new_mutations (test_domain.BackendTests.test_baseline_restore_blocks_new_mutations) ... ok
+test_baseline_restore_is_idempotent_and_cleans (test_domain.BackendTests.test_baseline_restore_is_idempotent_and_cleans) ... ok
+test_cleanup_failure_is_visible (test_domain.BackendTests.test_cleanup_failure_is_visible) ... ok
+test_cleanup_on_setup_failure (test_domain.BackendTests.test_cleanup_on_setup_failure) ... ok
+test_client_read_tools_are_grounded (test_domain.BackendTests.test_client_read_tools_are_grounded) ... ok
+test_complete_operator_loop (test_domain.BackendTests.test_complete_operator_loop) ... ok
+test_confirmation_single_use_and_scope (test_domain.BackendTests.test_confirmation_single_use_and_scope) ... ok
+test_denied_flows_require_firewall_logs (test_domain.BackendTests.test_denied_flows_require_firewall_logs) ... ok
+test_events_replay_and_tenant_filter (test_domain.BackendTests.test_events_replay_and_tenant_filter) ... ok
+test_evidence_database_rejects_update (test_domain.BackendTests.test_evidence_database_rejects_update) ... ok
+test_expired_confirmation (test_domain.BackendTests.test_expired_confirmation) ... ok
+test_failed_checks_return_to_investigation (test_domain.BackendTests.test_failed_checks_return_to_investigation) ... ok
+test_flow_cannot_cross_tenants (test_domain.BackendTests.test_flow_cannot_cross_tenants) ... ok
+test_hash_chain_detects_tampering (test_domain.BackendTests.test_hash_chain_detects_tampering) ... ok
+test_idempotency_conflict (test_domain.BackendTests.test_idempotency_conflict) ... ok
+test_identity_verification_and_no_answer_in_evidence (test_domain.BackendTests.test_identity_verification_and_no_answer_in_evidence) ... ok
+test_impostor_never_passes (test_domain.BackendTests.test_impostor_never_passes) ... ok
+test_launch_idempotency (test_domain.BackendTests.test_launch_idempotency) ... ok
+test_no_platform_host_actions (test_domain.BackendTests.test_no_platform_host_actions) ... ok
+test_no_untagged_actions (test_domain.BackendTests.test_no_untagged_actions) ... ok
+test_operator_cannot_admin (test_domain.BackendTests.test_operator_cannot_admin) ... ok
+test_pack_public_view_hides_answers (test_domain.BackendTests.test_pack_public_view_hides_answers) ... ok
+test_pack_traversal_is_rejected (test_domain.BackendTests.test_pack_traversal_is_rejected) ... ok
+test_prompt_injection_does_not_execute_tools (test_domain.BackendTests.test_prompt_injection_does_not_execute_tools) ... ok
+test_restore_rejects_undrained_lab_jobs (test_domain.BackendTests.test_restore_rejects_undrained_lab_jobs) ... ok
+test_sanitized_export_excludes_secrets_and_text (test_domain.BackendTests.test_sanitized_export_excludes_secrets_and_text) ... ok
+test_seed_is_idempotent (test_domain.BackendTests.test_seed_is_idempotent) ... ok
+test_seed_two_clients_and_uuid_ids (test_domain.BackendTests.test_seed_two_clients_and_uuid_ids) ... ok
+test_sensitive_request_blocked_without_identity (test_domain.BackendTests.test_sensitive_request_blocked_without_identity) ... ok
+test_sla_tick_emits_one_notification (test_domain.BackendTests.test_sla_tick_emits_one_notification) ... ok
+test_state_machine_cannot_skip (test_domain.BackendTests.test_state_machine_cannot_skip) ... ok
+test_target_reservation_prevents_overlapping_scenarios (test_domain.BackendTests.test_target_reservation_prevents_overlapping_scenarios) ... ok
+test_tenant_cannot_be_reassigned_by_upsert (test_domain.BackendTests.test_tenant_cannot_be_reassigned_by_upsert) ... ok
+test_tenant_isolation (test_domain.BackendTests.test_tenant_isolation) ... ok
+test_tool_write_is_denied (test_domain.BackendTests.test_tool_write_is_denied) ... ok
+test_transaction_rollback_has_no_events (test_domain.BackendTests.test_transaction_rollback_has_no_events) ... ok
+test_verified_starts_debrief_but_does_not_skip_explanation (test_domain.BackendTests.test_verified_starts_debrief_but_does_not_skip_explanation) ... ok
+test_viewer_cannot_write (test_domain.BackendTests.test_viewer_cannot_write) ... ok
+test_confirmation_secret_is_required (test_security.SecurityTests.test_confirmation_secret_is_required) ... ok
+test_guacamole_assertion_round_trip (test_security.SecurityTests.test_guacamole_assertion_round_trip) ... ok
+test_live_adapters_refuse_cleartext (test_security.SecurityTests.test_live_adapters_refuse_cleartext) ... ok
+test_production_rejects_development_auth (test_security.SecurityTests.test_production_rejects_development_auth) ... ok
+test_weak_dev_token_is_rejected (test_security.SecurityTests.test_weak_dev_token_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 75 tests in 1.350s
+
+OK (skipped=11)

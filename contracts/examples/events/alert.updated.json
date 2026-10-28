@@ -1,0 +1,17 @@
+{
+  "seq": 8,
+  "type": "alert.updated",
+  "occurred_at": "2026-10-28T22:26:37.495Z",
+  "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+  "subject": {
+    "kind": "alert",
+    "id": "8a2ff9dd-bcfe-4a7c-85bb-869c7c4dcde9"
+  },
+  "data": {
+    "id": "8a2ff9dd-bcfe-4a7c-85bb-869c7c4dcde9",
+    "rule": "Possible password spray (Kerberos pre-auth failures)",
+    "severity": "P2",
+    "node_id": "669e780c-7def-4431-aa87-af0a9c17438f",
+    "state": "claimed"
+  }
+}

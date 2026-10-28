@@ -1,0 +1,20 @@
+{
+  "seq": 12,
+  "type": "notification.created",
+  "occurred_at": "2026-10-28T22:26:38.003Z",
+  "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+  "subject": {
+    "kind": "notification",
+    "id": "3af2ecb4-a350-48c5-b5d8-a2e822c9c7ad"
+  },
+  "data": {
+    "id": "3af2ecb4-a350-48c5-b5d8-a2e822c9c7ad",
+    "kind": "break_fix",
+    "severity": "P3",
+    "title": "SM-1003: Everything is slow today",
+    "body": "Hi, the network is really slow today. Opening files from the shared drive takes forever.",
+    "source": "client",
+    "ticket_id": "9e4317e9-eead-4e5b-82ef-6c2d2e291aaf",
+    "push": false
+  }
+}

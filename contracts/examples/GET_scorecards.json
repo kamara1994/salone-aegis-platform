@@ -1,0 +1,72 @@
+{
+  "operator": {
+    "tickets_closed": 14,
+    "sla_met_pct": 86,
+    "mttr_minutes": 43,
+    "reopen_rate_pct": 14,
+    "avg_debrief_score": 72,
+    "hints_per_ticket": 0.4,
+    "trend": [
+      {
+        "week": "2026-W41",
+        "sla_met_pct": 75,
+        "mttr_minutes": 56,
+        "avg_debrief_score": 60
+      },
+      {
+        "week": "2026-W42",
+        "sla_met_pct": 80,
+        "mttr_minutes": 48,
+        "avg_debrief_score": 70
+      },
+      {
+        "week": "2026-W43",
+        "sla_met_pct": 100,
+        "mttr_minutes": 33,
+        "avg_debrief_score": 82
+      },
+      {
+        "week": "2026-W44",
+        "sla_met_pct": 100,
+        "mttr_minutes": 26,
+        "avg_debrief_score": 91
+      }
+    ]
+  },
+  "control": {
+    "pass_pct": 91,
+    "families": [
+      {
+        "family": "Network",
+        "nist_csf": "Protect",
+        "passed": 4,
+        "total": 4
+      },
+      {
+        "family": "Identity",
+        "nist_csf": "Protect",
+        "passed": 2,
+        "total": 2
+      },
+      {
+        "family": "Platform",
+        "nist_csf": "Govern",
+        "passed": 2,
+        "total": 2
+      },
+      {
+        "family": "Endpoint",
+        "nist_csf": "Detect",
+        "passed": 1,
+        "total": 1
+      },
+      {
+        "family": "Recover",
+        "nist_csf": "Recover",
+        "passed": 1,
+        "total": 2
+      }
+    ]
+  },
+  "generated_at": "2026-10-28T22:26:36.394Z"
+}

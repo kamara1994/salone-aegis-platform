@@ -1,0 +1,8 @@
+! Cleanup: Gi0/12 back to an access port in VLAN 20.
+! Sent line by line to SW-ACC-01 over SSH by the scenario runner. Contract: scenarios/README.md
+configure terminal
+interface GigabitEthernet0/12
+ switchport mode access
+ switchport access vlan 20
+ no shutdown
+end

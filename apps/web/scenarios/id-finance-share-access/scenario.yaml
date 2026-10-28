@@ -1,0 +1,41 @@
+id: id-finance-share-access
+version: 1
+title: "Can't open the Finance share"
+client: salone-mutual
+category: identity
+tags: [interview, security-plus, it-support, release-1]
+difficulty: 2
+estimated_minutes: 15
+sla: { priority: P3, resolve_within: 4h }
+notification:
+  kind: break_fix
+  channel: chat
+  persona: ibrahim-finance
+  title: "Access denied on \\\\FS01\\Finance"
+  opening: "Hello, since this morning I get 'Access is denied' when I open the Finance folder. I need the month-end reports!"
+persona: { name: Ibrahim Conteh, role: Senior Accountant, traits: [stressed, cooperative] }
+affected_nodes: [DC01, FS01, WS-FIN-02]
+setup:
+  - { target: DC01, run: scripts/inject.ps1 }
+cleanup:
+  - { target: DC01, run: scripts/restore.ps1 }
+client_facts:
+  - { ask: [did anything change, changed, moved, new role], answer: "Nothing... oh, HR updated my title last week after my promotion." }
+  - { ask: [whoami, groups, whoami /groups], tool: read.whoami_groups, target: WS-FIN-02 }
+  - { ask: [error, message, screenshot], answer: "It says: Windows cannot access \\\\FS01\\Finance. You do not have permission." }
+hints:
+  - "Compare the user's group memberships to the share's permissions."
+  - "Check Get-ADUser iconteh -Properties MemberOf."
+  - "He was moved from GG-Finance to GG-Operations. Add him back to GG-Finance."
+checks:
+  - { id: in-finance-group, label: "iconteh is a member of GG-Finance", target: DC01, run: scripts/check_group.ps1 }
+  - { id: share-access, label: "iconteh can read \\\\FS01\\Finance", target: FS01, run: scripts/check_access.ps1 }
+debrief:
+  interviewer: hiring-manager
+  root_cause: "A mover change put the user in GG-Operations and removed GG-Finance, so the NTFS ACL denied access."
+  must_cover: [group membership, ntfs, agdlp, mover, kerberos ticket]
+  what_ifs:
+    - "You add him back but he still gets access denied. Why might that be?"
+    - "How do you stop mover changes from silently removing access people still need?"
+  prevention: "Role-based groups owned by HR data, plus an access review after each mover event."
+  rubric: { root_cause: 30, safe_fix: 25, verification: 20, documentation: 15, client_explanation: 10 }

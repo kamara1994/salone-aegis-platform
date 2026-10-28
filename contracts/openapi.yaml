@@ -1,0 +1,1023 @@
+openapi: 3.1.0
+info:
+  title: AEGIS Operator Platform API
+  version: 1.0.0
+  description: |
+    Contract 2 of the SALONE AEGIS Platform Build Blueprint.
+    Single source of truth shared by the front end (apps/web) and the back end (services/*).
+    Rules: all paths under /api/v1, JSON only, Keycloak bearer token on every call,
+    UUID ids, UTC ISO 8601 timestamps, cursor pagination, one error shape.
+    Any write that starts lab work returns 202 with a Job; its result arrives as a
+    job.completed / job.failed event on the WebSocket (see events.schema.json).
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - { name: identity }
+  - { name: clients }
+  - { name: topology }
+  - { name: notifications }
+  - { name: tickets }
+  - { name: chat }
+  - { name: scenarios }
+  - { name: debrief }
+  - { name: soc }
+  - { name: evidence }
+  - { name: flows }
+  - { name: lab }
+  - { name: settings }
+
+paths:
+  /me:
+    get:
+      tags: [identity]
+      operationId: getMe
+      summary: Current operator, roles and preferences
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /clients:
+    get:
+      tags: [clients]
+      operationId: listClients
+      summary: Tenants with sector, SLA tier and health summary
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Client' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /clients/{id}:
+    get:
+      tags: [clients]
+      operationId: getClient
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Client' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /topology:
+    get:
+      tags: [topology]
+      operationId: getTopology
+      summary: Sites, nodes, links and current health in one payload
+      parameters:
+        - { name: client_id, in: query, required: false, schema: { type: string, format: uuid }, description: Omit for all clients }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Topology' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /nodes/{id}:
+    get:
+      tags: [topology]
+      operationId: getNode
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/NodeDetail' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /nodes/{id}/actions:
+    post:
+      tags: [lab]
+      operationId: nodeAction
+      summary: start, stop, reboot, snapshot or revert a node (async)
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/NodeActionRequest' } } }
+      responses:
+        '202': { description: Accepted, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /nodes/{id}/console-sessions:
+    post:
+      tags: [lab]
+      operationId: createConsoleSession
+      summary: Short-lived single-use tunnel for SSH, RDP, VNC or serial (brokered by Guacamole)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ConsoleSessionRequest' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ConsoleSession' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /notifications:
+    get:
+      tags: [notifications]
+      operationId: listNotifications
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: unread, in: query, schema: { type: boolean } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /notifications/{id}/ack:
+    post:
+      tags: [notifications]
+      operationId: ackNotification
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Notification' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /tickets:
+    get:
+      tags: [tickets]
+      operationId: listTickets
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: client_id, in: query, schema: { type: string, format: uuid } }
+        - { name: status, in: query, schema: { type: array, items: { $ref: '#/components/schemas/TicketStatus' } }, style: form, explode: false }
+        - { name: priority, in: query, schema: { type: array, items: { $ref: '#/components/schemas/Priority' } }, style: form, explode: false }
+        - { name: sla_breached, in: query, schema: { type: boolean } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TicketPage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /tickets/{id}:
+    get:
+      tags: [tickets]
+      operationId: getTicket
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TicketDetail' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [tickets]
+      operationId: updateTicket
+      summary: Status (forward only, per the state machine), assignee, work notes
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/TicketPatch' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TicketDetail' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        default: { $ref: '#/components/responses/Error' }
+  /tickets/{id}/resolve:
+    post:
+      tags: [tickets]
+      operationId: resolveTicket
+      summary: Runs the scenario checks (async). Ticket moves to verified, or back to investigating.
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ResolveRequest' } } }
+      responses:
+        '202': { description: Accepted, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        default: { $ref: '#/components/responses/Error' }
+  /tickets/{id}/chat:
+    get:
+      tags: [chat]
+      operationId: listChat
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ChatMessage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      tags: [chat]
+      operationId: postChat
+      summary: Operator message. The persona reply streams as chat.typing then chat.message events.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ChatPost' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ChatMessage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /tickets/{id}/chat/verify-identity:
+    post:
+      tags: [chat]
+      operationId: verifyIdentity
+      summary: Records the identity check the operator performed before a sensitive action
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/IdentityVerificationRequest' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/IdentityVerificationResult' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /tickets/{id}/debrief:
+    get:
+      tags: [debrief]
+      operationId: getDebrief
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Debrief' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /debriefs/{id}/answers:
+    post:
+      tags: [debrief]
+      operationId: answerDebrief
+      summary: Answer the current question. Score and the next question stream as events.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/DebriefAnswerRequest' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Debrief' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /debriefs/{id}/defer:
+    post:
+      tags: [debrief]
+      operationId: deferDebrief
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Debrief' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /scenarios:
+    get:
+      tags: [scenarios]
+      operationId: listScenarios
+      parameters:
+        - { name: tag, in: query, schema: { type: array, items: { type: string } }, style: form, explode: false }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ScenarioSummary' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /scenario-runs:
+    post:
+      tags: [scenarios]
+      operationId: createScenarioRun
+      summary: Manual launch (normally the scheduler launches). Injects the fault and opens the ticket.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ScenarioRunCreate' } } }
+      responses:
+        '202': { description: Accepted, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /scenario-runs/{id}:
+    get:
+      tags: [scenarios]
+      operationId: getScenarioRun
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ScenarioRun' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /scenario-runs/{id}/hint:
+    post:
+      tags: [scenarios]
+      operationId: takeHint
+      summary: Next rung of the hint ladder. Costs points. Disabled in exam mode.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Hint' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        default: { $ref: '#/components/responses/Error' }
+  /scenario-runs/{id}/abort:
+    post:
+      tags: [scenarios]
+      operationId: abortScenarioRun
+      summary: Abort and run the cleanup scripts to restore the baseline (async)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '202': { description: Accepted, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /alerts:
+    get:
+      tags: [soc]
+      operationId: listAlerts
+      summary: SOC alert queue (true positives and false positives mixed)
+      parameters:
+        - { $ref: '#/components/parameters/Cursor' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { name: state, in: query, schema: { type: array, items: { $ref: '#/components/schemas/AlertState' } }, style: form, explode: false }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AlertPage' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /alerts/{id}/claim:
+    post:
+      tags: [soc]
+      operationId: claimAlert
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Alert' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        default: { $ref: '#/components/responses/Error' }
+  /alerts/{id}:
+    patch:
+      tags: [soc]
+      operationId: classifyAlert
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AlertClassification' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Alert' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /evidence:
+    get:
+      tags: [evidence]
+      operationId: listEvidence
+      parameters:
+        - { name: ticket_id, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/EvidenceRecord' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /scorecards:
+    get:
+      tags: [evidence]
+      operationId: getScorecards
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Scorecards' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /skills:
+    get:
+      tags: [evidence]
+      operationId: listSkills
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/SkillScore' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /controls:
+    get:
+      tags: [evidence]
+      operationId: listControlResults
+      summary: Latest Control Validation Engine results (pass/fail per control)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ControlResult' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /flows:
+    get:
+      tags: [flows]
+      operationId: listFlows
+      parameters:
+        - { name: edge_id, in: query, required: true, schema: { type: string } }
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Flow' } } } }
+        default: { $ref: '#/components/responses/Error' }
+  /replay/{ticket_id}:
+    get:
+      tags: [evidence]
+      operationId: getReplay
+      parameters:
+        - { name: ticket_id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ReplayTimeline' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /lab/baseline/restore:
+    post:
+      tags: [lab]
+      operationId: restoreBaseline
+      summary: Restore the golden baseline. Requires the confirmation token shown to the operator.
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/BaselineRestoreRequest' } } }
+      responses:
+        '202': { description: Accepted, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+  /settings:
+    get:
+      tags: [settings]
+      operationId: getSettings
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Settings' } } } }
+        default: { $ref: '#/components/responses/Error' }
+    put:
+      tags: [settings]
+      operationId: putSettings
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Settings' } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Settings' } } } }
+        default: { $ref: '#/components/responses/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT, description: Keycloak access token (OIDC) }
+
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    Cursor: { name: cursor, in: query, schema: { type: string } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: false, schema: { type: string, maxLength: 64 } }
+
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, examples: [not_found, invalid_transition, forbidden, conflict, validation_failed] }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+
+    Uuid: { type: string, format: uuid }
+    Timestamp: { type: string, format: date-time }
+    Role: { type: string, enum: [operator, admin, viewer] }
+    Sector: { type: string, enum: [bank, clinic, school, small_business, startup, home_user, factory] }
+    SlaTier: { type: string, enum: [platinum, gold, silver, bronze] }
+    Health: { type: string, enum: [healthy, degraded, down, unknown] }
+    Priority: { type: string, enum: [P1, P2, P3, P4] }
+    TicketStatus:
+      type: string
+      description: Forward-only. pending_verification can return to investigating when a check fails.
+      enum: [new, acknowledged, investigating, pending_verification, verified, client_explanation, debrief, closed]
+    NodeKind: { type: string, enum: [vm, router, switch, firewall, cloud_resource, container] }
+    OsFamily: { type: string, enum: [windows, linux, ios, opnsense, cloud, other] }
+    ConsoleProtocol: { type: string, enum: [ssh, rdp, vnc, serial] }
+    Difficulty: { type: integer, minimum: 1, maximum: 9 }
+    ScenarioMode: { type: string, enum: [practice, exam] }
+    AlertState: { type: string, enum: [new, claimed, classified] }
+    AlertVerdict: { type: string, enum: [true_positive, false_positive, benign_true_positive, insufficient_evidence] }
+
+    Me:
+      type: object
+      required: [id, name, email, roles, preferences]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        name: { type: string }
+        email: { type: string, format: email }
+        roles: { type: array, items: { $ref: '#/components/schemas/Role' } }
+        on_call: { type: boolean }
+        preferences:
+          type: object
+          properties:
+            theme: { type: string, enum: [dark, light, system] }
+            default_client_id: { $ref: '#/components/schemas/Uuid' }
+
+    Client:
+      type: object
+      required: [id, name, sector, sla_tier, status, health_summary]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        slug: { type: string }
+        name: { type: string }
+        sector: { $ref: '#/components/schemas/Sector' }
+        sla_tier: { $ref: '#/components/schemas/SlaTier' }
+        status: { type: string, enum: [active, onboarding, paused] }
+        compliance: { type: array, items: { type: string }, examples: [[PCI DSS (lab exercise)]] }
+        health_summary:
+          type: object
+          required: [healthy, degraded, down, open_tickets]
+          properties:
+            healthy: { type: integer }
+            degraded: { type: integer }
+            down: { type: integer }
+            open_tickets: { type: integer }
+
+    Site:
+      type: object
+      required: [id, client_id, name, cidr]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        client_id: { $ref: '#/components/schemas/Uuid' }
+        name: { type: string }
+        cidr: { type: string, examples: [10.10.0.0/16] }
+        kind: { type: string, enum: [hq, branch, cloud, recovery] }
+
+    Node:
+      type: object
+      required: [id, client_id, site_id, kind, name, health]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        client_id: { $ref: '#/components/schemas/Uuid' }
+        site_id: { $ref: '#/components/schemas/Uuid' }
+        kind: { $ref: '#/components/schemas/NodeKind' }
+        os: { $ref: '#/components/schemas/OsFamily' }
+        name: { type: string }
+        role: { type: string, examples: [Domain controller, Access switch] }
+        mgmt_ip: { type: string }
+        vlan: { type: integer }
+        platform_ref: { type: string, description: Hypervisor or cloud identifier }
+        power: { type: string, enum: [running, stopped, unknown] }
+        health: { $ref: '#/components/schemas/Health' }
+        consoles: { type: array, items: { $ref: '#/components/schemas/ConsoleProtocol' } }
+        tags: { type: array, items: { type: string } }
+
+    NodeDetail:
+      allOf:
+        - $ref: '#/components/schemas/Node'
+        - type: object
+          properties:
+            specs:
+              type: object
+              properties:
+                vcpu: { type: integer }
+                ram_gb: { type: number }
+                disk_gb: { type: number }
+            ips: { type: array, items: { type: string } }
+            metrics:
+              type: object
+              properties:
+                cpu_pct: { type: number }
+                ram_pct: { type: number }
+                disk_pct: { type: number }
+            open_ticket_ids: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+            recent_alert_ids: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+            snapshots: { type: array, items: { type: object, properties: { name: { type: string }, taken_at: { $ref: '#/components/schemas/Timestamp' } } } }
+
+    Link:
+      type: object
+      required: [id, a_node_id, b_node_id, kind, state]
+      properties:
+        id: { type: string }
+        a_node_id: { $ref: '#/components/schemas/Uuid' }
+        b_node_id: { $ref: '#/components/schemas/Uuid' }
+        kind: { type: string, enum: [ethernet, trunk, vpn, wan, cloud] }
+        label: { type: string }
+        state: { type: string, enum: [up, down, degraded] }
+
+    Topology:
+      type: object
+      required: [sites, nodes, links, generated_at]
+      properties:
+        sites: { type: array, items: { $ref: '#/components/schemas/Site' } }
+        nodes: { type: array, items: { $ref: '#/components/schemas/Node' } }
+        links: { type: array, items: { $ref: '#/components/schemas/Link' } }
+        generated_at: { $ref: '#/components/schemas/Timestamp' }
+
+    Flow:
+      type: object
+      required: [edge_id, src, dst, port, proto, bytes_per_s, verdict, observed_at]
+      properties:
+        edge_id: { type: string }
+        src: { type: string }
+        dst: { type: string }
+        port: { type: integer }
+        proto: { type: string, enum: [tcp, udp, icmp] }
+        app: { type: string, examples: [https, smb, dns, ldap, rdp] }
+        bytes_per_s: { type: number }
+        packets: { type: integer }
+        verdict: { type: string, enum: [allowed, denied] }
+        source: { type: string, enum: [zeek, firewall], description: Denied flows come from firewall logs }
+        observed_at: { $ref: '#/components/schemas/Timestamp' }
+
+    NodeActionRequest:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [start, stop, reboot, snapshot, revert] }
+        snapshot_name: { type: string }
+        confirm: { type: boolean, description: Required true for stop and revert }
+
+    ConsoleSessionRequest:
+      type: object
+      required: [protocol]
+      properties:
+        protocol: { $ref: '#/components/schemas/ConsoleProtocol' }
+        ticket_id: { $ref: '#/components/schemas/Uuid' }
+
+    ConsoleSession:
+      type: object
+      required: [id, protocol, tunnel_url, token, expires_at]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        protocol: { $ref: '#/components/schemas/ConsoleProtocol' }
+        tunnel_url: { type: string, description: Guacamole WebSocket tunnel URL }
+        token: { type: string, description: Single use, valid 5 minutes to connect }
+        expires_at: { $ref: '#/components/schemas/Timestamp' }
+
+    Job:
+      type: object
+      required: [id, kind, status, created_at]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        kind: { type: string, examples: [node.action, ticket.resolve, scenario.launch, scenario.abort, baseline.restore] }
+        status: { type: string, enum: [queued, running, completed, failed] }
+        subject: { $ref: '#/components/schemas/Subject' }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+
+    Subject:
+      type: object
+      required: [kind, id]
+      properties:
+        kind: { type: string, enum: [ticket, node, scenario_run, debrief, notification, alert, client, job, link] }
+        id: { type: string }
+
+    Notification:
+      type: object
+      required: [id, client_id, kind, severity, title, body, source, created_at, read]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        client_id: { $ref: '#/components/schemas/Uuid' }
+        kind: { type: string, enum: [growth, break_fix, security, advisory, system] }
+        severity: { $ref: '#/components/schemas/Priority' }
+        title: { type: string }
+        body: { type: string }
+        source: { type: string, enum: [scenario, cisa_kev, patch_tuesday, monitor, client, vendor_advisory] }
+        ticket_id: { $ref: '#/components/schemas/Uuid' }
+        read: { type: boolean }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+
+    NotificationPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Notification' } }
+        next_cursor: { type: [string, 'null'] }
+
+    Ticket:
+      type: object
+      required: [id, client_id, number, title, priority, status, sla_due_at, created_at]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        client_id: { $ref: '#/components/schemas/Uuid' }
+        number: { type: string, examples: [SM-1042] }
+        title: { type: string }
+        priority: { $ref: '#/components/schemas/Priority' }
+        status: { $ref: '#/components/schemas/TicketStatus' }
+        category: { type: string, examples: [network, identity, security, endpoint, cloud, onboarding] }
+        assignee: { type: [string, 'null'] }
+        reporter_persona_id: { $ref: '#/components/schemas/Uuid' }
+        scenario_run_id: { $ref: '#/components/schemas/Uuid' }
+        affected_node_ids: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+        tags: { type: array, items: { type: string } }
+        sla_due_at: { $ref: '#/components/schemas/Timestamp' }
+        sla_breached: { type: boolean }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+        updated_at: { $ref: '#/components/schemas/Timestamp' }
+
+    TicketPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Ticket' } }
+        next_cursor: { type: [string, 'null'] }
+
+    WorkNote:
+      type: object
+      required: [id, author, body, created_at]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        author: { type: string }
+        body: { type: string }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+
+    TicketDetail:
+      allOf:
+        - $ref: '#/components/schemas/Ticket'
+        - type: object
+          required: [work_notes, checks, timeline]
+          properties:
+            description: { type: string }
+            persona: { $ref: '#/components/schemas/Persona' }
+            work_notes: { type: array, items: { $ref: '#/components/schemas/WorkNote' } }
+            checks: { type: array, items: { $ref: '#/components/schemas/CheckResult' } }
+            hints_used: { type: integer }
+            hints_available: { type: integer }
+            mode: { $ref: '#/components/schemas/ScenarioMode' }
+            debrief_id: { $ref: '#/components/schemas/Uuid' }
+            timeline:
+              type: array
+              items:
+                type: object
+                required: [at, kind, summary]
+                properties:
+                  at: { $ref: '#/components/schemas/Timestamp' }
+                  kind: { type: string }
+                  summary: { type: string }
+
+    TicketPatch:
+      type: object
+      properties:
+        status: { $ref: '#/components/schemas/TicketStatus' }
+        assignee: { type: [string, 'null'] }
+        add_work_note: { type: string }
+
+    ResolveRequest:
+      type: object
+      required: [resolution_note]
+      properties:
+        resolution_note: { type: string, minLength: 10, description: The resolve button is disabled until work notes exist }
+
+    Persona:
+      type: object
+      required: [id, client_id, name, role]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        client_id: { $ref: '#/components/schemas/Uuid' }
+        name: { type: string }
+        role: { type: string }
+        traits: { type: array, items: { type: string }, examples: [[non-technical, impatient]] }
+        avatar_initials: { type: string }
+
+    ChatChannel: { type: string, enum: [chat, email, voice] }
+    ChatMessage:
+      type: object
+      required: [id, ticket_id, author, channel, body, created_at]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        ticket_id: { $ref: '#/components/schemas/Uuid' }
+        author: { type: string, enum: [operator, client, system] }
+        channel: { $ref: '#/components/schemas/ChatChannel' }
+        body: { type: string }
+        attachments:
+          type: array
+          items: { type: object, properties: { kind: { type: string, enum: [command_output, screenshot] }, content: { type: string } } }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+
+    ChatPost:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1 }
+        channel: { $ref: '#/components/schemas/ChatChannel' }
+        intent: { type: string, enum: [question, instruction, explanation], description: Hint for the persona; explanation is scored at client_explanation }
+
+    IdentityVerificationRequest:
+      type: object
+      required: [method]
+      properties:
+        method: { type: string, enum: [callback_known_number, manager_confirmation, security_questions, in_person] }
+        notes: { type: string }
+
+    IdentityVerificationResult:
+      type: object
+      required: [verified, recorded_at]
+      properties:
+        verified: { type: boolean }
+        detail: { type: string }
+        recorded_at: { $ref: '#/components/schemas/Timestamp' }
+
+    ScenarioSummary:
+      type: object
+      required: [id, version, title, tags, difficulty, client_slug]
+      properties:
+        id: { type: string }
+        version: { type: integer }
+        title: { type: string }
+        client_slug: { type: string }
+        tags: { type: array, items: { type: string } }
+        difficulty: { $ref: '#/components/schemas/Difficulty' }
+        priority: { $ref: '#/components/schemas/Priority' }
+        interviewer: { type: string }
+        estimated_minutes: { type: integer }
+
+    ScenarioRunCreate:
+      type: object
+      required: [scenario_id, mode]
+      properties:
+        scenario_id: { type: string }
+        mode: { $ref: '#/components/schemas/ScenarioMode' }
+
+    ScenarioRun:
+      type: object
+      required: [id, scenario_id, client_id, state, mode, hints_used]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        scenario_id: { type: string }
+        client_id: { $ref: '#/components/schemas/Uuid' }
+        ticket_id: { $ref: '#/components/schemas/Uuid' }
+        state: { type: string, enum: [scheduled, injecting, running, resolved, aborted, failed] }
+        mode: { $ref: '#/components/schemas/ScenarioMode' }
+        injected_at: { $ref: '#/components/schemas/Timestamp' }
+        resolved_at: { $ref: '#/components/schemas/Timestamp' }
+        hints_used: { type: integer }
+        alert_id: { $ref: '#/components/schemas/Uuid' }
+        alert_verdict:
+          description: Set when the run's linked SOC alert is classified. Read by check scripts.
+          allOf: [{ $ref: '#/components/schemas/AlertVerdict' }]
+        identity_checks:
+          type: array
+          description: Identity verifications recorded on the run's ticket. Read by check scripts.
+          items:
+            type: object
+            required: [method, at]
+            properties:
+              method: { type: string, enum: [callback_known_number, manager_confirmation, security_questions, in_person] }
+              at: { $ref: '#/components/schemas/Timestamp' }
+
+    Hint:
+      type: object
+      required: [rung, text, points_cost, remaining]
+      properties:
+        rung: { type: integer }
+        text: { type: string }
+        points_cost: { type: integer }
+        remaining: { type: integer }
+
+    CheckResult:
+      type: object
+      required: [id, check_id, passed]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        scenario_run_id: { $ref: '#/components/schemas/Uuid' }
+        check_id: { type: string }
+        label: { type: string }
+        passed: { type: [boolean, 'null'], description: null while running }
+        output: { type: string }
+        ran_at: { $ref: '#/components/schemas/Timestamp' }
+
+    DebriefQuestion:
+      type: object
+      required: [id, text, depth]
+      properties:
+        id: { type: string }
+        text: { type: string }
+        depth: { type: integer, description: 1 ticket story, 2 protocol depth, 3 what-if, 4 prevention at scale }
+        kind: { type: string, enum: [behavioral, technical, what_if, lessons, system_design, lightning] }
+        answer: { type: string }
+        score: { $ref: '#/components/schemas/AnswerScore' }
+
+    AnswerScore:
+      type: object
+      required: [total]
+      properties:
+        total: { type: number, minimum: 0, maximum: 100 }
+        accuracy: { type: number }
+        depth: { type: number }
+        structure: { type: number }
+        numbers: { type: number }
+        honesty: { type: number }
+        conciseness: { type: number }
+        feedback: { type: string }
+        model_answer: { type: string }
+
+    Debrief:
+      type: object
+      required: [id, ticket_id, interviewer, state, questions]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        ticket_id: { $ref: '#/components/schemas/Uuid' }
+        interviewer: { type: string, enum: [senior_network_engineer, soc_lead, hiring_manager, ciso, recruiter_screen] }
+        state: { type: string, enum: [pending, running, deferred, scored] }
+        questions: { type: array, items: { $ref: '#/components/schemas/DebriefQuestion' } }
+        current_question_id: { type: [string, 'null'] }
+        overall_score: { type: [number, 'null'] }
+        study_list: { type: array, items: { type: string } }
+        assigned_scenarios: { type: array, items: { type: string } }
+
+    DebriefAnswerRequest:
+      type: object
+      required: [question_id, answer]
+      properties:
+        question_id: { type: string }
+        answer: { type: string, minLength: 1 }
+
+    Alert:
+      type: object
+      required: [id, client_id, rule, severity, state, created_at]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        client_id: { $ref: '#/components/schemas/Uuid' }
+        rule: { type: string }
+        rule_id: { type: string }
+        attack_technique: { type: string, examples: [T1110.003] }
+        severity: { $ref: '#/components/schemas/Priority' }
+        node_id: { $ref: '#/components/schemas/Uuid' }
+        fields: { type: object, additionalProperties: { type: string } }
+        state: { $ref: '#/components/schemas/AlertState' }
+        claimed_by: { type: [string, 'null'] }
+        verdict: { $ref: '#/components/schemas/AlertVerdict' }
+        linked_ticket_id: { $ref: '#/components/schemas/Uuid' }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+
+    AlertPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Alert' } }
+        next_cursor: { type: [string, 'null'] }
+
+    AlertClassification:
+      type: object
+      required: [verdict, rationale]
+      properties:
+        verdict: { $ref: '#/components/schemas/AlertVerdict' }
+        rationale: { type: string, minLength: 10 }
+        open_ticket: { type: boolean }
+
+    EvidenceRecord:
+      type: object
+      required: [id, ticket_id, kind, payload, created_at]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        ticket_id: { $ref: '#/components/schemas/Uuid' }
+        kind: { type: string, enum: [status_change, command, chat, hint, check, node_action, debrief_answer, identity_check, note] }
+        payload: { type: object, additionalProperties: true }
+        hash: { type: string, description: Hash chained to the previous record }
+        created_at: { $ref: '#/components/schemas/Timestamp' }
+
+    Scorecards:
+      type: object
+      required: [operator, control, generated_at]
+      properties:
+        operator:
+          type: object
+          required: [tickets_closed, sla_met_pct, mttr_minutes, reopen_rate_pct, avg_debrief_score]
+          properties:
+            tickets_closed: { type: integer }
+            sla_met_pct: { type: number }
+            mttr_minutes: { type: number }
+            reopen_rate_pct: { type: number }
+            avg_debrief_score: { type: number }
+            hints_per_ticket: { type: number }
+            trend:
+              type: array
+              items:
+                type: object
+                properties:
+                  week: { type: string }
+                  sla_met_pct: { type: number }
+                  mttr_minutes: { type: number }
+                  avg_debrief_score: { type: number }
+        control:
+          type: object
+          required: [pass_pct, families]
+          properties:
+            pass_pct: { type: number }
+            families:
+              type: array
+              items:
+                type: object
+                properties:
+                  family: { type: string }
+                  nist_csf: { type: string }
+                  passed: { type: integer }
+                  total: { type: integer }
+        generated_at: { $ref: '#/components/schemas/Timestamp' }
+
+    SkillScore:
+      type: object
+      required: [skill, domain, level, evidence_ids, updated_at]
+      properties:
+        skill: { type: string }
+        domain: { type: string, enum: [networking, identity, endpoint, security_ops, cloud, communication, interview] }
+        frameworks: { type: array, items: { type: string }, examples: [[CCNA, CCNP]] }
+        level: { type: integer, minimum: 0, maximum: 5, description: 0 not started, 1 studied, 2-5 proven at increasing difficulty }
+        evidence_ids: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+        updated_at: { $ref: '#/components/schemas/Timestamp' }
+
+    ControlResult:
+      type: object
+      required: [id, control, family, attempt, passed, ran_at]
+      properties:
+        id: { type: string }
+        control: { type: string }
+        family: { type: string }
+        attempt: { type: string }
+        expected: { type: string }
+        passed: { type: boolean }
+        evidence: { type: string }
+        ran_at: { $ref: '#/components/schemas/Timestamp' }
+
+    ReplayTimeline:
+      type: object
+      required: [ticket_id, started_at, ended_at, frames]
+      properties:
+        ticket_id: { $ref: '#/components/schemas/Uuid' }
+        started_at: { $ref: '#/components/schemas/Timestamp' }
+        ended_at: { $ref: '#/components/schemas/Timestamp' }
+        frames:
+          type: array
+          description: Every platform event for the ticket, in order (same envelope as the WebSocket)
+          items: { type: object, additionalProperties: true }
+
+    BaselineRestoreRequest:
+      type: object
+      required: [confirmation_token]
+      properties:
+        client_id: { $ref: '#/components/schemas/Uuid' }
+        confirmation_token: { type: string, description: Operator must type RESTORE }
+
+    Settings:
+      type: object
+      required: [schedule, notifications]
+      properties:
+        schedule:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            tickets_per_day: { type: integer, minimum: 0, maximum: 50 }
+            max_difficulty: { $ref: '#/components/schemas/Difficulty' }
+            business_hours_only: { type: boolean }
+            exam_mode: { type: boolean }
+            enabled_clients: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+        notifications:
+          type: object
+          properties:
+            push_p1: { type: boolean }
+            sound: { type: boolean }
+            quiet_hours: { type: string, examples: ['22:00-07:00'] }
+        on_call: { type: boolean }

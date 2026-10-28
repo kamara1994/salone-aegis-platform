@@ -1,0 +1,18 @@
+{
+  "seq": 15,
+  "type": "job.completed",
+  "occurred_at": "2026-10-28T22:26:38.004Z",
+  "client_id": null,
+  "subject": {
+    "kind": "job",
+    "id": "2d7ed432-3bcf-45bf-a771-a8e23e69478a"
+  },
+  "data": {
+    "job_id": "2d7ed432-3bcf-45bf-a771-a8e23e69478a",
+    "kind": "scenario.launch",
+    "result": {
+      "ticket_id": "9e4317e9-eead-4e5b-82ef-6c2d2e291aaf",
+      "run_id": "d247f469-ef7e-4931-8c0f-9215247abddf"
+    }
+  }
+}

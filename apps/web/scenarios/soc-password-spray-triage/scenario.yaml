@@ -1,0 +1,39 @@
+id: soc-password-spray-triage
+version: 1
+title: "Alert: 50 failed logins in 5 minutes"
+client: salone-mutual
+category: security
+tags: [security-plus, soc, interview, release-1]
+difficulty: 3
+estimated_minutes: 30
+sla: { priority: P2, resolve_within: 1h }
+notification:
+  kind: security
+  channel: chat
+  persona: soc-bot
+  title: "Wazuh: possible password spray against corp.salonemutual.lab"
+  opening: "Automated alert: 52 failed Kerberos pre-authentications (event 4771) across 3 accounts in 5 minutes. Rule 100410, ATT&CK T1110.003."
+persona: { name: Wazuh SIEM, role: Automated alert, traits: [automated] }
+affected_nodes: [DC01, BKP01, WAZUH01]
+setup:
+  - { target: BKP01, run: scripts/inject.ps1 }
+cleanup:
+  - { target: BKP01, run: scripts/restore.ps1 }
+client_facts:
+  - { ask: [source ip, from where, source], answer: "Source address 10.10.70.15 (BKP01) for all 52 events." }
+hints:
+  - "Spray attacks try one password across many users. Do these failures look like that?"
+  - "All failures come from BKP01 for service accounts. What runs there?"
+  - "svc-backup's password was rotated but the backup service still uses the old one. Classify as benign true positive and fix the service credential."
+checks:
+  - { id: classified, label: "Alert classified as benign true positive with rationale", target: WAZUH01, run: scripts/check_classification.sh }
+  - { id: failures-stopped, label: "No new 4771 events from BKP01 for 5 minutes", target: DC01, run: scripts/check_failures.ps1 }
+debrief:
+  interviewer: soc-lead
+  root_cause: "A rotated service account password was not updated in the backup service, which retried with the old one."
+  must_cover: [spray pattern, source host, service account, false positive vs benign true positive, rotation]
+  what_ifs:
+    - "The same alert, but from 30 different source IPs. What changes?"
+    - "How do you tune this rule without blinding yourself to a real spray?"
+  prevention: "Managed service accounts (gMSA) with automatic rotation, and a suppression scoped to the known host."
+  rubric: { root_cause: 30, safe_fix: 20, verification: 20, documentation: 20, client_explanation: 10 }

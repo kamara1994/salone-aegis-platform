@@ -1,0 +1,9 @@
+! Check "errors-cleared" for net-duplex-mismatch: No new CRC or late-collision errors on Gi0/3
+! The runner sends each command line to SW-ACC-01 and matches the combined output against
+! every "! expect:" (must match) and "! expect-not:" (must not match) regex. All must hold to pass.
+clear counters GigabitEthernet0/3
+
+! runner: wait 60
+show interfaces GigabitEthernet0/3
+! expect: \b0 input errors, 0 CRC
+! expect: \b0 late collision

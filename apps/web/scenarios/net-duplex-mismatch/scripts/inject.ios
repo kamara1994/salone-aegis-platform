@@ -1,0 +1,8 @@
+! Setup: Gi0/3 (FS01) hard-set to 100/half while the server NIC auto-negotiates.
+! Sent line by line to SW-ACC-01 over SSH by the scenario runner. Contract: scenarios/README.md
+configure terminal
+interface GigabitEthernet0/3
+ speed 100
+ duplex half
+end
+clear counters GigabitEthernet0/3

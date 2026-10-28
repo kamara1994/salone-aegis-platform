@@ -1,0 +1,18 @@
+{
+  "schedule": {
+    "enabled": true,
+    "tickets_per_day": 12,
+    "max_difficulty": 5,
+    "business_hours_only": false,
+    "exam_mode": false,
+    "enabled_clients": [
+      "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3"
+    ]
+  },
+  "notifications": {
+    "push_p1": true,
+    "sound": false,
+    "quiet_hours": "22:00-07:00"
+  },
+  "on_call": true
+}

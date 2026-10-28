@@ -1,0 +1,41 @@
+id: net-duplex-mismatch
+version: 1
+title: "The network is slow"
+client: salone-mutual
+category: network
+tags: [ccna, interview, release-1]
+difficulty: 2
+estimated_minutes: 25
+sla: { priority: P3, resolve_within: 8h }
+notification:
+  kind: break_fix
+  channel: chat
+  persona: ibrahim-finance
+  title: "Everything is slow today"
+  opening: "Hi, the network is really slow today. Opening files from the shared drive takes forever."
+persona: { name: Ibrahim Conteh, role: Senior Accountant, traits: [vague, cooperative] }
+affected_nodes: [SW-ACC-01, FS01]
+setup:
+  - { target: SW-ACC-01, run: scripts/inject.ios }
+cleanup:
+  - { target: SW-ACC-01, run: scripts/restore.ios }
+client_facts:
+  - { ask: [internet, websites, browsing], answer: "Websites seem fine actually. It's mostly the shared drive." }
+  - { ask: [everyone, colleagues, others], answer: "Everyone in Finance is complaining." }
+  - { ask: [since when, when did it start], answer: "Since this morning I think." }
+hints:
+  - "If only the file share is slow, look at the path to the file server."
+  - "Check the switch port that connects FS01 for errors."
+  - "Gi0/3 is forced to 100/half while the server is full duplex: late collisions and CRC errors. Set duplex and speed to auto."
+checks:
+  - { id: duplex, label: "Gi0/3 negotiates full duplex", target: SW-ACC-01, run: scripts/check_duplex.ios }
+  - { id: errors-cleared, label: "No new CRC or late-collision errors on Gi0/3", target: SW-ACC-01, run: scripts/check_errors.ios }
+debrief:
+  interviewer: senior-network-engineer
+  root_cause: "Duplex mismatch on the file server's switch port (half on the switch, full on the server)."
+  must_cover: [duplex, late collisions, crc, show interfaces, autonegotiation]
+  what_ifs:
+    - "The counters show only output drops, no CRC errors. What does that point to?"
+    - "How do you baseline 'normal' so 'slow' becomes measurable?"
+  prevention: "Interface error monitoring with alerts, and auto-negotiation as the standard."
+  rubric: { root_cause: 30, safe_fix: 25, verification: 20, documentation: 15, client_explanation: 10 }

@@ -1,0 +1,34 @@
+id: 4dba7f68-221c-4ce6-84ad-300b06f06695
+slug: net-gateway-wrong
+version: 1
+title: PC has an IP but cannot leave its subnet
+tags: [ccna, networking, release-1]
+difficulty: 2
+sla: {priority: P3, resolve_within: 4h}
+notification:
+  channel: chat
+  opening: Hi, my computer says connected but I cannot open anything. Payroll is due today.
+setup:
+  - {target: ws-fin-02, run: scripts/inject.ps1}
+cleanup:
+  - {target: ws-fin-02, run: scripts/restore.ps1}
+solve:
+  - {target: ws-fin-02, run: scripts/restore.ps1}
+checks:
+  - {id: gw-correct, target: ws-fin-02, run: scripts/check_gateway.ps1}
+  - {id: reaches-salonepay, target: ws-fin-02, run: scripts/check_http.ps1}
+client_facts:
+  - {ask: [ipconfig, ip address, gateway], tool: read.ipconfig, target: ws-fin-02}
+  - {ask: [change anything], answer: IT came by yesterday to fix my printer.}
+hints:
+  - Can the PC reach other hosts on its subnet?
+  - Compare its default gateway with the VLAN gateway.
+  - The configured gateway ends in .254; check the approved baseline.
+debrief:
+  interviewer: senior-network-engineer
+  root_cause: Static default gateway pointed at a non-existent address.
+  must_cover: [arp, default-gateway-role, dhcp-vs-static, how-you-isolated-it]
+  what_ifs:
+    - Same symptom, but the gateway is correct. What next?
+    - How would you prevent this across 500 PCs?
+  rubric: {root_cause: 30, safe_fix: 25, verification: 20, documentation: 15, client_explanation: 10}

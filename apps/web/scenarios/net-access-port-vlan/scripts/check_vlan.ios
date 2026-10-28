@@ -1,0 +1,9 @@
+! Check "port-vlan" for net-access-port-vlan: Gi0/12 is an access port in VLAN 20
+! The runner sends each command line to SW-ACC-01 and matches the combined output against
+! every "! expect:" (must match) and "! expect-not:" (must not match) regex. All must hold to pass.
+show interfaces GigabitEthernet0/12 switchport
+show interfaces GigabitEthernet0/12 status
+! expect: Administrative Mode: static access
+! expect: Access Mode VLAN: 20 \(
+! expect: Gi0/12\s+.*connected\s+20\s
+! expect-not: disabled|err-disabled

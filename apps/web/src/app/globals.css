@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+@import 'dockview-react/dist/styles/dockview.css';
+@import '@xyflow/react/dist/style.css';
+@import '@xterm/xterm/css/xterm.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Night-shift desk: ink-blue base, Salone blue for action, green only for healthy. */
+:root,
+[data-theme='dark'] {
+  --ink: #0b1826;
+  --pane: #102236;
+  --pane-2: #15304a;
+  --line: #22405c;
+  --line-strong: #2f5679;
+  --text: #e4edf5;
+  --muted: #8ea7bd;
+  --faint: #5f7d96;
+  --action: #3b8ee8;
+  --action-ink: #ffffff;
+  --healthy: #2fb36a;
+  --degraded: #e5a23a;
+  --down: #e5484d;
+  --p1: #ff5d63;
+  --focus: #79b8ff;
+  color-scheme: dark;
+}
+[data-theme='light'] {
+  --ink: #eef2f6;
+  --pane: #ffffff;
+  --pane-2: #f4f7fa;
+  --line: #d4dee8;
+  --line-strong: #b4c4d4;
+  --text: #0f2233;
+  --muted: #4e6679;
+  --faint: #7d93a5;
+  --action: #1f6fc9;
+  --action-ink: #ffffff;
+  --healthy: #1d8f50;
+  --degraded: #b8770f;
+  --down: #c9353a;
+  --p1: #c9353a;
+  --focus: #1f6fc9;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-pane: var(--pane);
+  --color-pane-2: var(--pane-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-action: var(--action);
+  --color-action-ink: var(--action-ink);
+  --color-healthy: var(--healthy);
+  --color-degraded: var(--degraded);
+  --color-down: var(--down);
+  --color-p1: var(--p1);
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  --radius-pane: 6px;
+}
+
+html,
+body {
+  height: 100%;
+}
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+::selection {
+  background: color-mix(in srgb, var(--action) 35%, transparent);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .react-flow__edge-path.flowing {
+    animation: none !important;
+  }
+}
+
+/* Live map edges: dash offset moves with traffic. */
+@keyframes flow-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.react-flow__edge-path.flowing {
+  stroke-dasharray: 6 6;
+  animation: flow-dash 1.2s linear infinite;
+}
+.react-flow__edge-path.denied {
+  stroke-dasharray: 3 5;
+}
+.react-flow {
+  --xy-background-color: transparent;
+  --xy-node-background-color: var(--pane);
+  --xy-node-border: 1px solid var(--line-strong);
+  --xy-node-color: var(--text);
+  --xy-edge-stroke: var(--line-strong);
+  --xy-minimap-background-color: var(--pane);
+  --xy-controls-button-background-color: var(--pane);
+  --xy-controls-button-background-color-hover: var(--pane-2);
+  --xy-controls-button-color: var(--text);
+  --xy-controls-button-border-color: var(--line);
+  --xy-attribution-background-color: transparent;
+}
+
+/* Dockview themed to the desk. */
+.dockview-theme-aegis {
+  --dv-group-view-background-color: var(--pane);
+  --dv-tabs-and-actions-container-background-color: var(--pane-2);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--pane);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--pane-2);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--pane);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--pane-2);
+  --dv-tab-divider-color: var(--line);
+  --dv-activegroup-visiblepanel-tab-color: var(--text);
+  --dv-activegroup-hiddenpanel-tab-color: var(--muted);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--muted);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--faint);
+  --dv-separator-border: var(--line);
+  --dv-paneview-header-border-color: var(--line);
+  --dv-drag-over-background-color: color-mix(in srgb, var(--action) 18%, transparent);
+  --dv-drag-over-border-color: var(--action);
+  --dv-tabs-container-scrollbar-color: var(--line-strong);
+  --dv-icon-hover-background-color: var(--pane);
+  --dv-floating-box-shadow: none;
+  --dv-tabs-and-actions-container-font-size: 12.5px;
+  --dv-tabs-and-actions-container-height: 32px;
+  --dv-tab-close-icon: var(--muted);
+  --dv-background-color: var(--ink);
+  --dv-group-gap-size: 4px;
+}
+.dockview-theme-aegis .dv-groupview {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
+  overflow: hidden;
+}
+
+.xterm {
+  padding: 8px;
+}
+.xterm-viewport {
+  background: transparent !important;
+}

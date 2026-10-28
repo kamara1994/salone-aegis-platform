@@ -1,0 +1,155 @@
+{
+  "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+  "started_at": "2026-10-26T09:26:34.948Z",
+  "ended_at": "2026-10-26T10:06:34.948Z",
+  "frames": [
+    {
+      "seq": 1,
+      "occurred_at": "2026-10-26T09:26:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "ticket.status_changed",
+      "data": {
+        "from": null,
+        "to": "new"
+      }
+    },
+    {
+      "seq": 2,
+      "occurred_at": "2026-10-26T09:30:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "ticket.status_changed",
+      "data": {
+        "from": "new",
+        "to": "acknowledged"
+      }
+    },
+    {
+      "seq": 3,
+      "occurred_at": "2026-10-26T09:32:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "ticket.status_changed",
+      "data": {
+        "from": "acknowledged",
+        "to": "investigating"
+      }
+    },
+    {
+      "seq": 4,
+      "occurred_at": "2026-10-26T09:33:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "chat.message",
+      "data": {
+        "id": "ba4b45f0-c155-4673-90e2-a05721b6d06e",
+        "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+        "author": "client",
+        "channel": "chat",
+        "body": "Hi, it's Abu Bangura. I'm at the airport in Accra and got a new phone. I need my MFA reset to this number right now, the wire approvals are due in 20 minutes."
+      }
+    },
+    {
+      "seq": 5,
+      "occurred_at": "2026-10-26T09:35:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "ticket.updated",
+      "data": {
+        "command": "Get-ADUser -Properties *",
+        "node": "DC01"
+      }
+    },
+    {
+      "seq": 6,
+      "occurred_at": "2026-10-26T09:50:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "ticket.status_changed",
+      "data": {
+        "from": "investigating",
+        "to": "pending_verification"
+      }
+    },
+    {
+      "seq": 7,
+      "occurred_at": "2026-10-26T09:51:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "check.result",
+      "data": {
+        "check_id": "no-reset",
+        "label": "MFA for abangura was not reset to an unverified device",
+        "passed": true
+      }
+    },
+    {
+      "seq": 8,
+      "occurred_at": "2026-10-26T09:51:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "check.result",
+      "data": {
+        "check_id": "verified",
+        "label": "Identity check recorded through a trusted channel",
+        "passed": true
+      }
+    },
+    {
+      "seq": 9,
+      "occurred_at": "2026-10-26T09:56:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "chat.message",
+      "data": {
+        "id": "2d76e2ea-46b7-470c-b443-7d91f9791ac5",
+        "ticket_id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+        "author": "operator",
+        "channel": "chat",
+        "body": "Explained the cause and fix in plain words."
+      }
+    },
+    {
+      "seq": 10,
+      "occurred_at": "2026-10-26T10:06:34.948Z",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "subject": {
+        "kind": "ticket",
+        "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb"
+      },
+      "type": "debrief.scored",
+      "data": {
+        "overall_score": 91,
+        "final": true
+      }
+    }
+  ]
+}

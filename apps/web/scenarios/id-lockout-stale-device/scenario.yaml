@@ -1,0 +1,40 @@
+id: id-lockout-stale-device
+version: 1
+title: "Locked out every 10 minutes"
+client: salone-mutual
+category: identity
+tags: [interview, it-support, security-plus, release-1]
+difficulty: 3
+estimated_minutes: 25
+sla: { priority: P2, resolve_within: 4h }
+notification:
+  kind: break_fix
+  channel: chat
+  persona: john-ops
+  title: "Account keeps locking"
+  opening: "IT, my account keeps locking! I changed my password yesterday like the email said, and now I'm locked out every few minutes. This is the third time today."
+persona: { name: John Davies, role: Logistics Supervisor, traits: [impatient, frustrated] }
+affected_nodes: [DC01]
+setup:
+  - { target: DC01, run: scripts/inject.ps1 }
+cleanup:
+  - { target: DC01, run: scripts/restore.ps1 }
+client_facts:
+  - { ask: [phone, mobile, email on phone, other devices], answer: "I have work email on my phone, yes. Why?" }
+  - { ask: [when did you change, password change], answer: "Yesterday afternoon, from my desktop." }
+hints:
+  - "Lockouts are caused by bad passwords somewhere. Find where they come from."
+  - "Event 4740 on the PDC emulator records the source of each lockout."
+  - "The source is MBL-JDAVIES, his phone, still using the old password. Unlock the account and have him update the phone."
+checks:
+  - { id: unlocked, label: "jdavies is not locked out", target: DC01, run: scripts/check_unlocked.ps1 }
+  - { id: source-fixed, label: "No bad-password attempts from MBL-JDAVIES for 5 minutes", target: DC01, run: scripts/check_source.ps1 }
+debrief:
+  interviewer: hiring-manager
+  root_cause: "A mobile device kept retrying the old password after a change, tripping the lockout threshold."
+  must_cover: [event 4740, lockout source, pdc emulator, stale credentials, user communication]
+  what_ifs:
+    - "Event 4740 shows the caller as the Exchange server, not a device. Now what?"
+    - "Same pattern for 40 users at once. What does that suggest?"
+  prevention: "Modern auth on mobile mail, plus user guidance sent with every password-change reminder."
+  rubric: { root_cause: 30, safe_fix: 20, verification: 20, documentation: 10, client_explanation: 20 }

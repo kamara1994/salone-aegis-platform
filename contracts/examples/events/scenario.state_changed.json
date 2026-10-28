@@ -1,0 +1,19 @@
+{
+  "seq": 9,
+  "type": "scenario.state_changed",
+  "occurred_at": "2026-10-28T22:26:38.003Z",
+  "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+  "subject": {
+    "kind": "scenario_run",
+    "id": "d247f469-ef7e-4931-8c0f-9215247abddf"
+  },
+  "data": {
+    "scenario_id": "net-duplex-mismatch",
+    "state": "running",
+    "ticket_id": "9e4317e9-eead-4e5b-82ef-6c2d2e291aaf",
+    "affected_node_ids": [
+      "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "dfcd0486-f391-4433-a3e5-1ad009eea74d"
+    ]
+  }
+}

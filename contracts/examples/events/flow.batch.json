@@ -1,0 +1,141 @@
+{
+  "seq": 1,
+  "type": "flow.batch",
+  "occurred_at": "2026-10-28T22:26:34.958Z",
+  "client_id": null,
+  "subject": {
+    "kind": "link",
+    "id": "all"
+  },
+  "data": {
+    "window_s": 2,
+    "edges": [
+      {
+        "edge_id": "link:SW-ACC-01--WS-FIN-07",
+        "bytes_per_s": 640132,
+        "allowed": 4,
+        "denied": 0,
+        "top_app": "smb"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--APP01",
+        "bytes_per_s": 1061462,
+        "allowed": 5,
+        "denied": 0,
+        "top_app": "postgres"
+      },
+      {
+        "edge_id": "link:FW01--SW-ACC-01",
+        "bytes_per_s": 2236262,
+        "allowed": 14,
+        "denied": 0,
+        "top_app": "smb"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--FS01",
+        "bytes_per_s": 830369,
+        "allowed": 4,
+        "denied": 0,
+        "top_app": "smb"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--DC01",
+        "bytes_per_s": 50344,
+        "allowed": 6,
+        "denied": 0,
+        "top_app": "ldap"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--WS-OPS-03",
+        "bytes_per_s": 641278,
+        "allowed": 5,
+        "denied": 0,
+        "top_app": "smb"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--DB01",
+        "bytes_per_s": 545759,
+        "allowed": 2,
+        "denied": 0,
+        "top_app": "postgres"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--BKP01",
+        "bytes_per_s": 23376,
+        "allowed": 3,
+        "denied": 0,
+        "top_app": "kerberos"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--WAZUH01",
+        "bytes_per_s": 76253,
+        "allowed": 9,
+        "denied": 0,
+        "top_app": "syslog"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--DC02",
+        "bytes_per_s": 7233,
+        "allowed": 1,
+        "denied": 0,
+        "top_app": "syslog"
+      },
+      {
+        "edge_id": "link:SW-ACC-01--WS-FIN-02",
+        "bytes_per_s": 8911,
+        "allowed": 1,
+        "denied": 0,
+        "top_app": "syslog"
+      },
+      {
+        "edge_id": "link:BO-RTR01--WS-BO-01",
+        "bytes_per_s": 89198,
+        "allowed": 1,
+        "denied": 0,
+        "top_app": "https"
+      },
+      {
+        "edge_id": "link:FW01--BO-RTR01",
+        "bytes_per_s": 89198,
+        "allowed": 1,
+        "denied": 0,
+        "top_app": "https"
+      },
+      {
+        "edge_id": "link:FW01--AWS-ALB",
+        "bytes_per_s": 314546,
+        "allowed": 1,
+        "denied": 0,
+        "top_app": "postgres-repl"
+      },
+      {
+        "edge_id": "link:AWS-ALB--AWS-APP",
+        "bytes_per_s": 314546,
+        "allowed": 1,
+        "denied": 0,
+        "top_app": "postgres-repl"
+      },
+      {
+        "edge_id": "link:KL-FW--KL-WS-01",
+        "bytes_per_s": 145387,
+        "allowed": 1,
+        "denied": 0,
+        "top_app": "https"
+      },
+      {
+        "edge_id": "link:KL-FW--KL-M365",
+        "bytes_per_s": 254319,
+        "allowed": 2,
+        "denied": 0,
+        "top_app": "https"
+      },
+      {
+        "edge_id": "link:KL-FW--KL-WS-02",
+        "bytes_per_s": 108933,
+        "allowed": 1,
+        "denied": 0,
+        "top_app": "https"
+      }
+    ]
+  }
+}

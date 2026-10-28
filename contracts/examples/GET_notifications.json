@@ -1,0 +1,62 @@
+{
+  "items": [
+    {
+      "id": "f4721dde-bbda-4474-9719-aef35a3afe87",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "kind": "security",
+      "severity": "P2",
+      "title": "SM-1002: Wazuh: possible password spray against corp.salonemutual.lab",
+      "body": "Automated alert: 52 failed Kerberos pre-authentications (event 4771) across 3 accounts in 5 minutes. Rule 100410, ATT&CK T1110.003.",
+      "source": "monitor",
+      "ticket_id": "6acd24b4-046c-40e6-af72-efbe8acabedf",
+      "read": false,
+      "created_at": "2026-10-28T22:20:34.948Z"
+    },
+    {
+      "id": "c980a679-e692-4f09-b9b0-0c095eab2c26",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "kind": "break_fix",
+      "severity": "P3",
+      "title": "SM-1001: Connected but nothing opens",
+      "body": "Hi, my computer says connected but I can't open anything. Payroll is due today.",
+      "source": "client",
+      "ticket_id": "dd855303-eaf1-4e39-bcfb-5e06f70e66cc",
+      "read": false,
+      "created_at": "2026-10-28T22:12:34.948Z"
+    },
+    {
+      "id": "15b42485-5abf-4d50-93be-e1921b170c51",
+      "client_id": "a4857852-489e-4a0f-ab29-e550f9fd154d",
+      "kind": "growth",
+      "severity": "P4",
+      "title": "Kamara Logistics signed: onboarding starts",
+      "body": "New client: small logistics business on Microsoft 365, one office firewall, 2 laptops. Silver SLA. Onboarding checklist opens when you enable the client in Settings.",
+      "source": "client",
+      "read": false,
+      "created_at": "2026-10-28T19:14:34.948Z"
+    },
+    {
+      "id": "20c0d4d2-718f-4de2-add1-f62db3a85fad",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "kind": "advisory",
+      "severity": "P2",
+      "title": "Sample feed: CISA KEV adds an exploited VPN appliance flaw",
+      "body": "In live mode this comes from the CISA Known Exploited Vulnerabilities feed and is matched against client inventory. 1 client runs an affected product family. Patch or mitigate within 48 hours.",
+      "source": "cisa_kev",
+      "read": false,
+      "created_at": "2026-10-28T16:56:34.948Z"
+    },
+    {
+      "id": "a1b5c244-c00f-4d4a-b533-104c856b6fdf",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "kind": "advisory",
+      "severity": "P3",
+      "title": "Sample feed: Patch Tuesday, 3 critical Windows updates",
+      "body": "In live mode this comes from Microsoft's monthly release. Ring 1 (test) is due Wednesday, ring 2 (pilot) Thursday.",
+      "source": "patch_tuesday",
+      "read": false,
+      "created_at": "2026-10-27T20:26:34.948Z"
+    }
+  ],
+  "next_cursor": null
+}

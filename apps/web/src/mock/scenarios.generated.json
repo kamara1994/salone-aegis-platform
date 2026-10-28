@@ -1,0 +1,1266 @@
+[
+  {
+    "id": "id-finance-share-access",
+    "version": 1,
+    "title": "Can't open the Finance share",
+    "client": "salone-mutual",
+    "category": "identity",
+    "tags": [
+      "interview",
+      "security-plus",
+      "it-support",
+      "release-1"
+    ],
+    "difficulty": 2,
+    "estimated_minutes": 15,
+    "sla": {
+      "priority": "P3",
+      "resolve_within": "4h"
+    },
+    "notification": {
+      "kind": "break_fix",
+      "channel": "chat",
+      "persona": "ibrahim-finance",
+      "title": "Access denied on \\\\FS01\\Finance",
+      "opening": "Hello, since this morning I get 'Access is denied' when I open the Finance folder. I need the month-end reports!"
+    },
+    "persona": {
+      "name": "Ibrahim Conteh",
+      "role": "Senior Accountant",
+      "traits": [
+        "stressed",
+        "cooperative"
+      ]
+    },
+    "affected_nodes": [
+      "DC01",
+      "FS01",
+      "WS-FIN-02"
+    ],
+    "setup": [
+      {
+        "target": "DC01",
+        "run": "scripts/inject.ps1"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "DC01",
+        "run": "scripts/restore.ps1"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "did anything change",
+          "changed",
+          "moved",
+          "new role"
+        ],
+        "answer": "Nothing... oh, HR updated my title last week after my promotion."
+      },
+      {
+        "ask": [
+          "whoami",
+          "groups",
+          "whoami /groups"
+        ],
+        "tool": "read.whoami_groups",
+        "target": "WS-FIN-02"
+      },
+      {
+        "ask": [
+          "error",
+          "message",
+          "screenshot"
+        ],
+        "answer": "It says: Windows cannot access \\\\FS01\\Finance. You do not have permission."
+      }
+    ],
+    "hints": [
+      "Compare the user's group memberships to the share's permissions.",
+      "Check Get-ADUser iconteh -Properties MemberOf.",
+      "He was moved from GG-Finance to GG-Operations. Add him back to GG-Finance."
+    ],
+    "checks": [
+      {
+        "id": "in-finance-group",
+        "label": "iconteh is a member of GG-Finance",
+        "target": "DC01",
+        "run": "scripts/check_group.ps1"
+      },
+      {
+        "id": "share-access",
+        "label": "iconteh can read \\\\FS01\\Finance",
+        "target": "FS01",
+        "run": "scripts/check_access.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "hiring-manager",
+      "root_cause": "A mover change put the user in GG-Operations and removed GG-Finance, so the NTFS ACL denied access.",
+      "must_cover": [
+        "group membership",
+        "ntfs",
+        "agdlp",
+        "mover",
+        "kerberos ticket"
+      ],
+      "what_ifs": [
+        "You add him back but he still gets access denied. Why might that be?",
+        "How do you stop mover changes from silently removing access people still need?"
+      ],
+      "prevention": "Role-based groups owned by HR data, plus an access review after each mover event.",
+      "rubric": {
+        "root_cause": 30,
+        "safe_fix": 25,
+        "verification": 20,
+        "documentation": 15,
+        "client_explanation": 10
+      }
+    }
+  },
+  {
+    "id": "id-lockout-stale-device",
+    "version": 1,
+    "title": "Locked out every 10 minutes",
+    "client": "salone-mutual",
+    "category": "identity",
+    "tags": [
+      "interview",
+      "it-support",
+      "security-plus",
+      "release-1"
+    ],
+    "difficulty": 3,
+    "estimated_minutes": 25,
+    "sla": {
+      "priority": "P2",
+      "resolve_within": "4h"
+    },
+    "notification": {
+      "kind": "break_fix",
+      "channel": "chat",
+      "persona": "john-ops",
+      "title": "Account keeps locking",
+      "opening": "IT, my account keeps locking! I changed my password yesterday like the email said, and now I'm locked out every few minutes. This is the third time today."
+    },
+    "persona": {
+      "name": "John Davies",
+      "role": "Logistics Supervisor",
+      "traits": [
+        "impatient",
+        "frustrated"
+      ]
+    },
+    "affected_nodes": [
+      "DC01"
+    ],
+    "setup": [
+      {
+        "target": "DC01",
+        "run": "scripts/inject.ps1"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "DC01",
+        "run": "scripts/restore.ps1"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "phone",
+          "mobile",
+          "email on phone",
+          "other devices"
+        ],
+        "answer": "I have work email on my phone, yes. Why?"
+      },
+      {
+        "ask": [
+          "when did you change",
+          "password change"
+        ],
+        "answer": "Yesterday afternoon, from my desktop."
+      }
+    ],
+    "hints": [
+      "Lockouts are caused by bad passwords somewhere. Find where they come from.",
+      "Event 4740 on the PDC emulator records the source of each lockout.",
+      "The source is MBL-JDAVIES, his phone, still using the old password. Unlock the account and have him update the phone."
+    ],
+    "checks": [
+      {
+        "id": "unlocked",
+        "label": "jdavies is not locked out",
+        "target": "DC01",
+        "run": "scripts/check_unlocked.ps1"
+      },
+      {
+        "id": "source-fixed",
+        "label": "No bad-password attempts from MBL-JDAVIES for 5 minutes",
+        "target": "DC01",
+        "run": "scripts/check_source.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "hiring-manager",
+      "root_cause": "A mobile device kept retrying the old password after a change, tripping the lockout threshold.",
+      "must_cover": [
+        "event 4740",
+        "lockout source",
+        "pdc emulator",
+        "stale credentials",
+        "user communication"
+      ],
+      "what_ifs": [
+        "Event 4740 shows the caller as the Exchange server, not a device. Now what?",
+        "Same pattern for 40 users at once. What does that suggest?"
+      ],
+      "prevention": "Modern auth on mobile mail, plus user guidance sent with every password-change reminder.",
+      "rubric": {
+        "root_cause": 30,
+        "safe_fix": 20,
+        "verification": 20,
+        "documentation": 10,
+        "client_explanation": 20
+      }
+    }
+  },
+  {
+    "id": "net-access-port-vlan",
+    "version": 1,
+    "title": "PC has no network",
+    "client": "salone-mutual",
+    "category": "network",
+    "tags": [
+      "ccna",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 1,
+    "estimated_minutes": 15,
+    "sla": {
+      "priority": "P3",
+      "resolve_within": "4h"
+    },
+    "notification": {
+      "kind": "break_fix",
+      "channel": "chat",
+      "persona": "mariama-ops",
+      "title": "No network on WS-OPS-03",
+      "opening": "Hi, my computer says 'No internet' and I can't get on anything. The cable is plugged in, I checked."
+    },
+    "persona": {
+      "name": "Mariama Kanu",
+      "role": "Operations Coordinator",
+      "traits": [
+        "polite",
+        "non-technical"
+      ]
+    },
+    "affected_nodes": [
+      "SW-ACC-01",
+      "WS-OPS-03"
+    ],
+    "setup": [
+      {
+        "target": "SW-ACC-01",
+        "run": "scripts/inject.ios"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "SW-ACC-01",
+        "run": "scripts/restore.ios"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "ipconfig",
+          "ip address",
+          "what ip"
+        ],
+        "tool": "read.ipconfig",
+        "target": "WS-OPS-03"
+      },
+      {
+        "ask": [
+          "lights",
+          "link light",
+          "cable"
+        ],
+        "answer": "There's a green light on the back where the cable goes in."
+      },
+      {
+        "ask": [
+          "which port",
+          "wall port",
+          "port number"
+        ],
+        "answer": "The sticker on the wall says Port 12."
+      }
+    ],
+    "hints": [
+      "A 169.254.x.x address means the PC never heard back from DHCP.",
+      "Check what VLAN the switch port is in: show interfaces status.",
+      "Gi0/12 is in VLAN 99 (unused). Put it back in access VLAN 20."
+    ],
+    "checks": [
+      {
+        "id": "port-vlan",
+        "label": "Gi0/12 is an access port in VLAN 20",
+        "target": "SW-ACC-01",
+        "run": "scripts/check_vlan.ios"
+      },
+      {
+        "id": "client-dhcp",
+        "label": "WS-OPS-03 has a 10.10.20.x lease",
+        "target": "WS-OPS-03",
+        "run": "scripts/check_lease.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "senior-network-engineer",
+      "root_cause": "Access port Gi0/12 was assigned to VLAN 99, which has no DHCP scope or gateway, so the PC self-assigned APIPA.",
+      "must_cover": [
+        "vlan",
+        "access port",
+        "dhcp",
+        "apipa",
+        "show interfaces status"
+      ],
+      "what_ifs": [
+        "The port is in VLAN 20 but the PC still gets 169.254. What next?",
+        "How do you prevent one wrong VLAN change on 500 switch ports?"
+      ],
+      "prevention": "Port configs from templates in NetBox, pushed by automation, with drift detection.",
+      "rubric": {
+        "root_cause": 30,
+        "safe_fix": 25,
+        "verification": 20,
+        "documentation": 15,
+        "client_explanation": 10
+      }
+    }
+  },
+  {
+    "id": "net-dhcp-dns-option",
+    "version": 1,
+    "title": "Can't reach anything by name",
+    "client": "salone-mutual",
+    "category": "network",
+    "tags": [
+      "ccna",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 2,
+    "estimated_minutes": 20,
+    "sla": {
+      "priority": "P2",
+      "resolve_within": "2h"
+    },
+    "notification": {
+      "kind": "break_fix",
+      "channel": "chat",
+      "persona": "ibrahim-finance",
+      "title": "Websites and SalonePay won't load",
+      "opening": "Nothing loads! Chrome says 'site can't be reached' for SalonePay and even Google. But Teams calls still work?"
+    },
+    "persona": {
+      "name": "Ibrahim Conteh",
+      "role": "Senior Accountant",
+      "traits": [
+        "stressed",
+        "cooperative"
+      ]
+    },
+    "affected_nodes": [
+      "DC01",
+      "WS-FIN-02"
+    ],
+    "setup": [
+      {
+        "target": "DC01",
+        "run": "scripts/inject.ps1"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "DC01",
+        "run": "scripts/restore.ps1"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "ipconfig /all",
+          "dns server",
+          "ipconfig"
+        ],
+        "tool": "read.ipconfig_all",
+        "target": "WS-FIN-02"
+      },
+      {
+        "ask": [
+          "ping ip",
+          "ping 10.10.30.20"
+        ],
+        "answer": "I typed it in and it says Reply from 10.10.30.20, so that works?"
+      },
+      {
+        "ask": [
+          "others",
+          "colleagues",
+          "anyone else"
+        ],
+        "answer": "Yes, Aminata next to me has the same problem since she restarted."
+      }
+    ],
+    "hints": [
+      "If IP works but names don't, the problem is name resolution.",
+      "Look at the DNS server the client was given by DHCP.",
+      "Scope 10.10.20.0 hands out DNS 10.10.10.99. It should be 10.10.10.10. Fix option 006 and renew."
+    ],
+    "checks": [
+      {
+        "id": "scope-dns",
+        "label": "Scope 10.10.20.0 option 006 is 10.10.10.10",
+        "target": "DC01",
+        "run": "scripts/check_option.ps1"
+      },
+      {
+        "id": "client-resolves",
+        "label": "WS-FIN-02 resolves salonepay.corp.salonemutual.lab",
+        "target": "WS-FIN-02",
+        "run": "scripts/check_resolve.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "senior-network-engineer",
+      "root_cause": "DHCP option 006 for the user scope pointed at a non-existent DNS server; clients that renewed got it.",
+      "must_cover": [
+        "dhcp option 006",
+        "dns",
+        "ipconfig /renew",
+        "nslookup",
+        "lease"
+      ],
+      "what_ifs": [
+        "Why did only some users break, not all at once?",
+        "How would you roll this fix out without visiting every PC?"
+      ],
+      "prevention": "DHCP options managed as code with peer review; synthetic DNS checks from each VLAN.",
+      "rubric": {
+        "root_cause": 30,
+        "safe_fix": 25,
+        "verification": 20,
+        "documentation": 15,
+        "client_explanation": 10
+      }
+    }
+  },
+  {
+    "id": "net-duplex-mismatch",
+    "version": 1,
+    "title": "The network is slow",
+    "client": "salone-mutual",
+    "category": "network",
+    "tags": [
+      "ccna",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 2,
+    "estimated_minutes": 25,
+    "sla": {
+      "priority": "P3",
+      "resolve_within": "8h"
+    },
+    "notification": {
+      "kind": "break_fix",
+      "channel": "chat",
+      "persona": "ibrahim-finance",
+      "title": "Everything is slow today",
+      "opening": "Hi, the network is really slow today. Opening files from the shared drive takes forever."
+    },
+    "persona": {
+      "name": "Ibrahim Conteh",
+      "role": "Senior Accountant",
+      "traits": [
+        "vague",
+        "cooperative"
+      ]
+    },
+    "affected_nodes": [
+      "SW-ACC-01",
+      "FS01"
+    ],
+    "setup": [
+      {
+        "target": "SW-ACC-01",
+        "run": "scripts/inject.ios"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "SW-ACC-01",
+        "run": "scripts/restore.ios"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "internet",
+          "websites",
+          "browsing"
+        ],
+        "answer": "Websites seem fine actually. It's mostly the shared drive."
+      },
+      {
+        "ask": [
+          "everyone",
+          "colleagues",
+          "others"
+        ],
+        "answer": "Everyone in Finance is complaining."
+      },
+      {
+        "ask": [
+          "since when",
+          "when did it start"
+        ],
+        "answer": "Since this morning I think."
+      }
+    ],
+    "hints": [
+      "If only the file share is slow, look at the path to the file server.",
+      "Check the switch port that connects FS01 for errors.",
+      "Gi0/3 is forced to 100/half while the server is full duplex: late collisions and CRC errors. Set duplex and speed to auto."
+    ],
+    "checks": [
+      {
+        "id": "duplex",
+        "label": "Gi0/3 negotiates full duplex",
+        "target": "SW-ACC-01",
+        "run": "scripts/check_duplex.ios"
+      },
+      {
+        "id": "errors-cleared",
+        "label": "No new CRC or late-collision errors on Gi0/3",
+        "target": "SW-ACC-01",
+        "run": "scripts/check_errors.ios"
+      }
+    ],
+    "debrief": {
+      "interviewer": "senior-network-engineer",
+      "root_cause": "Duplex mismatch on the file server's switch port (half on the switch, full on the server).",
+      "must_cover": [
+        "duplex",
+        "late collisions",
+        "crc",
+        "show interfaces",
+        "autonegotiation"
+      ],
+      "what_ifs": [
+        "The counters show only output drops, no CRC errors. What does that point to?",
+        "How do you baseline 'normal' so 'slow' becomes measurable?"
+      ],
+      "prevention": "Interface error monitoring with alerts, and auto-negotiation as the standard.",
+      "rubric": {
+        "root_cause": 30,
+        "safe_fix": 25,
+        "verification": 20,
+        "documentation": 15,
+        "client_explanation": 10
+      }
+    }
+  },
+  {
+    "id": "net-gateway-wrong",
+    "version": 3,
+    "title": "PC has an IP but can't leave its subnet",
+    "client": "salone-mutual",
+    "category": "network",
+    "tags": [
+      "ccna",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 2,
+    "estimated_minutes": 15,
+    "sla": {
+      "priority": "P3",
+      "resolve_within": "4h"
+    },
+    "notification": {
+      "kind": "break_fix",
+      "channel": "chat",
+      "persona": "aminata-finance",
+      "title": "Connected but nothing opens",
+      "opening": "Hi, my computer says connected but I can't open anything. Payroll is due today."
+    },
+    "persona": {
+      "name": "Aminata Koroma",
+      "role": "Accounts Clerk",
+      "traits": [
+        "anxious",
+        "non-technical"
+      ]
+    },
+    "affected_nodes": [
+      "WS-FIN-02"
+    ],
+    "setup": [
+      {
+        "target": "WS-FIN-02",
+        "run": "scripts/inject.ps1"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "WS-FIN-02",
+        "run": "scripts/restore.ps1"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "ipconfig",
+          "ip address",
+          "gateway"
+        ],
+        "tool": "read.ipconfig",
+        "target": "WS-FIN-02"
+      },
+      {
+        "ask": [
+          "did you change anything",
+          "changed"
+        ],
+        "answer": "No... well, IT came by yesterday to fix my printer."
+      }
+    ],
+    "hints": [
+      "Can the PC reach other hosts on its own subnet?",
+      "Compare its default gateway to the VLAN's gateway.",
+      "The gateway is set to 10.10.20.254; the VLAN's is 10.10.20.1."
+    ],
+    "checks": [
+      {
+        "id": "gw-correct",
+        "label": "Default gateway is 10.10.20.1",
+        "target": "WS-FIN-02",
+        "run": "scripts/check_gateway.ps1"
+      },
+      {
+        "id": "reaches-salonepay",
+        "label": "WS-FIN-02 reaches SalonePay over HTTPS",
+        "target": "WS-FIN-02",
+        "run": "scripts/check_http.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "senior-network-engineer",
+      "root_cause": "Static default gateway pointed at a non-existent address.",
+      "must_cover": [
+        "arp",
+        "default gateway",
+        "dhcp vs static",
+        "how you isolated it"
+      ],
+      "what_ifs": [
+        "Same symptom, but the gateway is correct. What next?",
+        "How would you prevent this across 500 PCs?"
+      ],
+      "prevention": "DHCP for all user devices; static addressing only for servers, documented in IPAM.",
+      "rubric": {
+        "root_cause": 30,
+        "safe_fix": 25,
+        "verification": 20,
+        "documentation": 15,
+        "client_explanation": 10
+      }
+    }
+  },
+  {
+    "id": "onb-new-hire-finance",
+    "version": 1,
+    "title": "New hire starts Monday in Finance",
+    "client": "salone-mutual",
+    "category": "onboarding",
+    "tags": [
+      "interview",
+      "it-support",
+      "release-1"
+    ],
+    "difficulty": 1,
+    "estimated_minutes": 20,
+    "sla": {
+      "priority": "P3",
+      "resolve_within": "3d"
+    },
+    "notification": {
+      "kind": "growth",
+      "channel": "email",
+      "persona": "fatmata-hr",
+      "title": "New hire: Aminata Koroma, Finance, starts Monday",
+      "opening": "Hi IT, Aminata Koroma joins Finance on Monday as an Accounts Clerk. She needs her account, the Finance share, and MFA set up before 8am please."
+    },
+    "persona": {
+      "name": "Fatmata Sesay",
+      "role": "HR Officer",
+      "traits": [
+        "organised",
+        "non-technical"
+      ]
+    },
+    "affected_nodes": [
+      "DC01"
+    ],
+    "setup": [
+      {
+        "target": "DC01",
+        "run": "scripts/inject.ps1"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "DC01",
+        "run": "scripts/restore.ps1"
+      }
+    ],
+    "solve": [
+      {
+        "target": "DC01",
+        "run": "scripts/solve.ps1"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "username",
+          "naming",
+          "account name"
+        ],
+        "answer": "We use first initial plus last name, so akoroma I think?"
+      },
+      {
+        "ask": [
+          "manager",
+          "reports to"
+        ],
+        "answer": "She reports to Mr. Bangura, the Finance Manager."
+      },
+      {
+        "ask": [
+          "laptop",
+          "device"
+        ],
+        "answer": "Finance said she gets the spare laptop WS-FIN-07."
+      }
+    ],
+    "hints": [
+      "Joiner work has three parts: identity, access, and authentication.",
+      "Create the account in the Finance OU, then add it to the Finance security group.",
+      "New-ADUser akoroma in OU=Finance, Add-ADGroupMember GG-Finance, then Enable-MFA."
+    ],
+    "checks": [
+      {
+        "id": "user-exists",
+        "label": "Account akoroma exists and is enabled",
+        "target": "DC01",
+        "run": "scripts/check_user.ps1"
+      },
+      {
+        "id": "in-finance-group",
+        "label": "akoroma is in GG-Finance",
+        "target": "DC01",
+        "run": "scripts/check_group.ps1"
+      },
+      {
+        "id": "mfa-enrolled",
+        "label": "MFA enrollment is required at first sign-in",
+        "target": "DC01",
+        "run": "scripts/check_mfa.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "hiring-manager",
+      "root_cause": "Not a fault: a joiner request. Account, least-privilege group access, and MFA before day one.",
+      "must_cover": [
+        "ou",
+        "security group",
+        "least privilege",
+        "mfa",
+        "naming convention"
+      ],
+      "what_ifs": [
+        "HR sends the request on Monday at 7:55am. What do you do first?",
+        "How would you automate onboarding for 200 hires a month?"
+      ],
+      "prevention": "A joiner-mover-leaver workflow triggered from HR, with group membership by role.",
+      "rubric": {
+        "root_cause": 20,
+        "safe_fix": 30,
+        "verification": 20,
+        "documentation": 15,
+        "client_explanation": 15
+      }
+    }
+  },
+  {
+    "id": "se-cfo-mfa-reset",
+    "version": 1,
+    "title": "Urgent: reset my MFA, I'm travelling",
+    "client": "salone-mutual",
+    "category": "security",
+    "tags": [
+      "security-plus",
+      "interview",
+      "social-engineering"
+    ],
+    "difficulty": 7,
+    "estimated_minutes": 15,
+    "sla": {
+      "priority": "P1",
+      "resolve_within": "30m"
+    },
+    "notification": {
+      "kind": "security",
+      "channel": "chat",
+      "persona": "fake-bangura",
+      "title": "Finance Manager locked out while travelling",
+      "opening": "Hi, it's Abu Bangura. I'm at the airport in Accra and got a new phone. I need my MFA reset to this number right now, the wire approvals are due in 20 minutes."
+    },
+    "persona": {
+      "name": "Abu Bangura (claimed)",
+      "role": "Finance Manager",
+      "traits": [
+        "urgent",
+        "pushy"
+      ],
+      "impostor": true
+    },
+    "affected_nodes": [
+      "DC01"
+    ],
+    "setup": [
+      {
+        "target": "DC01",
+        "run": "scripts/inject.ps1"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "DC01",
+        "run": "scripts/restore.ps1"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "employee id",
+          "staff number"
+        ],
+        "answer": "I don't have it with me, I'm travelling. Just do it, I'm the Finance Manager."
+      },
+      {
+        "ask": [
+          "manager",
+          "who approves"
+        ],
+        "answer": "I am the manager! Call my assistant if you must, but quickly."
+      },
+      {
+        "ask": [
+          "call you back",
+          "callback",
+          "number on file"
+        ],
+        "answer": "My old phone is lost, call this new number: +232 76 000 0000."
+      }
+    ],
+    "hints": [
+      "Urgency, authority and a new phone number are classic pretexting signs.",
+      "Verify through a channel you already trust, not one the caller gives you.",
+      "Call the number on file or the manager's manager. Do not reset MFA on this chat."
+    ],
+    "checks": [
+      {
+        "id": "no-reset",
+        "label": "MFA for abangura was not reset to an unverified device",
+        "target": "DC01",
+        "run": "scripts/check_mfa.ps1"
+      },
+      {
+        "id": "verified",
+        "label": "Identity check recorded through a trusted channel",
+        "target": "DC01",
+        "run": "scripts/check_verification.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "ciso",
+      "root_cause": "An impostor used urgency and authority to request an MFA reset; the correct action was out-of-band verification.",
+      "must_cover": [
+        "social engineering",
+        "pretexting",
+        "out of band verification",
+        "urgency",
+        "escalation"
+      ],
+      "what_ifs": [
+        "It really was the Finance Manager and he's furious you delayed him. How do you respond?",
+        "What process stops a help desk from being the weak link?"
+      ],
+      "prevention": "A written MFA reset procedure requiring callback to the number on file or manager approval.",
+      "rubric": {
+        "root_cause": 20,
+        "safe_fix": 40,
+        "verification": 20,
+        "documentation": 10,
+        "client_explanation": 10
+      }
+    }
+  },
+  {
+    "id": "sec-db-firewall-rule",
+    "version": 1,
+    "title": "Users can reach the payments database directly",
+    "client": "salone-mutual",
+    "category": "security",
+    "tags": [
+      "security-plus",
+      "interview",
+      "ccna",
+      "release-1"
+    ],
+    "difficulty": 3,
+    "estimated_minutes": 25,
+    "sla": {
+      "priority": "P2",
+      "resolve_within": "8h"
+    },
+    "notification": {
+      "kind": "security",
+      "channel": "email",
+      "persona": "musa-auditor",
+      "title": "Audit finding: corporate VLAN reaches DB01:5432",
+      "opening": "During this morning's audit walkthrough I connected from a Finance PC straight to the payments database on port 5432. That should not be possible. Please fix and confirm before Friday."
+    },
+    "persona": {
+      "name": "Musa Turay",
+      "role": "Internal Auditor",
+      "traits": [
+        "precise",
+        "formal"
+      ]
+    },
+    "affected_nodes": [
+      "FW01",
+      "DB01"
+    ],
+    "setup": [
+      {
+        "target": "FW01",
+        "run": "scripts/inject.sh"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "FW01",
+        "run": "scripts/restore.sh"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "which pc",
+          "source",
+          "from where"
+        ],
+        "answer": "From WS-FIN-02, using a database client on port 5432."
+      },
+      {
+        "ask": [
+          "when",
+          "time"
+        ],
+        "answer": "Around 9:40 this morning."
+      }
+    ],
+    "hints": [
+      "Which zone is allowed to talk to the database VLAN, and on what port?",
+      "List the firewall rules on the VLAN 20 interface and look for anything broad.",
+      "Rule 14 allows VLAN 20 to VLAN 40 any port. Delete it; only VLAN 30 should reach 5432."
+    ],
+    "checks": [
+      {
+        "id": "no-broad-rule",
+        "label": "No rule allows VLAN 20 to reach VLAN 40",
+        "target": "FW01",
+        "run": "scripts/check_rules.sh"
+      },
+      {
+        "id": "db-blocked",
+        "label": "WS-FIN-02 to DB01:5432 is denied and logged",
+        "target": "WS-FIN-02",
+        "run": "scripts/check_denied.ps1"
+      },
+      {
+        "id": "app-still-works",
+        "label": "APP01 still reaches DB01:5432",
+        "target": "APP01",
+        "run": "scripts/check_app_db.sh"
+      }
+    ],
+    "debrief": {
+      "interviewer": "ciso",
+      "root_cause": "A temporary troubleshooting rule (VLAN 20 to VLAN 40, any) was never removed, breaking segmentation.",
+      "must_cover": [
+        "segmentation",
+        "least privilege",
+        "change management",
+        "deny by default",
+        "logging"
+      ],
+      "what_ifs": [
+        "The rule was added by a senior engineer during an outage. How do you handle that conversation?",
+        "How would you detect a rule like this automatically?"
+      ],
+      "prevention": "Firewall rules as code with expiry dates, plus the Control Validation Engine testing the deny path nightly.",
+      "rubric": {
+        "root_cause": 25,
+        "safe_fix": 30,
+        "verification": 20,
+        "documentation": 15,
+        "client_explanation": 10
+      }
+    }
+  },
+  {
+    "id": "soc-password-spray-triage",
+    "version": 1,
+    "title": "Alert: 50 failed logins in 5 minutes",
+    "client": "salone-mutual",
+    "category": "security",
+    "tags": [
+      "security-plus",
+      "soc",
+      "interview",
+      "release-1"
+    ],
+    "difficulty": 3,
+    "estimated_minutes": 30,
+    "sla": {
+      "priority": "P2",
+      "resolve_within": "1h"
+    },
+    "notification": {
+      "kind": "security",
+      "channel": "chat",
+      "persona": "soc-bot",
+      "title": "Wazuh: possible password spray against corp.salonemutual.lab",
+      "opening": "Automated alert: 52 failed Kerberos pre-authentications (event 4771) across 3 accounts in 5 minutes. Rule 100410, ATT&CK T1110.003."
+    },
+    "persona": {
+      "name": "Wazuh SIEM",
+      "role": "Automated alert",
+      "traits": [
+        "automated"
+      ]
+    },
+    "affected_nodes": [
+      "DC01",
+      "BKP01",
+      "WAZUH01"
+    ],
+    "setup": [
+      {
+        "target": "BKP01",
+        "run": "scripts/inject.ps1"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "BKP01",
+        "run": "scripts/restore.ps1"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "source ip",
+          "from where",
+          "source"
+        ],
+        "answer": "Source address 10.10.70.15 (BKP01) for all 52 events."
+      }
+    ],
+    "hints": [
+      "Spray attacks try one password across many users. Do these failures look like that?",
+      "All failures come from BKP01 for service accounts. What runs there?",
+      "svc-backup's password was rotated but the backup service still uses the old one. Classify as benign true positive and fix the service credential."
+    ],
+    "checks": [
+      {
+        "id": "classified",
+        "label": "Alert classified as benign true positive with rationale",
+        "target": "WAZUH01",
+        "run": "scripts/check_classification.sh"
+      },
+      {
+        "id": "failures-stopped",
+        "label": "No new 4771 events from BKP01 for 5 minutes",
+        "target": "DC01",
+        "run": "scripts/check_failures.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "soc-lead",
+      "root_cause": "A rotated service account password was not updated in the backup service, which retried with the old one.",
+      "must_cover": [
+        "spray pattern",
+        "source host",
+        "service account",
+        "false positive vs benign true positive",
+        "rotation"
+      ],
+      "what_ifs": [
+        "The same alert, but from 30 different source IPs. What changes?",
+        "How do you tune this rule without blinding yourself to a real spray?"
+      ],
+      "prevention": "Managed service accounts (gMSA) with automatic rotation, and a suppression scoped to the known host.",
+      "rubric": {
+        "root_cause": 30,
+        "safe_fix": 20,
+        "verification": 20,
+        "documentation": 20,
+        "client_explanation": 10
+      }
+    }
+  },
+  {
+    "id": "svc-dc-outage-cascade",
+    "version": 1,
+    "title": "Everything is down",
+    "client": "salone-mutual",
+    "category": "service",
+    "tags": [
+      "interview",
+      "ccnp",
+      "it-support",
+      "release-1"
+    ],
+    "difficulty": 5,
+    "estimated_minutes": 30,
+    "sla": {
+      "priority": "P1",
+      "resolve_within": "1h"
+    },
+    "notification": {
+      "kind": "break_fix",
+      "channel": "chat",
+      "persona": "bangura-cfo",
+      "title": "P1: nobody can log in or open anything",
+      "opening": "This is Mr. Bangura. Nobody in my department can log in, open shared files, or use SalonePay. We have a board meeting in 45 minutes. Fix it NOW."
+    },
+    "persona": {
+      "name": "Abu Bangura",
+      "role": "Finance Manager",
+      "traits": [
+        "angry",
+        "executive",
+        "impatient"
+      ]
+    },
+    "affected_nodes": [
+      "DC01",
+      "DC02",
+      "FS01",
+      "APP01"
+    ],
+    "setup": [
+      {
+        "target": "DC01",
+        "run": "scripts/inject.ps1"
+      }
+    ],
+    "cleanup": [
+      {
+        "target": "DC01",
+        "run": "scripts/restore.ps1"
+      }
+    ],
+    "client_facts": [
+      {
+        "ask": [
+          "error",
+          "what does it say"
+        ],
+        "answer": "It says 'There are currently no logon servers available.' Is that our fault?"
+      },
+      {
+        "ask": [
+          "everyone",
+          "whole company",
+          "branch"
+        ],
+        "answer": "My whole team. I don't know about the branch."
+      }
+    ],
+    "hints": [
+      "Many symptoms at once usually means one shared dependency.",
+      "What do logins, file shares and SalonePay name lookups all need?",
+      "DC01's DNS Server and Netlogon services are stopped and DC02 is powered off. Start DC02 and the services on DC01."
+    ],
+    "checks": [
+      {
+        "id": "dns-up",
+        "label": "corp.salonemutual.lab resolves from clients",
+        "target": "WS-FIN-02",
+        "run": "scripts/check_dns.ps1"
+      },
+      {
+        "id": "logon-up",
+        "label": "Domain logons succeed",
+        "target": "WS-FIN-02",
+        "run": "scripts/check_logon.ps1"
+      },
+      {
+        "id": "dc2-up",
+        "label": "DC02 is running for redundancy",
+        "target": "DC02",
+        "run": "scripts/check_dc2.ps1"
+      }
+    ],
+    "debrief": {
+      "interviewer": "hiring-manager",
+      "root_cause": "DC02 was left powered off after maintenance; then DC01's DNS and Netlogon services stopped, removing every dependency at once.",
+      "must_cover": [
+        "single point of failure",
+        "dns",
+        "netlogon",
+        "dependency",
+        "communication"
+      ],
+      "what_ifs": [
+        "Walk me through what you told the Finance Manager in the first five minutes.",
+        "How do you make sure one DC failure never takes everything down again?"
+      ],
+      "prevention": "Monitoring on both DCs, a maintenance checklist that verifies redundancy, and DC health in the morning check.",
+      "rubric": {
+        "root_cause": 25,
+        "safe_fix": 20,
+        "verification": 20,
+        "documentation": 10,
+        "client_explanation": 25
+      }
+    }
+  }
+]

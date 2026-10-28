@@ -1,0 +1,608 @@
+{
+  "sites": [
+    {
+      "id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "name": "Freetown HQ",
+      "cidr": "10.10.0.0/16",
+      "kind": "hq"
+    },
+    {
+      "id": "fa3db66d-df7a-4b3e-a599-56d302421c24",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "name": "Bo branch",
+      "cidr": "10.20.0.0/16",
+      "kind": "branch"
+    },
+    {
+      "id": "4aac6dcb-bdd6-4db6-ac17-555549ae5760",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "name": "AWS eu-west-1",
+      "cidr": "10.30.0.0/16",
+      "kind": "cloud"
+    },
+    {
+      "id": "fedd70eb-6f4d-4598-ac5e-06b1e819d29e",
+      "client_id": "a4857852-489e-4a0f-ab29-e550f9fd154d",
+      "name": "Kamara office",
+      "cidr": "10.50.0.0/16",
+      "kind": "hq"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "9b676cf2-af2b-4c9f-af30-9adccea32741",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "firewall",
+      "os": "opnsense",
+      "name": "FW01",
+      "role": "Perimeter firewall (OPNsense)",
+      "mgmt_ip": "10.10.10.1",
+      "vlan": 10,
+      "platform_ref": "pve/qemu/100",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "ssh",
+        "serial"
+      ],
+      "tags": [
+        "x:495",
+        "y:40"
+      ]
+    },
+    {
+      "id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "switch",
+      "os": "ios",
+      "name": "SW-ACC-01",
+      "role": "Access switch",
+      "mgmt_ip": "10.10.10.2",
+      "vlan": 10,
+      "platform_ref": "pve/qemu/101",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "ssh",
+        "serial"
+      ],
+      "tags": [
+        "x:495",
+        "y:200"
+      ]
+    },
+    {
+      "id": "669e780c-7def-4431-aa87-af0a9c17438f",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "windows",
+      "name": "DC01",
+      "role": "Domain controller, DNS, DHCP",
+      "mgmt_ip": "10.10.10.10",
+      "vlan": 10,
+      "platform_ref": "pve/qemu/102",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "tier0",
+        "x:240",
+        "y:360"
+      ]
+    },
+    {
+      "id": "699e7cc5-7aef-4f78-a987-ad779d174522",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "windows",
+      "name": "DC02",
+      "role": "Domain controller, DNS",
+      "mgmt_ip": "10.10.10.11",
+      "vlan": 10,
+      "platform_ref": "pve/qemu/103",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "tier0",
+        "x:410",
+        "y:360"
+      ]
+    },
+    {
+      "id": "dfcd0486-f391-4433-a3e5-1ad009eea74d",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "windows",
+      "name": "FS01",
+      "role": "File server",
+      "mgmt_ip": "10.10.30.15",
+      "vlan": 30,
+      "platform_ref": "pve/qemu/104",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "x:580",
+        "y:360"
+      ]
+    },
+    {
+      "id": "cc479b7a-e428-4465-aaf8-80d821f3a94b",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "linux",
+      "name": "APP01",
+      "role": "SalonePay application",
+      "mgmt_ip": "10.10.30.20",
+      "vlan": 30,
+      "platform_ref": "pve/qemu/105",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "ssh"
+      ],
+      "tags": [
+        "x:750",
+        "y:360"
+      ]
+    },
+    {
+      "id": "0a074767-5a38-4c76-adf0-4c0519ebdb14",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "linux",
+      "name": "DB01",
+      "role": "PostgreSQL (payments)",
+      "mgmt_ip": "10.10.40.10",
+      "vlan": 40,
+      "platform_ref": "pve/qemu/106",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "ssh"
+      ],
+      "tags": [
+        "crown-jewel",
+        "x:240",
+        "y:480"
+      ]
+    },
+    {
+      "id": "df688ddc-5ecc-4357-ad54-f892f08adbdd",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "windows",
+      "name": "BKP01",
+      "role": "Backup server",
+      "mgmt_ip": "10.10.70.15",
+      "vlan": 70,
+      "platform_ref": "pve/qemu/107",
+      "power": "running",
+      "health": "degraded",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "x:410",
+        "y:480"
+      ]
+    },
+    {
+      "id": "fc3dca6e-7a66-4509-a04a-6884b09eef2f",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "linux",
+      "name": "WAZUH01",
+      "role": "SIEM (Wazuh)",
+      "mgmt_ip": "10.10.50.10",
+      "vlan": 50,
+      "platform_ref": "pve/qemu/108",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "ssh"
+      ],
+      "tags": [
+        "x:580",
+        "y:480"
+      ]
+    },
+    {
+      "id": "2587e4ed-a285-4b7a-ab75-5917b4795dc4",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "windows",
+      "name": "WS-FIN-02",
+      "role": "Finance workstation",
+      "mgmt_ip": "10.10.20.45",
+      "vlan": 20,
+      "platform_ref": "pve/qemu/109",
+      "power": "running",
+      "health": "degraded",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "x:330",
+        "y:640"
+      ]
+    },
+    {
+      "id": "2087dd0e-9f85-46c1-a675-5138b179590b",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "windows",
+      "name": "WS-FIN-07",
+      "role": "Finance workstation (spare)",
+      "mgmt_ip": "10.10.20.52",
+      "vlan": 20,
+      "platform_ref": "pve/qemu/110",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "x:500",
+        "y:640"
+      ]
+    },
+    {
+      "id": "bdc26555-7972-427a-ad09-da3ffb53d57c",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+      "kind": "vm",
+      "os": "windows",
+      "name": "WS-OPS-03",
+      "role": "Operations workstation",
+      "mgmt_ip": "10.10.20.61",
+      "vlan": 20,
+      "platform_ref": "pve/qemu/111",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "x:670",
+        "y:640"
+      ]
+    },
+    {
+      "id": "e6aa1293-ab0c-483e-a8ba-0985e296c0e8",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "fa3db66d-df7a-4b3e-a599-56d302421c24",
+      "kind": "router",
+      "os": "ios",
+      "name": "BO-RTR01",
+      "role": "Branch router (WireGuard to HQ)",
+      "mgmt_ip": "10.20.0.1",
+      "platform_ref": "pve/qemu/112",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "ssh",
+        "serial"
+      ],
+      "tags": [
+        "x:1000",
+        "y:40"
+      ]
+    },
+    {
+      "id": "d5d485a4-4d0f-4829-af41-fedec0bbef93",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "fa3db66d-df7a-4b3e-a599-56d302421c24",
+      "kind": "vm",
+      "os": "windows",
+      "name": "WS-BO-01",
+      "role": "Branch teller workstation",
+      "mgmt_ip": "10.20.20.31",
+      "vlan": 20,
+      "platform_ref": "pve/qemu/113",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "x:1000",
+        "y:200"
+      ]
+    },
+    {
+      "id": "dee675b3-73ea-481c-a738-11e592d313e6",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "4aac6dcb-bdd6-4db6-ac17-555549ae5760",
+      "kind": "cloud_resource",
+      "os": "cloud",
+      "name": "AWS-ALB",
+      "role": "Application load balancer",
+      "mgmt_ip": "10.30.1.10",
+      "platform_ref": "aws:aws-alb",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [],
+      "tags": [
+        "x:0",
+        "y:40"
+      ]
+    },
+    {
+      "id": "b8dbac85-6de0-414e-ad69-b823a9185b0c",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "site_id": "4aac6dcb-bdd6-4db6-ac17-555549ae5760",
+      "kind": "cloud_resource",
+      "os": "linux",
+      "name": "AWS-APP",
+      "role": "SalonePay DR instance (EC2)",
+      "mgmt_ip": "10.30.10.20",
+      "platform_ref": "aws:aws-app",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "ssh"
+      ],
+      "tags": [
+        "x:0",
+        "y:200"
+      ]
+    },
+    {
+      "id": "7b1e89ab-c960-4834-a601-b3458c18f2de",
+      "client_id": "a4857852-489e-4a0f-ab29-e550f9fd154d",
+      "site_id": "fedd70eb-6f4d-4598-ac5e-06b1e819d29e",
+      "kind": "firewall",
+      "os": "opnsense",
+      "name": "KL-FW",
+      "role": "Office firewall",
+      "mgmt_ip": "10.50.0.1",
+      "platform_ref": "pve/qemu/116",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "ssh"
+      ],
+      "tags": [
+        "x:175",
+        "y:40"
+      ]
+    },
+    {
+      "id": "a0c57f16-68b5-4957-a099-985cdbcb95f5",
+      "client_id": "a4857852-489e-4a0f-ab29-e550f9fd154d",
+      "site_id": "fedd70eb-6f4d-4598-ac5e-06b1e819d29e",
+      "kind": "vm",
+      "os": "windows",
+      "name": "KL-WS-01",
+      "role": "Dispatch workstation",
+      "mgmt_ip": "10.50.20.11",
+      "vlan": 20,
+      "platform_ref": "pve/qemu/117",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "x:0",
+        "y:200"
+      ]
+    },
+    {
+      "id": "9fc57d83-69b5-4aea-a399-9d15d8cb913c",
+      "client_id": "a4857852-489e-4a0f-ab29-e550f9fd154d",
+      "site_id": "fedd70eb-6f4d-4598-ac5e-06b1e819d29e",
+      "kind": "vm",
+      "os": "windows",
+      "name": "KL-WS-02",
+      "role": "Owner laptop",
+      "mgmt_ip": "10.50.20.12",
+      "vlan": 20,
+      "platform_ref": "pve/qemu/118",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [
+        "rdp",
+        "ssh"
+      ],
+      "tags": [
+        "x:175",
+        "y:200"
+      ]
+    },
+    {
+      "id": "4513b315-19b1-478a-aa95-cf4f48fbfebc",
+      "client_id": "a4857852-489e-4a0f-ab29-e550f9fd154d",
+      "site_id": "fedd70eb-6f4d-4598-ac5e-06b1e819d29e",
+      "kind": "cloud_resource",
+      "os": "cloud",
+      "name": "KL-M365",
+      "role": "Microsoft 365 tenant",
+      "mgmt_ip": "-",
+      "platform_ref": "aws:kl-m365",
+      "power": "running",
+      "health": "healthy",
+      "consoles": [],
+      "tags": [
+        "x:400",
+        "y:40"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": "link:FW01--SW-ACC-01",
+      "a_node_id": "9b676cf2-af2b-4c9f-af30-9adccea32741",
+      "b_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "kind": "trunk",
+      "label": "Gi0/24 trunk",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--DC01",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "669e780c-7def-4431-aa87-af0a9c17438f",
+      "kind": "ethernet",
+      "label": "Gi0/1",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--DC02",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "699e7cc5-7aef-4f78-a987-ad779d174522",
+      "kind": "ethernet",
+      "label": "Gi0/2",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--FS01",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "dfcd0486-f391-4433-a3e5-1ad009eea74d",
+      "kind": "ethernet",
+      "label": "Gi0/3",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--APP01",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "cc479b7a-e428-4465-aaf8-80d821f3a94b",
+      "kind": "ethernet",
+      "label": "Gi0/4",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--DB01",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "0a074767-5a38-4c76-adf0-4c0519ebdb14",
+      "kind": "ethernet",
+      "label": "Gi0/6",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--BKP01",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "df688ddc-5ecc-4357-ad54-f892f08adbdd",
+      "kind": "ethernet",
+      "label": "Gi0/7",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--WAZUH01",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "fc3dca6e-7a66-4509-a04a-6884b09eef2f",
+      "kind": "ethernet",
+      "label": "Gi0/8",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--WS-FIN-02",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "2587e4ed-a285-4b7a-ab75-5917b4795dc4",
+      "kind": "ethernet",
+      "label": "Gi0/5",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--WS-FIN-07",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "2087dd0e-9f85-46c1-a675-5138b179590b",
+      "kind": "ethernet",
+      "label": "Gi0/10",
+      "state": "up"
+    },
+    {
+      "id": "link:SW-ACC-01--WS-OPS-03",
+      "a_node_id": "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+      "b_node_id": "bdc26555-7972-427a-ad09-da3ffb53d57c",
+      "kind": "ethernet",
+      "label": "Gi0/12",
+      "state": "up"
+    },
+    {
+      "id": "link:FW01--BO-RTR01",
+      "a_node_id": "9b676cf2-af2b-4c9f-af30-9adccea32741",
+      "b_node_id": "e6aa1293-ab0c-483e-a8ba-0985e296c0e8",
+      "kind": "vpn",
+      "label": "WireGuard",
+      "state": "up"
+    },
+    {
+      "id": "link:BO-RTR01--WS-BO-01",
+      "a_node_id": "e6aa1293-ab0c-483e-a8ba-0985e296c0e8",
+      "b_node_id": "d5d485a4-4d0f-4829-af41-fedec0bbef93",
+      "kind": "ethernet",
+      "label": "Gi0/1",
+      "state": "up"
+    },
+    {
+      "id": "link:FW01--AWS-ALB",
+      "a_node_id": "9b676cf2-af2b-4c9f-af30-9adccea32741",
+      "b_node_id": "dee675b3-73ea-481c-a738-11e592d313e6",
+      "kind": "vpn",
+      "label": "WireGuard to VPC",
+      "state": "up"
+    },
+    {
+      "id": "link:AWS-ALB--AWS-APP",
+      "a_node_id": "dee675b3-73ea-481c-a738-11e592d313e6",
+      "b_node_id": "b8dbac85-6de0-414e-ad69-b823a9185b0c",
+      "kind": "cloud",
+      "label": "Target group",
+      "state": "up"
+    },
+    {
+      "id": "link:KL-FW--KL-WS-01",
+      "a_node_id": "7b1e89ab-c960-4834-a601-b3458c18f2de",
+      "b_node_id": "a0c57f16-68b5-4957-a099-985cdbcb95f5",
+      "kind": "ethernet",
+      "label": "LAN",
+      "state": "up"
+    },
+    {
+      "id": "link:KL-FW--KL-WS-02",
+      "a_node_id": "7b1e89ab-c960-4834-a601-b3458c18f2de",
+      "b_node_id": "9fc57d83-69b5-4aea-a399-9d15d8cb913c",
+      "kind": "ethernet",
+      "label": "LAN",
+      "state": "up"
+    },
+    {
+      "id": "link:KL-FW--KL-M365",
+      "a_node_id": "7b1e89ab-c960-4834-a601-b3458c18f2de",
+      "b_node_id": "4513b315-19b1-478a-aa95-cf4f48fbfebc",
+      "kind": "cloud",
+      "label": "Internet",
+      "state": "up"
+    }
+  ],
+  "generated_at": "2026-10-28T22:26:35.331Z"
+}

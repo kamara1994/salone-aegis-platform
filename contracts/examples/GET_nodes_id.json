@@ -1,0 +1,38 @@
+{
+  "id": "9b676cf2-af2b-4c9f-af30-9adccea32741",
+  "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+  "site_id": "f855b82d-ed89-4bd2-a77f-c213045a2430",
+  "kind": "firewall",
+  "os": "opnsense",
+  "name": "FW01",
+  "role": "Perimeter firewall (OPNsense)",
+  "mgmt_ip": "10.10.10.1",
+  "vlan": 10,
+  "platform_ref": "pve/qemu/100",
+  "power": "running",
+  "health": "healthy",
+  "consoles": [
+    "ssh",
+    "serial"
+  ],
+  "tags": [
+    "x:495",
+    "y:40"
+  ],
+  "specs": {
+    "vcpu": 2,
+    "ram_gb": 4,
+    "disk_gb": 32
+  },
+  "ips": [
+    "10.10.10.1"
+  ],
+  "metrics": {
+    "cpu_pct": 38,
+    "ram_pct": 49,
+    "disk_pct": 34
+  },
+  "open_ticket_ids": [],
+  "recent_alert_ids": [],
+  "snapshots": []
+}

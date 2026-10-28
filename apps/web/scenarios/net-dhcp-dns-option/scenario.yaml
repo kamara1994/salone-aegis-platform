@@ -1,0 +1,41 @@
+id: net-dhcp-dns-option
+version: 1
+title: "Can't reach anything by name"
+client: salone-mutual
+category: network
+tags: [ccna, interview, release-1]
+difficulty: 2
+estimated_minutes: 20
+sla: { priority: P2, resolve_within: 2h }
+notification:
+  kind: break_fix
+  channel: chat
+  persona: ibrahim-finance
+  title: "Websites and SalonePay won't load"
+  opening: "Nothing loads! Chrome says 'site can't be reached' for SalonePay and even Google. But Teams calls still work?"
+persona: { name: Ibrahim Conteh, role: Senior Accountant, traits: [stressed, cooperative] }
+affected_nodes: [DC01, WS-FIN-02]
+setup:
+  - { target: DC01, run: scripts/inject.ps1 }
+cleanup:
+  - { target: DC01, run: scripts/restore.ps1 }
+client_facts:
+  - { ask: [ipconfig /all, dns server, ipconfig], tool: read.ipconfig_all, target: WS-FIN-02 }
+  - { ask: [ping ip, ping 10.10.30.20], answer: "I typed it in and it says Reply from 10.10.30.20, so that works?" }
+  - { ask: [others, colleagues, anyone else], answer: "Yes, Aminata next to me has the same problem since she restarted." }
+hints:
+  - "If IP works but names don't, the problem is name resolution."
+  - "Look at the DNS server the client was given by DHCP."
+  - "Scope 10.10.20.0 hands out DNS 10.10.10.99. It should be 10.10.10.10. Fix option 006 and renew."
+checks:
+  - { id: scope-dns, label: "Scope 10.10.20.0 option 006 is 10.10.10.10", target: DC01, run: scripts/check_option.ps1 }
+  - { id: client-resolves, label: "WS-FIN-02 resolves salonepay.corp.salonemutual.lab", target: WS-FIN-02, run: scripts/check_resolve.ps1 }
+debrief:
+  interviewer: senior-network-engineer
+  root_cause: "DHCP option 006 for the user scope pointed at a non-existent DNS server; clients that renewed got it."
+  must_cover: [dhcp option 006, dns, ipconfig /renew, nslookup, lease]
+  what_ifs:
+    - "Why did only some users break, not all at once?"
+    - "How would you roll this fix out without visiting every PC?"
+  prevention: "DHCP options managed as code with peer review; synthetic DNS checks from each VLAN."
+  rubric: { root_cause: 30, safe_fix: 25, verification: 20, documentation: 15, client_explanation: 10 }

@@ -1,0 +1,40 @@
+id: net-gateway-wrong
+version: 3
+title: "PC has an IP but can't leave its subnet"
+client: salone-mutual
+category: network
+tags: [ccna, interview, release-1]
+difficulty: 2
+estimated_minutes: 15
+sla: { priority: P3, resolve_within: 4h }
+notification:
+  kind: break_fix
+  channel: chat
+  persona: aminata-finance
+  title: "Connected but nothing opens"
+  opening: "Hi, my computer says connected but I can't open anything. Payroll is due today."
+persona: { name: Aminata Koroma, role: Accounts Clerk, traits: [anxious, non-technical] }
+affected_nodes: [WS-FIN-02]
+setup:
+  - { target: WS-FIN-02, run: scripts/inject.ps1 }
+cleanup:
+  - { target: WS-FIN-02, run: scripts/restore.ps1 }
+client_facts:
+  - { ask: [ipconfig, ip address, gateway], tool: read.ipconfig, target: WS-FIN-02 }
+  - { ask: [did you change anything, changed], answer: "No... well, IT came by yesterday to fix my printer." }
+hints:
+  - "Can the PC reach other hosts on its own subnet?"
+  - "Compare its default gateway to the VLAN's gateway."
+  - "The gateway is set to 10.10.20.254; the VLAN's is 10.10.20.1."
+checks:
+  - { id: gw-correct, label: "Default gateway is 10.10.20.1", target: WS-FIN-02, run: scripts/check_gateway.ps1 }
+  - { id: reaches-salonepay, label: "WS-FIN-02 reaches SalonePay over HTTPS", target: WS-FIN-02, run: scripts/check_http.ps1 }
+debrief:
+  interviewer: senior-network-engineer
+  root_cause: "Static default gateway pointed at a non-existent address."
+  must_cover: [arp, default gateway, dhcp vs static, how you isolated it]
+  what_ifs:
+    - "Same symptom, but the gateway is correct. What next?"
+    - "How would you prevent this across 500 PCs?"
+  prevention: "DHCP for all user devices; static addressing only for servers, documented in IPAM."
+  rubric: { root_cause: 30, safe_fix: 25, verification: 20, documentation: 15, client_explanation: 10 }

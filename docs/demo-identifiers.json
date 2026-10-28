@@ -1,0 +1,15 @@
+{
+  "clients": [
+    {
+      "id": "cebf04df-0762-5bf1-b924-ef40301139cc",
+      "slug": "salone-mutual",
+      "workstation_id": "576ea8b2-407a-583f-80c1-4bd009745da5"
+    },
+    {
+      "id": "4d03cef9-9271-563a-95d7-4a76a4b294e6",
+      "slug": "kamara-logistics",
+      "workstation_id": "8ea0ba8d-a6df-5b2f-a0b0-d8c1982b4933"
+    }
+  ],
+  "scenario_id": "4dba7f68-221c-4ce6-84ad-300b06f06695"
+}

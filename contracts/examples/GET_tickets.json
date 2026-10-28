@@ -1,0 +1,1614 @@
+{
+  "items": [
+    {
+      "id": "6acd24b4-046c-40e6-af72-efbe8acabedf",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-1002",
+      "title": "Wazuh: possible password spray against corp.salonemutual.lab",
+      "priority": "P2",
+      "status": "new",
+      "category": "security",
+      "assignee": null,
+      "reporter_persona_id": "c615e5b9-9ddb-40f4-a5b3-e4a7e7719492",
+      "scenario_run_id": "2672c3e7-bb95-4264-8d1e-980890160ce0",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f",
+        "df688ddc-5ecc-4357-ad54-f892f08adbdd",
+        "fc3dca6e-7a66-4509-a04a-6884b09eef2f"
+      ],
+      "tags": [
+        "security-plus",
+        "soc",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-28T23:20:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-28T22:20:34.948Z",
+      "updated_at": "2026-10-28T22:20:34.948Z",
+      "description": "Automated alert: 52 failed Kerberos pre-authentications (event 4771) across 3 accounts in 5 minutes. Rule 100410, ATT&CK T1110.003.",
+      "persona": {
+        "id": "c615e5b9-9ddb-40f4-a5b3-e4a7e7719492",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Wazuh SIEM",
+        "role": "Automated alert",
+        "traits": [
+          "automated"
+        ],
+        "avatar_initials": "WS"
+      },
+      "work_notes": [],
+      "checks": [
+        {
+          "id": "f499b7aa-430a-4721-a422-fa6b8c050621",
+          "check_id": "classified",
+          "label": "Alert classified as benign true positive with rationale",
+          "passed": null
+        },
+        {
+          "id": "f3b8cefa-f582-4f37-aea7-01a08f45f0b1",
+          "check_id": "failures-stopped",
+          "label": "No new 4771 events from BKP01 for 5 minutes",
+          "passed": null
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "timeline": [
+        {
+          "at": "2026-10-28T22:20:34.948Z",
+          "kind": "created",
+          "summary": "Chat from Wazuh SIEM"
+        }
+      ]
+    },
+    {
+      "id": "dd855303-eaf1-4e39-bcfb-5e06f70e66cc",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-1001",
+      "title": "Connected but nothing opens",
+      "priority": "P3",
+      "status": "new",
+      "category": "network",
+      "assignee": null,
+      "reporter_persona_id": "176d8012-43cb-4c63-a04d-6ca0089e6889",
+      "scenario_run_id": "67bcdba1-8f20-4863-940d-b62f705a57aa",
+      "affected_node_ids": [
+        "2587e4ed-a285-4b7a-ab75-5917b4795dc4"
+      ],
+      "tags": [
+        "ccna",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-29T02:12:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-28T22:12:34.948Z",
+      "updated_at": "2026-10-28T22:12:34.948Z",
+      "description": "Hi, my computer says connected but I can't open anything. Payroll is due today.",
+      "persona": {
+        "id": "176d8012-43cb-4c63-a04d-6ca0089e6889",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Aminata Koroma",
+        "role": "Accounts Clerk",
+        "traits": [
+          "anxious",
+          "non-technical"
+        ],
+        "avatar_initials": "AK"
+      },
+      "work_notes": [],
+      "checks": [
+        {
+          "id": "d05e1cf3-5479-4eeb-b24c-76f6f20d907a",
+          "check_id": "gw-correct",
+          "label": "Default gateway is 10.10.20.1",
+          "passed": null
+        },
+        {
+          "id": "996fc7d3-4630-4668-ab23-8dd9dd28eabc",
+          "check_id": "reaches-salonepay",
+          "label": "WS-FIN-02 reaches SalonePay over HTTPS",
+          "passed": null
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "timeline": [
+        {
+          "at": "2026-10-28T22:12:34.948Z",
+          "kind": "created",
+          "summary": "Chat from Aminata Koroma"
+        }
+      ]
+    },
+    {
+      "id": "221b7d3a-90ba-437d-aa17-13087b4a6fcb",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-953",
+      "title": "Urgent: reset my MFA, I'm travelling",
+      "priority": "P1",
+      "status": "closed",
+      "category": "security",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "0f768f46-5709-4ff1-adcc-f8d48b384877",
+      "scenario_run_id": "17229fd9-108b-4898-a5ca-56bf6320cf6e",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f"
+      ],
+      "tags": [
+        "security-plus",
+        "interview",
+        "social-engineering"
+      ],
+      "sla_due_at": "2026-10-26T09:56:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-26T09:26:34.948Z",
+      "updated_at": "2026-10-26T10:06:34.948Z",
+      "description": "Hi, it's Abu Bangura. I'm at the airport in Accra and got a new phone. I need my MFA reset to this number right now, the wire approvals are due in 20 minutes.",
+      "persona": {
+        "id": "0f768f46-5709-4ff1-adcc-f8d48b384877",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Abu Bangura (claimed)",
+        "role": "Finance Manager",
+        "traits": [
+          "urgent",
+          "pushy"
+        ],
+        "avatar_initials": "AB"
+      },
+      "work_notes": [
+        {
+          "id": "9dc8f37e-298e-41b8-aff6-6057c52c5fc3",
+          "author": "Joseph Kamara",
+          "body": "Root cause: An impostor used urgency and authority to request an MFA reset; the correct action was out-of-band verification.",
+          "created_at": "2026-10-26T09:46:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "3f029723-607c-4f31-8452-72b1d22945d8",
+          "check_id": "no-reset",
+          "label": "MFA for abangura was not reset to an unverified device",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-26T09:51:34.948Z"
+        },
+        {
+          "id": "2d9a05c7-069e-41b6-a4f2-97ba6bc927cd",
+          "check_id": "verified",
+          "label": "Identity check recorded through a trusted channel",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-26T09:51:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "58853b23-b3e2-4962-a878-364d6f40cdbc",
+      "timeline": [
+        {
+          "at": "2026-10-26T09:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Abu Bangura (claimed)"
+        },
+        {
+          "at": "2026-10-26T09:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-26T09:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-26T09:50:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-26T09:52:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-26T09:56:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-26T10:06:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 91"
+        }
+      ]
+    },
+    {
+      "id": "f7ed38bc-9ca3-4dcd-a9cd-04fea00a0867",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-952",
+      "title": "Can't reach anything by name",
+      "priority": "P2",
+      "status": "closed",
+      "category": "network",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "f1e1b771-199d-442c-a6b4-ec0bbd2f6c1e",
+      "scenario_run_id": "16229e46-118b-4a2b-a4ca-552c6420d101",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f",
+        "2587e4ed-a285-4b7a-ab75-5917b4795dc4"
+      ],
+      "tags": [
+        "ccna",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-24T23:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-24T21:26:34.948Z",
+      "updated_at": "2026-10-24T22:02:34.948Z",
+      "description": "Nothing loads! Chrome says 'site can't be reached' for SalonePay and even Google. But Teams calls still work?",
+      "persona": {
+        "id": "f1e1b771-199d-442c-a6b4-ec0bbd2f6c1e",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Ibrahim Conteh",
+        "role": "Senior Accountant",
+        "traits": [
+          "stressed",
+          "cooperative"
+        ],
+        "avatar_initials": "IC"
+      },
+      "work_notes": [
+        {
+          "id": "3b7b8cba-4a81-4d07-94c6-ca81bcbfd093",
+          "author": "Joseph Kamara",
+          "body": "Root cause: DHCP option 006 for the user scope pointed at a non-existent DNS server; clients that renewed got it.",
+          "created_at": "2026-10-24T21:42:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "1b05bffd-9508-41f1-a78e-428bacd7b659",
+          "check_id": "scope-dns",
+          "label": "Scope 10.10.20.0 option 006 is 10.10.10.10",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-24T21:47:34.948Z"
+        },
+        {
+          "id": "658bd099-981f-4fb3-8134-28889c3282c2",
+          "check_id": "client-resolves",
+          "label": "WS-FIN-02 resolves salonepay.corp.salonemutual.lab",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-24T21:47:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "57853990-b4e2-4af5-a778-34ba7040cf4f",
+      "timeline": [
+        {
+          "at": "2026-10-24T21:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Ibrahim Conteh"
+        },
+        {
+          "at": "2026-10-24T21:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-24T21:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-24T21:46:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-24T21:48:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-24T21:52:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-24T22:02:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 82"
+        }
+      ]
+    },
+    {
+      "id": "4032e238-39c7-4ca9-ae66-928e87b8d8ef",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-951",
+      "title": "Locked out every 10 minutes",
+      "priority": "P2",
+      "status": "closed",
+      "category": "identity",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "5b610ace-11b4-4d99-aadd-45283a162a63",
+      "scenario_run_id": "15229cb3-128b-4bbe-a7ca-59e56120cc48",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f"
+      ],
+      "tags": [
+        "interview",
+        "it-support",
+        "security-plus",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-23T13:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-23T09:26:34.948Z",
+      "updated_at": "2026-10-23T10:18:34.948Z",
+      "description": "IT, my account keeps locking! I changed my password yesterday like the email said, and now I'm locked out every few minutes. This is the third time today.",
+      "persona": {
+        "id": "5b610ace-11b4-4d99-aadd-45283a162a63",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "John Davies",
+        "role": "Logistics Supervisor",
+        "traits": [
+          "impatient",
+          "frustrated"
+        ],
+        "avatar_initials": "JD"
+      },
+      "work_notes": [
+        {
+          "id": "65fa0273-f91f-4c14-a681-7565f4e9cde0",
+          "author": "Joseph Kamara",
+          "body": "Root cause: A mobile device kept retrying the old password after a change, tripping the lockout threshold.",
+          "created_at": "2026-10-23T09:58:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "8df3450e-969f-4a9d-ad46-c48a4f4fd380",
+          "check_id": "unlocked",
+          "label": "jdavies is not locked out",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-23T10:03:34.948Z"
+        },
+        {
+          "id": "4758b53d-1406-4366-a6e9-ea161a73672a",
+          "check_id": "source-fixed",
+          "label": "No bad-password attempts from MBL-JDAVIES for 5 minutes",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-23T10:03:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "5a853e49-b1e2-463c-a678-33277140d0e2",
+      "timeline": [
+        {
+          "at": "2026-10-23T09:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by John Davies"
+        },
+        {
+          "at": "2026-10-23T09:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-23T09:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-23T10:02:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-23T10:04:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-23T10:08:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-23T10:18:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 86"
+        }
+      ]
+    },
+    {
+      "id": "3d76d12a-f0ab-4e3f-a4e5-b648a4fdf45d",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-950",
+      "title": "Everything is down",
+      "priority": "P1",
+      "status": "closed",
+      "category": "service",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "ca2eb575-23ac-492c-a9d9-87fbd3add53a",
+      "scenario_run_id": "14229b20-138b-4d51-a6ca-58526220cddb",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f",
+        "699e7cc5-7aef-4f78-a987-ad779d174522",
+        "dfcd0486-f391-4433-a3e5-1ad009eea74d",
+        "cc479b7a-e428-4465-aaf8-80d821f3a94b"
+      ],
+      "tags": [
+        "interview",
+        "ccnp",
+        "it-support",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-21T22:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-21T21:26:34.948Z",
+      "updated_at": "2026-10-21T22:14:34.948Z",
+      "description": "This is Mr. Bangura. Nobody in my department can log in, open shared files, or use SalonePay. We have a board meeting in 45 minutes. Fix it NOW.",
+      "persona": {
+        "id": "ca2eb575-23ac-492c-a9d9-87fbd3add53a",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Abu Bangura",
+        "role": "Finance Manager",
+        "traits": [
+          "angry",
+          "executive",
+          "impatient"
+        ],
+        "avatar_initials": "AB"
+      },
+      "work_notes": [
+        {
+          "id": "7d9293e0-7eaa-4baa-9d7b-1e8ed057ca29",
+          "author": "Joseph Kamara",
+          "body": "Root cause: DC02 was left powered off after maintenance; then DC01's DNS and Netlogon services stopped, removing every dependency at once.",
+          "created_at": "2026-10-21T21:54:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "a8693ffa-2dc7-4726-b032-8e13b57f9536",
+          "check_id": "dns-up",
+          "label": "corp.salonemutual.lab resolves from clients",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-21T21:59:34.948Z"
+        },
+        {
+          "id": "b9f28ec9-e739-4160-9e54-2cec57ae0348",
+          "check_id": "logon-up",
+          "label": "Domain logons succeed",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-21T21:59:34.948Z"
+        },
+        {
+          "id": "88e6e921-c1e5-4fd1-95ca-30589347c62f",
+          "check_id": "dc2-up",
+          "label": "DC02 is running for redundancy",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-21T21:59:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "59853cb6-b2e2-47cf-a578-31947240d275",
+      "timeline": [
+        {
+          "at": "2026-10-21T21:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Abu Bangura"
+        },
+        {
+          "at": "2026-10-21T21:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-21T21:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-21T21:58:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-21T22:00:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-21T22:04:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-21T22:14:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 77"
+        }
+      ]
+    },
+    {
+      "id": "65bd8967-3090-4b76-a34e-6145e5518d14",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-949",
+      "title": "PC has no network",
+      "priority": "P3",
+      "status": "closed",
+      "category": "network",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "f61b0a77-1c6d-4c76-a7e5-95dd9ccfeaa4",
+      "scenario_run_id": "91a878e8-fd1a-47a3-aff1-4e2ef0fedc41",
+      "affected_node_ids": [
+        "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+        "bdc26555-7972-427a-ad09-da3ffb53d57c"
+      ],
+      "tags": [
+        "ccna",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-20T13:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-20T09:26:34.948Z",
+      "updated_at": "2026-10-20T10:10:34.948Z",
+      "description": "Hi, my computer says 'No internet' and I can't get on anything. The cable is plugged in, I checked.",
+      "persona": {
+        "id": "f61b0a77-1c6d-4c76-a7e5-95dd9ccfeaa4",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Mariama Kanu",
+        "role": "Operations Coordinator",
+        "traits": [
+          "polite",
+          "non-technical"
+        ],
+        "avatar_initials": "MK"
+      },
+      "work_notes": [
+        {
+          "id": "c3876f28-3dcd-4262-bac2-d72b2602f122",
+          "author": "Joseph Kamara",
+          "body": "Root cause: Access port Gi0/12 was assigned to VLAN 99, which has no DHCP scope or gateway, so the PC self-assigned APIPA.",
+          "created_at": "2026-10-20T09:50:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "98d5d549-3779-49fd-9799-c712a6fa9db3",
+          "check_id": "port-vlan",
+          "label": "Gi0/12 is an access port in VLAN 20",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-20T09:55:34.948Z"
+        },
+        {
+          "id": "ee46d70d-8c75-40a1-8918-2d481afed03d",
+          "check_id": "client-dhcp",
+          "label": "WS-OPS-03 has a 10.10.20.x lease",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-20T09:55:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "4cb4269a-0f38-42fd-af21-6144d572744f",
+      "timeline": [
+        {
+          "at": "2026-10-20T09:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Mariama Kanu"
+        },
+        {
+          "at": "2026-10-20T09:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-20T09:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-20T09:54:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-20T09:56:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-20T10:00:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-20T10:10:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 82"
+        }
+      ]
+    },
+    {
+      "id": "02052bc6-5d32-403d-ae6f-0d047559a49b",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-948",
+      "title": "Alert: 50 failed logins in 5 minutes",
+      "priority": "P2",
+      "status": "closed",
+      "category": "security",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "c615e5b9-9ddb-40f4-a5b3-e4a7e7719492",
+      "scenario_run_id": "92a87a7b-fc1a-4610-a0f1-4fc1effedaae",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f",
+        "df688ddc-5ecc-4357-ad54-f892f08adbdd",
+        "fc3dca6e-7a66-4509-a04a-6884b09eef2f"
+      ],
+      "tags": [
+        "security-plus",
+        "soc",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-18T22:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-18T21:26:34.948Z",
+      "updated_at": "2026-10-18T22:26:34.948Z",
+      "description": "Automated alert: 52 failed Kerberos pre-authentications (event 4771) across 3 accounts in 5 minutes. Rule 100410, ATT&CK T1110.003.",
+      "persona": {
+        "id": "c615e5b9-9ddb-40f4-a5b3-e4a7e7719492",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Wazuh SIEM",
+        "role": "Automated alert",
+        "traits": [
+          "automated"
+        ],
+        "avatar_initials": "WS"
+      },
+      "work_notes": [
+        {
+          "id": "b0d9f61d-f7ad-4778-8ed1-004a1b0f0587",
+          "author": "Joseph Kamara",
+          "body": "Root cause: A rotated service account password was not updated in the backup service, which retried with the old one.",
+          "created_at": "2026-10-18T22:06:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "61de952b-1dd9-4b19-9fac-80aa1b7d0e47",
+          "check_id": "classified",
+          "label": "Alert classified as benign true positive with rationale",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-18T22:11:34.948Z"
+        },
+        {
+          "id": "395bea25-a538-42a5-826a-2ef4c6b87257",
+          "check_id": "failures-stopped",
+          "label": "No new 4771 events from BKP01 for 5 minutes",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-18T22:11:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "4db4282d-0e38-416a-a021-62d7d47272bc",
+      "timeline": [
+        {
+          "at": "2026-10-18T21:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Wazuh SIEM"
+        },
+        {
+          "at": "2026-10-18T21:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-18T21:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-18T22:10:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-18T22:12:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-18T22:16:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-18T22:26:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 72"
+        }
+      ]
+    },
+    {
+      "id": "ff16019a-e43f-47c9-a0c5-2980fbe466d7",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-947",
+      "title": "The network is slow",
+      "priority": "P3",
+      "status": "closed",
+      "category": "network",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "f1e1b771-199d-442c-a6b4-ec0bbd2f6c1e",
+      "scenario_run_id": "8fa875c2-0b1a-4dad-a9f1-44bceafed2cf",
+      "affected_node_ids": [
+        "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+        "dfcd0486-f391-4433-a3e5-1ad009eea74d"
+      ],
+      "tags": [
+        "ccna",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-17T17:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-17T09:26:34.948Z",
+      "updated_at": "2026-10-17T10:22:34.948Z",
+      "description": "Hi, the network is really slow today. Opening files from the shared drive takes forever.",
+      "persona": {
+        "id": "f1e1b771-199d-442c-a6b4-ec0bbd2f6c1e",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Ibrahim Conteh",
+        "role": "Senior Accountant",
+        "traits": [
+          "vague",
+          "cooperative"
+        ],
+        "avatar_initials": "IC"
+      },
+      "work_notes": [
+        {
+          "id": "2780f232-ff19-4df5-b3a5-66a63b2ea3bc",
+          "author": "Joseph Kamara",
+          "body": "Root cause: Duplex mismatch on the file server's switch port (half on the switch, full on the server).",
+          "created_at": "2026-10-17T10:02:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "ea3a30e6-5ae0-4317-be1c-5dca4c7c74c9",
+          "check_id": "duplex",
+          "label": "Gi0/3 negotiates full duplex",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-17T10:07:34.948Z"
+        },
+        {
+          "id": "595eee6d-caab-4fe3-aeac-5986a85e7f86",
+          "check_id": "errors-cleared",
+          "label": "No new CRC or late-collision errors on Gi0/3",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-17T10:07:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "3eb41090-0138-4cf3-a521-5186db727dc1",
+      "timeline": [
+        {
+          "at": "2026-10-17T09:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Ibrahim Conteh"
+        },
+        {
+          "at": "2026-10-17T09:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-17T09:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-17T10:06:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-17T10:08:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-17T10:12:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-17T10:22:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 77"
+        }
+      ]
+    },
+    {
+      "id": "4ec8212c-84d3-4a0b-aea9-9e2a222623f9",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-946",
+      "title": "Locked out every 10 minutes",
+      "priority": "P2",
+      "status": "closed",
+      "category": "identity",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "5b610ace-11b4-4d99-aadd-45283a162a63",
+      "scenario_run_id": "90a87755-0a1a-4c1a-aaf1-464fe9fed13c",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f"
+      ],
+      "tags": [
+        "interview",
+        "it-support",
+        "security-plus",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-16T01:26:34.948Z",
+      "sla_breached": true,
+      "created_at": "2026-10-15T21:26:34.948Z",
+      "updated_at": "2026-10-15T22:17:34.948Z",
+      "description": "IT, my account keeps locking! I changed my password yesterday like the email said, and now I'm locked out every few minutes. This is the third time today.",
+      "persona": {
+        "id": "5b610ace-11b4-4d99-aadd-45283a162a63",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "John Davies",
+        "role": "Logistics Supervisor",
+        "traits": [
+          "impatient",
+          "frustrated"
+        ],
+        "avatar_initials": "JD"
+      },
+      "work_notes": [
+        {
+          "id": "ea628821-ad4e-4158-8783-c14a10c37338",
+          "author": "Joseph Kamara",
+          "body": "Root cause: A mobile device kept retrying the old password after a change, tripping the lockout threshold.",
+          "created_at": "2026-10-15T21:57:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "55154cd3-f7f7-465a-b29e-79e29d9b1407",
+          "check_id": "unlocked",
+          "label": "jdavies is not locked out",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-15T22:02:34.948Z"
+        },
+        {
+          "id": "3c5d987d-ced1-47d5-9446-1f3bdd3cead9",
+          "check_id": "source-fixed",
+          "label": "No bad-password attempts from MBL-JDAVIES for 5 minutes",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-15T22:02:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "3fb41223-0038-4b60-a621-5319da727c2e",
+      "timeline": [
+        {
+          "at": "2026-10-15T21:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by John Davies"
+        },
+        {
+          "at": "2026-10-15T21:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-15T21:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-15T22:01:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-15T22:03:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-15T22:07:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-15T22:17:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 67"
+        }
+      ]
+    },
+    {
+      "id": "7867a413-3ac6-475a-a8e4-3e69b4de3120",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-945",
+      "title": "Users can reach the payments database directly",
+      "priority": "P2",
+      "status": "closed",
+      "category": "security",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "e0fbefa7-21ac-41e4-af99-1889dc375936",
+      "scenario_run_id": "8da8729c-091a-4a87-abf1-47e2ecfed5f5",
+      "affected_node_ids": [
+        "9b676cf2-af2b-4c9f-af30-9adccea32741",
+        "0a074767-5a38-4c76-adf0-4c0519ebdb14"
+      ],
+      "tags": [
+        "security-plus",
+        "interview",
+        "ccna",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-14T17:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-14T09:26:34.948Z",
+      "updated_at": "2026-10-14T10:34:34.948Z",
+      "description": "During this morning's audit walkthrough I connected from a Finance PC straight to the payments database on port 5432. That should not be possible. Please fix and confirm before Friday.",
+      "persona": {
+        "id": "e0fbefa7-21ac-41e4-af99-1889dc375936",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Musa Turay",
+        "role": "Internal Auditor",
+        "traits": [
+          "precise",
+          "formal"
+        ],
+        "avatar_initials": "MT"
+      },
+      "work_notes": [
+        {
+          "id": "01b0fc98-a550-4ff4-9a50-21f643a39da0",
+          "author": "Joseph Kamara",
+          "body": "Root cause: A temporary troubleshooting rule (VLAN 20 to VLAN 40, any) was never removed, breaking segmentation.",
+          "created_at": "2026-10-14T10:14:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "882c4300-cb91-40b2-ad10-bdd408e996c2",
+          "check_id": "no-broad-rule",
+          "label": "No rule allows VLAN 20 to reach VLAN 40",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-14T10:19:34.948Z"
+        },
+        {
+          "id": "baa0bc2c-dc43-46c9-8700-03536596599d",
+          "check_id": "db-blocked",
+          "label": "WS-FIN-02 to DB01:5432 is denied and logged",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-14T10:19:34.948Z"
+        },
+        {
+          "id": "6c3159e0-3379-4553-9479-fb123a06ee92",
+          "check_id": "app-still-works",
+          "label": "APP01 still reaches DB01:5432",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-14T10:19:34.948Z"
+        }
+      ],
+      "hints_used": 0,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "40b413b6-0338-4019-a321-4e60d9727a9b",
+      "timeline": [
+        {
+          "at": "2026-10-14T09:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Musa Turay"
+        },
+        {
+          "at": "2026-10-14T09:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-14T09:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-14T10:18:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-14T10:20:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-14T10:24:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-14T10:34:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 72"
+        }
+      ]
+    },
+    {
+      "id": "7963a250-71ce-41eb-a081-14eeff403421",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-944",
+      "title": "PC has an IP but can't leave its subnet",
+      "priority": "P3",
+      "status": "closed",
+      "category": "network",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "176d8012-43cb-4c63-a04d-6ca0089e6889",
+      "scenario_run_id": "8ea8742f-081a-48f4-acf1-4975ebfed462",
+      "affected_node_ids": [
+        "2587e4ed-a285-4b7a-ab75-5917b4795dc4"
+      ],
+      "tags": [
+        "ccna",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-13T01:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-12T21:26:34.948Z",
+      "updated_at": "2026-10-12T22:30:34.948Z",
+      "description": "Hi, my computer says connected but I can't open anything. Payroll is due today.",
+      "persona": {
+        "id": "176d8012-43cb-4c63-a04d-6ca0089e6889",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Aminata Koroma",
+        "role": "Accounts Clerk",
+        "traits": [
+          "anxious",
+          "non-technical"
+        ],
+        "avatar_initials": "AK"
+      },
+      "work_notes": [
+        {
+          "id": "daf8ff71-9506-4368-aead-19acd616cbed",
+          "author": "Joseph Kamara",
+          "body": "Root cause: Static default gateway pointed at a non-existent address.",
+          "created_at": "2026-10-12T22:10:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "fde94a1d-af8a-470c-a5e3-c40b9a5c14dd",
+          "check_id": "gw-correct",
+          "label": "Default gateway is 10.10.20.1",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-12T22:15:34.948Z"
+        },
+        {
+          "id": "404920c4-e90f-4657-b053-51788daf431f",
+          "check_id": "reaches-salonepay",
+          "label": "WS-FIN-02 reaches SalonePay over HTTPS",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-12T22:15:34.948Z"
+        }
+      ],
+      "hints_used": 1,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "41b41549-0238-4e86-a421-4ff3d8727908",
+      "timeline": [
+        {
+          "at": "2026-10-12T21:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Aminata Koroma"
+        },
+        {
+          "at": "2026-10-12T21:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-12T21:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-12T22:14:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-12T22:16:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-12T22:20:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-12T22:30:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 63"
+        }
+      ]
+    },
+    {
+      "id": "a9ada85c-f97b-4433-a15c-4f469ab6f6bd",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-943",
+      "title": "Can't open the Finance share",
+      "priority": "P3",
+      "status": "closed",
+      "category": "identity",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "f1e1b771-199d-442c-a6b4-ec0bbd2f6c1e",
+      "scenario_run_id": "8ba86f76-071a-4761-a5f1-3e70e6fecc83",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f",
+        "dfcd0486-f391-4433-a3e5-1ad009eea74d",
+        "2587e4ed-a285-4b7a-ab75-5917b4795dc4"
+      ],
+      "tags": [
+        "interview",
+        "security-plus",
+        "it-support",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-11T13:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-11T09:26:34.948Z",
+      "updated_at": "2026-10-11T10:25:34.948Z",
+      "description": "Hello, since this morning I get 'Access is denied' when I open the Finance folder. I need the month-end reports!",
+      "persona": {
+        "id": "f1e1b771-199d-442c-a6b4-ec0bbd2f6c1e",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Ibrahim Conteh",
+        "role": "Senior Accountant",
+        "traits": [
+          "stressed",
+          "cooperative"
+        ],
+        "avatar_initials": "IC"
+      },
+      "work_notes": [
+        {
+          "id": "0a0c2fb0-5767-44d4-b04d-9d763b654673",
+          "author": "Joseph Kamara",
+          "body": "Root cause: A mover change put the user in GG-Operations and removed GG-Finance, so the NTFS ACL denied access.",
+          "created_at": "2026-10-11T10:05:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "05c950f7-8499-4480-a4b0-dece1dd761f4",
+          "check_id": "in-finance-group",
+          "label": "iconteh is a member of GG-Finance",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-11T10:10:34.948Z"
+        },
+        {
+          "id": "60cd00e9-228a-4129-be06-3861941b4145",
+          "check_id": "share-access",
+          "label": "iconteh can read \\\\FS01\\Finance",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-11T10:10:34.948Z"
+        }
+      ],
+      "hints_used": 1,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "42b416dc-0538-433f-a921-57d2df72840d",
+      "timeline": [
+        {
+          "at": "2026-10-11T09:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Ibrahim Conteh"
+        },
+        {
+          "at": "2026-10-11T09:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-11T09:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-11T10:09:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-11T10:11:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-11T10:15:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-11T10:25:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 67"
+        }
+      ]
+    },
+    {
+      "id": "bc7ef9ed-36d1-48ca-a970-2073462accc8",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-942",
+      "title": "Can't reach anything by name",
+      "priority": "P2",
+      "status": "closed",
+      "category": "network",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "f1e1b771-199d-442c-a6b4-ec0bbd2f6c1e",
+      "scenario_run_id": "8ca87109-061a-45ce-a6f1-4003e5fecaf0",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f",
+        "2587e4ed-a285-4b7a-ab75-5917b4795dc4"
+      ],
+      "tags": [
+        "ccna",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-09T23:26:34.948Z",
+      "sla_breached": true,
+      "created_at": "2026-10-09T21:26:34.948Z",
+      "updated_at": "2026-10-09T22:42:34.948Z",
+      "description": "Nothing loads! Chrome says 'site can't be reached' for SalonePay and even Google. But Teams calls still work?",
+      "persona": {
+        "id": "f1e1b771-199d-442c-a6b4-ec0bbd2f6c1e",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Ibrahim Conteh",
+        "role": "Senior Accountant",
+        "traits": [
+          "stressed",
+          "cooperative"
+        ],
+        "avatar_initials": "IC"
+      },
+      "work_notes": [
+        {
+          "id": "34c37a1a-7051-4979-9db0-44ccae32c7d7",
+          "author": "Joseph Kamara",
+          "body": "Root cause: DHCP option 006 for the user scope pointed at a non-existent DNS server; clients that renewed got it.",
+          "created_at": "2026-10-09T22:22:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "08b5159b-1797-46c0-a92d-d00f28656f69",
+          "check_id": "scope-dns",
+          "label": "Scope 10.10.20.0 option 006 is 10.10.10.10",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-09T22:27:34.948Z"
+        },
+        {
+          "id": "cb09920e-1437-427e-a7e6-d16e2e1e6c6e",
+          "check_id": "client-resolves",
+          "label": "WS-FIN-02 resolves salonepay.corp.salonemutual.lab",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-09T22:27:34.948Z"
+        }
+      ],
+      "hints_used": 1,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "43b4186f-0438-41ac-aa21-5965de72827a",
+      "timeline": [
+        {
+          "at": "2026-10-09T21:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Ibrahim Conteh"
+        },
+        {
+          "at": "2026-10-09T21:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-09T21:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-09T22:26:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-09T22:28:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-09T22:32:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-09T22:42:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 58"
+        }
+      ]
+    },
+    {
+      "id": "3d3f9b8d-3724-46a4-a759-7d27ea26aea6",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-941",
+      "title": "New hire starts Monday in Finance",
+      "priority": "P3",
+      "status": "closed",
+      "category": "onboarding",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "c60f7ec9-2385-4ae2-acad-f14769721fb8",
+      "scenario_run_id": "89a86c50-051a-443b-a7f1-4196e8fecfa9",
+      "affected_node_ids": [
+        "669e780c-7def-4431-aa87-af0a9c17438f"
+      ],
+      "tags": [
+        "interview",
+        "it-support",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-11T09:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-08T09:26:34.948Z",
+      "updated_at": "2026-10-08T10:37:34.948Z",
+      "description": "Hi IT, Aminata Koroma joins Finance on Monday as an Accounts Clerk. She needs her account, the Finance share, and MFA set up before 8am please.",
+      "persona": {
+        "id": "c60f7ec9-2385-4ae2-acad-f14769721fb8",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Fatmata Sesay",
+        "role": "HR Officer",
+        "traits": [
+          "organised",
+          "non-technical"
+        ],
+        "avatar_initials": "FS"
+      },
+      "work_notes": [
+        {
+          "id": "656287a9-c28b-48f5-b07e-141945fddfcb",
+          "author": "Joseph Kamara",
+          "body": "Root cause: Not a fault: a joiner request. Account, least-privilege group access, and MFA before day one.",
+          "created_at": "2026-10-08T10:17:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "abf79742-e000-4b22-af0a-38f475768ea6",
+          "check_id": "user-exists",
+          "label": "Account akoroma exists and is enabled",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-08T10:22:34.948Z"
+        },
+        {
+          "id": "471788a7-2652-4fde-b87e-94e975702117",
+          "check_id": "in-finance-group",
+          "label": "akoroma is in GG-Finance",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-08T10:22:34.948Z"
+        },
+        {
+          "id": "c41d63af-8156-44ed-bc91-84bdb1e7b648",
+          "check_id": "mfa-enrolled",
+          "label": "MFA enrollment is required at first sign-in",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-08T10:22:34.948Z"
+        }
+      ],
+      "hints_used": 1,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "44b41a02-0738-4665-a721-54acdd7280e7",
+      "timeline": [
+        {
+          "at": "2026-10-08T09:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Fatmata Sesay"
+        },
+        {
+          "at": "2026-10-08T09:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-08T09:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-08T10:21:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-08T10:23:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-08T10:27:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-08T10:37:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 62"
+        }
+      ]
+    },
+    {
+      "id": "d2426d02-29aa-443b-a122-98888fff8651",
+      "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+      "number": "SM-940",
+      "title": "PC has no network",
+      "priority": "P3",
+      "status": "closed",
+      "category": "network",
+      "assignee": "Joseph Kamara",
+      "reporter_persona_id": "f61b0a77-1c6d-4c76-a7e5-95dd9ccfeaa4",
+      "scenario_run_id": "8aa86de3-041a-42a8-a8f1-4329e7fece16",
+      "affected_node_ids": [
+        "e3508dfc-ce92-44ab-ac77-de8252b95b91",
+        "bdc26555-7972-427a-ad09-da3ffb53d57c"
+      ],
+      "tags": [
+        "ccna",
+        "interview",
+        "release-1"
+      ],
+      "sla_due_at": "2026-10-07T01:26:34.948Z",
+      "sla_breached": false,
+      "created_at": "2026-10-06T21:26:34.948Z",
+      "updated_at": "2026-10-06T22:33:34.948Z",
+      "description": "Hi, my computer says 'No internet' and I can't get on anything. The cable is plugged in, I checked.",
+      "persona": {
+        "id": "f61b0a77-1c6d-4c76-a7e5-95dd9ccfeaa4",
+        "client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3",
+        "name": "Mariama Kanu",
+        "role": "Operations Coordinator",
+        "traits": [
+          "polite",
+          "non-technical"
+        ],
+        "avatar_initials": "MK"
+      },
+      "work_notes": [
+        {
+          "id": "5ff63d51-6260-4387-9fdf-f629f3d85df7",
+          "author": "Joseph Kamara",
+          "body": "Root cause: Access port Gi0/12 was assigned to VLAN 99, which has no DHCP scope or gateway, so the PC self-assigned APIPA.",
+          "created_at": "2026-10-06T22:13:34.948Z"
+        }
+      ],
+      "checks": [
+        {
+          "id": "861f4f0c-3be3-480f-b47a-02a441aaf7f9",
+          "check_id": "port-vlan",
+          "label": "Gi0/12 is an access port in VLAN 20",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-06T22:18:34.948Z"
+        },
+        {
+          "id": "6da8376c-d1ec-4a36-a630-c79b15d6e02a",
+          "check_id": "client-dhcp",
+          "label": "WS-OPS-03 has a 10.10.20.x lease",
+          "passed": true,
+          "output": "passed",
+          "ran_at": "2026-10-06T22:18:34.948Z"
+        }
+      ],
+      "hints_used": 1,
+      "hints_available": 3,
+      "mode": "practice",
+      "debrief_id": "45b41b95-0638-44d2-a821-563fdc727f54",
+      "timeline": [
+        {
+          "at": "2026-10-06T21:26:34.948Z",
+          "kind": "created",
+          "summary": "Ticket opened by Mariama Kanu"
+        },
+        {
+          "at": "2026-10-06T21:30:34.948Z",
+          "kind": "status",
+          "summary": "Acknowledged and claimed"
+        },
+        {
+          "at": "2026-10-06T21:32:34.948Z",
+          "kind": "status",
+          "summary": "Investigating"
+        },
+        {
+          "at": "2026-10-06T22:17:34.948Z",
+          "kind": "status",
+          "summary": "Resolved: checks running"
+        },
+        {
+          "at": "2026-10-06T22:19:34.948Z",
+          "kind": "check",
+          "summary": "All checks passed"
+        },
+        {
+          "at": "2026-10-06T22:23:34.948Z",
+          "kind": "chat",
+          "summary": "Explained the fix to the client"
+        },
+        {
+          "at": "2026-10-06T22:33:34.948Z",
+          "kind": "debrief",
+          "summary": "Debrief scored 53"
+        }
+      ]
+    }
+  ],
+  "next_cursor": null
+}

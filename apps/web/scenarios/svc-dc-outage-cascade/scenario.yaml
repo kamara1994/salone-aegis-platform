@@ -1,0 +1,41 @@
+id: svc-dc-outage-cascade
+version: 1
+title: "Everything is down"
+client: salone-mutual
+category: service
+tags: [interview, ccnp, it-support, release-1]
+difficulty: 5
+estimated_minutes: 30
+sla: { priority: P1, resolve_within: 1h }
+notification:
+  kind: break_fix
+  channel: chat
+  persona: bangura-cfo
+  title: "P1: nobody can log in or open anything"
+  opening: "This is Mr. Bangura. Nobody in my department can log in, open shared files, or use SalonePay. We have a board meeting in 45 minutes. Fix it NOW."
+persona: { name: Abu Bangura, role: Finance Manager, traits: [angry, executive, impatient] }
+affected_nodes: [DC01, DC02, FS01, APP01]
+setup:
+  - { target: DC01, run: scripts/inject.ps1 }
+cleanup:
+  - { target: DC01, run: scripts/restore.ps1 }
+client_facts:
+  - { ask: [error, what does it say], answer: "It says 'There are currently no logon servers available.' Is that our fault?" }
+  - { ask: [everyone, whole company, branch], answer: "My whole team. I don't know about the branch." }
+hints:
+  - "Many symptoms at once usually means one shared dependency."
+  - "What do logins, file shares and SalonePay name lookups all need?"
+  - "DC01's DNS Server and Netlogon services are stopped and DC02 is powered off. Start DC02 and the services on DC01."
+checks:
+  - { id: dns-up, label: "corp.salonemutual.lab resolves from clients", target: WS-FIN-02, run: scripts/check_dns.ps1 }
+  - { id: logon-up, label: "Domain logons succeed", target: WS-FIN-02, run: scripts/check_logon.ps1 }
+  - { id: dc2-up, label: "DC02 is running for redundancy", target: DC02, run: scripts/check_dc2.ps1 }
+debrief:
+  interviewer: hiring-manager
+  root_cause: "DC02 was left powered off after maintenance; then DC01's DNS and Netlogon services stopped, removing every dependency at once."
+  must_cover: [single point of failure, dns, netlogon, dependency, communication]
+  what_ifs:
+    - "Walk me through what you told the Finance Manager in the first five minutes."
+    - "How do you make sure one DC failure never takes everything down again?"
+  prevention: "Monitoring on both DCs, a maintenance checklist that verifies redundancy, and DC health in the morning check."
+  rubric: { root_cause: 25, safe_fix: 20, verification: 20, documentation: 10, client_explanation: 25 }

@@ -1,0 +1,14 @@
+{
+  "id": "68161a14-0811-4ca7-a7c2-c0162714c8a9",
+  "name": "Joseph Kamara",
+  "email": "operator@aegis.lab",
+  "roles": [
+    "operator",
+    "admin"
+  ],
+  "on_call": true,
+  "preferences": {
+    "theme": "dark",
+    "default_client_id": "2def4a1a-74f9-47b9-a3f5-46a4d20b60b3"
+  }
+}
