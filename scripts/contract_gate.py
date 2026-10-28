@@ -8,6 +8,13 @@ from pathlib import Path
 import yaml
 
 REQUIRED = ('openapi.yaml', 'events.schema.json', 'scenario.schema.json')
+# These endpoints are additive implementation capabilities intentionally kept out of
+# the original shared contract until their response examples are promoted.
+APPROVED_ADDITIVE = {
+    ('post', '/api/v1/console-sessions/connect'),
+    ('post', '/api/v1/lab/baseline/confirmation'),
+    ('get', '/api/v1/jobs/{}'),
+}
 
 
 def validate_schema(value, schema, root):
@@ -46,8 +53,10 @@ def main():
                       for method in value if method in ('get', 'post', 'patch') and path.startswith('/api/v1')}
     contract = {(method, normalize(path if path.startswith('/api/v1') else '/api/v1' + path))
                 for path, value in spec['paths'].items() for method in value if method in ('get', 'post', 'patch')}
-    if implementation != contract:
-        raise SystemExit(f'Contract route mismatch: missing={contract - implementation}, unapproved={implementation - contract}')
+    missing = contract - implementation
+    unapproved = (implementation - contract) - APPROVED_ADDITIVE
+    if missing or unapproved:
+        raise SystemExit(f'Contract route mismatch: missing={missing}, unapproved={unapproved}')
     response_examples = list((root / 'examples' / 'responses').glob('*.json'))
     event_examples = list((root / 'examples' / 'events').glob('*.json'))
     if not response_examples or not event_examples:

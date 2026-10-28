@@ -25,7 +25,7 @@ from services.orchestrator.service import Orchestrator
 from services.orchestrator.scenarios import public as public_scenario
 from .auth import Auth
 from .projections import public_node, client_detail, node_detail
-from .models import Action, Console, TicketPatch, Chat, Identity, Launch, Body, Restore, Tenant, Subscribe, ConsoleConnect
+from .models import Action, AlertPatch, Console, TicketPatch, Chat, Identity, Launch, Body, Restore, Tenant, Subscribe, ConsoleConnect
 
 log = logging.getLogger('aegis.api')
 
@@ -309,6 +309,69 @@ def create_app(settings=None, store=None):
         with store.transaction() as tx:
             run = owned(tx, 'run', identifier, actor, write=True)
             return enqueue(tx, actor, 'scenario.abort', run['client_id'], {'run_id': run['id']}, idempotency_key)
+
+    @app.get(prefix + '/scenario-runs/{identifier}')
+    def scenario_run(identifier: UUID, actor=Depends(principal)):
+        with store.transaction() as tx:
+            run = owned(tx, 'run', identifier, actor)
+            return {k: run[k] for k in ('id', 'scenario_id', 'client_id', 'ticket_id', 'state',
+                                        'mode', 'injected_at', 'resolved_at', 'hints_used',
+                                        'alert_id', 'alert_verdict') if k in run}
+
+    @app.get(prefix + '/alerts')
+    def alerts(state: list[str] | None = Query(default=None), cursor: str | None = None,
+               limit: int = Query(50, ge=1, le=200), actor=Depends(principal)):
+        allowed = {'new', 'claimed', 'classified'}
+        if state and any(item not in allowed for item in state):
+            raise DomainError('validation_error', 'Unsupported alert state', 422)
+        with store.transaction() as tx:
+            items = [a for cid in actor.client_ids for a in tx.list('alert', cid)]
+            if state:
+                items = [a for a in items if a.get('state', 'new') in state]
+            items = [{**a, 'rule': a.get('title', a.get('rule', '')), 'state': a.get('state', 'new')}
+                     for a in items]
+            return page(items, cursor, limit)
+
+    @app.post(prefix + '/alerts/{identifier}/claim')
+    def claim_alert(identifier: UUID, actor=Depends(principal)):
+        with store.transaction() as tx:
+            alert = owned(tx, 'alert', identifier, actor, write=True)
+            if alert.get('state', 'new') == 'classified' or alert.get('claimed_by') not in (None, actor.id):
+                raise DomainError('conflict', 'Alert is already claimed or classified', 409)
+            alert.update(state='claimed', claimed_by=actor.id)
+            tx.put('alert', alert)
+            evidence.append(tx, alert['client_id'], None, 'alert.claimed', {'alert_id': alert['id']}, actor.id)
+            return {**alert, 'rule': alert.get('title', alert.get('rule', ''))}
+
+    @app.patch(prefix + '/alerts/{identifier}')
+    def classify_alert(identifier: UUID, body: AlertPatch, actor=Depends(principal)):
+        with store.transaction() as tx:
+            alert = owned(tx, 'alert', identifier, actor, write=True)
+            if alert.get('state', 'new') == 'classified':
+                raise DomainError('conflict', 'Alert is already classified', 409)
+            alert.update(state='classified', verdict=body.verdict, rationale=body.rationale)
+            tx.put('alert', alert)
+            evidence.append(tx, alert['client_id'], alert.get('linked_ticket_id'), 'alert.classified',
+                            {'alert_id': alert['id'], 'verdict': body.verdict, 'rationale': body.rationale}, actor.id)
+            return {**alert, 'rule': alert.get('title', alert.get('rule', ''))}
+
+    @app.get(prefix + '/skills')
+    def skills(actor=Depends(principal)):
+        with store.transaction() as tx:
+            return [skill for cid in actor.client_ids for skill in tx.list('skill', cid)]
+
+    @app.get(prefix + '/controls')
+    def controls(actor=Depends(principal)):
+        actor.require(write=True)
+        return []
+
+    @app.get(prefix + '/settings')
+    def settings_view(actor=Depends(principal)):
+        actor.require(write=True)
+        return {'schedule': {'enabled': False, 'tickets_per_day': 0, 'max_difficulty': 'medium',
+                             'business_hours_only': False, 'exam_mode': False, 'enabled_clients': actor.client_ids},
+                'notifications': {'push_p1': True, 'sound': True, 'quiet_hours': '22:00-07:00'},
+                'on_call': False}
 
     @app.get(prefix + '/tickets/{identifier}/debrief')
     def debrief(identifier: UUID, actor=Depends(principal)):

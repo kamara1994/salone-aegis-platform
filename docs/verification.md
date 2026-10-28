@@ -8,7 +8,10 @@ Executed in the supplied Python 3.12 workspace:
 - Python syntax compilation for services, scripts and tests.
 - Scenario YAML loading, local path safety and lifecycle configuration validation.
 - Static route inventory and Compose YAML parsing.
-- Contract gate failure when authoritative shared schemas are absent (expected blocker).
+- Shared schemas and scenario packs are present. Route compatibility covers the
+  frontend's scenario-run, alert, skills, controls, and settings reads. The contract
+  gate still reports that response fixtures need to be promoted into the documented
+  `contracts/examples/responses/` wrapper format before CI can certify every response.
 
 See `test-results.txt` for the exact final test count and skip report. Passing tests cover
 launch, idempotency, reservations, failed checks, successful verification, explanation and
@@ -26,7 +29,8 @@ are explicitly skipped in this environment, not counted as passed. No backend wa
 
 The attached blueprint is retained as extracted text in `docs/blueprint.md`. Diagrams and
 visual milestone gates are not preserved by text extraction; the original PDF remains
-authoritative. Contract compatibility and production acceptance are not certified.
+authoritative. Production acceptance is not certified until the Docker/Keycloak/Redis
+integration environment and response fixtures are exercised.
 
 Recheck result: 75 tests discovered; 64 passed; 11 HTTP/WebSocket tests explicitly skipped.
 Eighteen focused audit regressions were added. The first 11 reproduced failures before

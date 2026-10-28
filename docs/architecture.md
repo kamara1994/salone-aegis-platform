@@ -48,7 +48,8 @@ separately protected audit system for stronger tamper evidence. Current evidence
 event tables have no retention policy, and paginated queries load some collections into
 memory. Add archival, indexed domain queries and bounded replay before large deployments.
 
-No frontend, static recruiter UI, cloud account, actual lab topology, private network,
-VPN, or real VM image is created by this repository. Those need the Master Lab Design
-and deployment inventory, which were not attached. A sanitized offline replay JSON exporter
-is included; a frontend can consume that file without accessing the live platform.
+The integrated repository includes the operator frontend under `apps/web/`. It runs in
+mock mode for offline demonstrations and can target the FastAPI service through the
+configured API base URL. This repository still does not create a cloud account, actual
+lab topology, private network, VPN, or real VM image; those require the Master Lab
+Design and deployment inventory. A sanitized offline replay JSON exporter is included.

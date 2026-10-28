@@ -31,6 +31,11 @@ class Launch(Input):
 class Body(Input):
     body: str = Field(min_length=1, max_length=8000)
 
+class AlertPatch(Input):
+    verdict: Literal['true_positive', 'false_positive', 'benign']
+    rationale: str = Field(min_length=1, max_length=8000)
+    open_ticket: bool = False
+
 class Restore(Input):
     client_id: UUID
     confirmation_token: str = Field(min_length=1, max_length=2048)

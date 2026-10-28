@@ -1,15 +1,11 @@
 # Contract handoff — approval required before integration
 
-The PDF explicitly describes its endpoint table as an index, not the schema. None of
-`contracts/openapi.yaml`, `contracts/events.schema.json`, `contracts/scenario.schema.json`,
-or their examples were attached or found. This implementation does not invent files in
-that shared directory. All request/response choices below are provisional backend choices.
-The owner's later instruction expanded implementation beyond M0, but did not supply
-or approve shared field schemas.
-
-Install Claude's approved files before claiming frontend compatibility. Run
-`python -m scripts.contract_gate` and then `VALIDATE_CONTRACTS=1 pytest tests/test_api.py`.
-CI intentionally fails the approved-contracts job if these files are absent.
+The extracted blueprint describes the endpoint table as an index, not the schema. The
+integrated project includes Claude's OpenAPI, event, scenario, and example files under
+`contracts/`, and the backend/frontend are wired to those shared definitions. The
+response fixtures are currently stored as direct example bodies; the CI checker still
+expects the documented `{method,path,status,body}` wrappers under
+`contracts/examples/responses/` and will remain red until those fixtures are promoted.
 
 ## Decisions to reconcile
 
