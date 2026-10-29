@@ -15,10 +15,11 @@ export interface ExamItem extends TopicQuestion {
   topic: Topic;
 }
 
-/** 'all', a course id, or 'cert:<certification id>' */
-export type ExamScope = CourseId | 'all' | `cert:${string}`;
+/** 'all', a course id, 'cert:<certification id>' or 'topic:<topic id>' */
+export type ExamScope = CourseId | 'all' | `cert:${string}` | `topic:${string}`;
 
 export function scopeTopics(scope: ExamScope): Topic[] {
+  if (scope.startsWith('topic:')) return ALL_TOPICS.filter((t) => t.id === scope.slice(6));
   if (scope.startsWith('cert:')) {
     const c = certById(scope.slice(5));
     return c ? certTopics(c) : [];

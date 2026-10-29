@@ -17,9 +17,11 @@ function fmt(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function ScopeOptions({ cert }: { cert?: Cert }) {
+function ScopeOptions({ cert, scope }: { cert?: Cert; scope?: ExamScope }) {
+  const topic = scope?.startsWith('topic:') ? ALL_TOPICS.find((t) => t.id === scope.slice(6)) : undefined;
   return (
     <>
+      {topic && <option value={scope}>Topic: {topic.title}</option>}
       {cert && <option value={`cert:${cert.id}`}>{cert.name} ({certTopics(cert).length} topics)</option>}
       <option value="all">All courses</option>
       {COURSES.map((c) => (
@@ -31,9 +33,9 @@ function ScopeOptions({ cert }: { cert?: Cert }) {
   );
 }
 
-export function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
+export function TimedExam({ onStudy, scope }: { onStudy: (topicId: string) => void; scope?: ExamScope }) {
   const cert = certById(useUi((s) => s.certId));
-  const [course, setCourse] = useState<ExamScope>(cert ? `cert:${cert.id}` : 'networking');
+  const [course, setCourse] = useState<ExamScope>(scope ?? (cert ? `cert:${cert.id}` : 'networking'));
   const [count, setCount] = useState(10);
   const [minutes, setMinutes] = useState(10);
   const [items, setItems] = useState<ExamItem[] | null>(null);
@@ -70,7 +72,7 @@ export function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
           <label className="space-y-0.5">
             <span className="block text-[12px] text-muted">Course</span>
             <select className={sel} value={course} onChange={(e) => setCourse(e.target.value as ExamScope)} data-testid="exam-course">
-              <ScopeOptions cert={cert} />
+              <ScopeOptions cert={cert} scope={scope} />
             </select>
           </label>
           <label className="space-y-0.5">
@@ -202,9 +204,9 @@ export function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
   );
 }
 
-export function Flashcards() {
+export function Flashcards({ scope }: { scope?: ExamScope } = {}) {
   const cert = certById(useUi((s) => s.certId));
-  const [course, setCourse] = useState<ExamScope>(cert ? `cert:${cert.id}` : 'networking');
+  const [course, setCourse] = useState<ExamScope>(scope ?? (cert ? `cert:${cert.id}` : 'networking'));
   const [seed, setSeed] = useState(0);
   const cards = useMemo(() => {
     const base = scopeTopics(course).flatMap((t) => t.terms.map(([term, meaning]) => ({ term, meaning, topic: t.title })));
@@ -237,7 +239,7 @@ export function Flashcards() {
             }}
             data-testid="flash-course"
           >
-            <ScopeOptions cert={cert} />
+            <ScopeOptions cert={cert} scope={scope} />
           </select>
         </label>
         <Button size="sm" onClick={() => (setSeed(seed + 1), setI(0), setFlip(false))}>

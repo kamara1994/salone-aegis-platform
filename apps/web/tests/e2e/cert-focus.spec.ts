@@ -22,13 +22,22 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await expect(page.getByTestId('dash-toolbar')).toContainText('Network+, CCNA, CCNP');
   await expect(page.getByTestId('dashboard-playground-empty')).toBeVisible();
   // icon rail of sections; each section has a second toolbar and its own side panel
-  for (const x of ['learn', 'labs', 'games', 'projects', 'skills', 'progress', 'career', 'settings']) await expect(page.getByTestId(`side-${x}`)).toBeVisible();
+  for (const x of ['learn', 'labs', 'scenario-lab', 'games', 'projects', 'skills', 'progress', 'career', 'settings']) await expect(page.getByTestId(`side-${x}`)).toBeVisible();
   await page.getByTestId('side-learn').click();
   await expect(page.getByTestId('dash-toolbar-section')).toHaveText('Learn');
-  for (const x of ['topics', 'images', 'exam', 'flashcards', 'interview']) await expect(page.getByTestId(`side-part-${x}`)).toBeVisible();
+  for (const x of ['topics', 'images', 'exam', 'flashcards', 'scenario-questions', 'interview']) await expect(page.getByTestId(`side-part-${x}`)).toBeVisible();
   await expect(page.getByTestId('topics-heading')).toBeVisible();
+  await expect(page.getByTestId('dash-tool-scenario')).toHaveCount(0);
   await page.getByTestId('side-part-exam').click();
   await expect(page.getByTestId('exam-course')).toHaveValue('cert:networking');
+  // the toolbar topic picker narrows the exam, flashcards and scenario questions to one topic
+  await page.getByTestId('dash-topic').selectOption('vlans');
+  await expect(page.getByTestId('exam-course')).toHaveValue('topic:vlans');
+  await page.getByTestId('side-part-scenario-questions').click();
+  await expect(page.getByTestId('scenario-q-stem')).toBeVisible();
+  await page.getByTestId('scenario-q-option-0').click();
+  await expect(page.getByTestId('scenario-q-explain')).toBeVisible();
+  await page.getByTestId('dash-topic').selectOption('');
   await page.getByTestId('dash-tool-flashcards').click();
   await expect(page.getByTestId('playground-flashcards')).toBeVisible();
   await expect(page).toHaveURL(/item=learn%2Fflashcards|item=learn\/flashcards/);
@@ -37,6 +46,9 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await page.getByTestId('side-labs').click();
   await expect(page.getByTestId('lab-designer')).toBeVisible();
   await expect(page.getByRole('toolbar', { name: 'Lab designer tools' })).toBeVisible();
+  await page.getByTestId('side-scenario-lab').click();
+  await expect(page.getByTestId('side-part-faults')).toBeVisible();
+  await expect(page.getByTestId('side-part-drills')).toBeVisible();
   await page.getByTestId('side-games').click();
   await expect(page.getByTestId('playground-games')).toBeVisible();
   await expect(page.getByTestId('side-part-all')).toBeVisible();
