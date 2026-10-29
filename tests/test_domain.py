@@ -29,7 +29,7 @@ class BackendTests(unittest.TestCase):
         self.engine = Orchestrator(self.store, self.registry, Provider(), self.tokens)
         self.cid, self.other = CLIENTS
         self.actor = '00000000-0000-4000-8000-000000000001'
-        self.scenario = load(ROOT / 'scenarios')[0]['id']
+        self.scenario = next(p['id'] for p in load(ROOT / 'scenarios') if p['slug'] == 'net-gateway-wrong')
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -70,9 +70,12 @@ class BackendTests(unittest.TestCase):
         from uuid import UUID
         with self.store.transaction() as tx:
             self.assertEqual(len(tx.list('client')), 2)
-            for kind in ('client', 'node', 'site', 'link', 'persona', 'scenario'):
+            for kind in ('client', 'node', 'site', 'link', 'persona'):
                 for item in tx.list(kind):
                     UUID(item['id'])
+            # Scenario identifiers are explicitly slugs in the immutable shared contract.
+            self.assertEqual({s['id'] for s in tx.list('scenario')},
+                             {p['id'] for p in load(ROOT / 'scenarios')})
 
     def test_seed_is_idempotent(self):
         seed(self.store, ROOT / 'scenarios')

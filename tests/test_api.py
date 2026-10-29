@@ -75,7 +75,7 @@ class APITests(unittest.TestCase):
         self.assertEqual(self.call('GET', '/clients?cursor=garbage').status_code, 400)
 
     def launch(self):
-        scenario = self.call('GET', '/scenarios').json()['items'][0]
+        scenario = next(s for s in self.call('GET', '/scenarios').json()['items'] if s['slug'] == 'net-gateway-wrong')
         response = self.call('POST', '/scenario-runs', {'client_id': self.cid, 'scenario_id': scenario['id']})
         self.assertEqual(response.status_code, 202, response.text)
         self.app.state.engine.run_once()

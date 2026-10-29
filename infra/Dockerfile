@@ -5,6 +5,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && useradd --uid 10001 --create-home aegis
 COPY services services
 COPY scenarios scenarios
+COPY contracts contracts
 COPY scripts scripts
 COPY infra/alembic infra/alembic
 COPY infra/alembic.ini infra/alembic.ini

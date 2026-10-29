@@ -34,4 +34,5 @@ def seed(store, scenario_dir='scenarios'):
                                'role': 'finance clerk', 'traits': ['urgent', 'nontechnical'],
                                'verify_identity_answers': {'employee_code': 'LAB-204'}, 'impostor': False})
         for pack in packs:
-            tx.put('scenario', {**pack, 'client_id': 'global'})
+            tx.put('scenario', {**pack, 'client_id': 'global',
+                                'sla': dict(pack['sla'])})

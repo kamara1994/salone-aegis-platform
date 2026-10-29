@@ -141,7 +141,11 @@ class Orchestrator:
 
     def lifecycle(self, tx, run, phase, job):
         results = []
-        steps = run['definition']['checks' if phase == 'check' else phase]
+        steps = run['definition'].get('checks' if phase == 'check' else phase)
+        if steps is None and phase == 'solve' and self.registry.mode == 'fake':
+            steps = run['definition']['cleanup']
+        if steps is None:
+            raise DomainError('unsupported_phase', 'Scenario does not define this lifecycle phase', 422)
         failures = []
         for index, step in enumerate(steps):
             try:

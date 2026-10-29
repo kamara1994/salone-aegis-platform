@@ -128,6 +128,6 @@ class Transaction:
         rows = self.execute('SELECT seq,client_id,data FROM events WHERE seq>? ORDER BY seq LIMIT ?',
                             (after, limit)).fetchall()
         visible = [json.loads(r['data']) for r in rows if r['client_id'] in clients]
-        if topics:
+        if topics and '*' not in topics:
             visible = [e for e in visible if e['type'] in topics or e['type'].split('.')[0] in topics]
         return visible, rows[-1]['seq'] if rows else after

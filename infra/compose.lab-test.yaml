@@ -1,0 +1,24 @@
+# Isolated disposable test database. No host mounts or published database ports.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: aegis_test
+      POSTGRES_USER: aegis_test
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U aegis_test -d aegis_test']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql/data
+  checks:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.lab-test
+    environment:
+      DATABASE_URL: postgresql://aegis_test@postgres/aegis_test
+    depends_on:
+      postgres:
+        condition: service_healthy

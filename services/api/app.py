@@ -523,4 +523,6 @@ def create_app(settings=None, store=None):
         except (ValueError, asyncio.TimeoutError):
             await ws.close(code=4400)
 
+    from services.lab.api import install
+    install(app, store, principal, tokens, settings.adapter_mode)
     return app
