@@ -26,8 +26,19 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await page.getByTestId('side-learn').click();
   await expect(page.getByTestId('dash-toolbar-section')).toHaveText('Learn');
   for (const x of ['topics', 'images', 'exam', 'flashcards', 'scenario-questions', 'interview']) await expect(page.getByTestId(`side-part-${x}`)).toBeVisible();
-  await expect(page.getByTestId('topics-heading')).toBeVisible();
-  await expect(page.getByTestId('dash-tool-scenario')).toHaveCount(0);
+  // Learn by topic stays empty until a topic is chosen, then shows only that topic
+  await expect(page.getByTestId('topic-empty')).toBeVisible();
+  for (const x of ['dash-tool-lab', 'dash-tool-exam', 'dash-tool-flashcards', 'dash-tool-interview']) await expect(page.getByTestId(x)).toHaveCount(0);
+  await page.getByTestId('dash-topic').selectOption('ospf');
+  await expect(page.getByTestId('topic-title')).toHaveText('OSPF basics');
+  await expect(page.getByTestId('topics-heading')).toHaveCount(0);
+  await page.getByTestId('mode-advanced').click();
+  await expect(page.getByTestId('mode-advanced')).toHaveAttribute('aria-checked', 'true');
+  await page.getByTestId('dash-topic-tools').click();
+  await page.getByTestId('topic-tool-key-terms').click();
+  await expect(page.getByTestId('topic-terms')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByTestId('dash-topic').selectOption('');
   await page.getByTestId('side-part-exam').click();
   await expect(page.getByTestId('exam-course')).toHaveValue('cert:networking');
   // the toolbar topic picker narrows the exam, flashcards and scenario questions to one topic
@@ -38,7 +49,7 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await page.getByTestId('scenario-q-option-0').click();
   await expect(page.getByTestId('scenario-q-explain')).toBeVisible();
   await page.getByTestId('dash-topic').selectOption('');
-  await page.getByTestId('dash-tool-flashcards').click();
+  await page.getByTestId('side-part-flashcards').click();
   await expect(page.getByTestId('playground-flashcards')).toBeVisible();
   await expect(page).toHaveURL(/item=learn%2Fflashcards|item=learn\/flashcards/);
   await expect(page.getByTestId('side-learn')).toHaveAttribute('aria-current', 'page');

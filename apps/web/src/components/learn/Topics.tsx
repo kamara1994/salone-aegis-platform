@@ -91,7 +91,7 @@ function TopicExam({ t, onScore }: { t: Topic; onScore: (score: number, total: n
   );
 }
 
-function TopicPage({ t, list: scoped, scopeLabel, level, setLevel, onOpenLesson, onTopic, progress, onScore }: { t: Topic; list?: Topic[]; scopeLabel?: string; level: TeachLevel; setLevel: (l: TeachLevel) => void; onOpenLesson: (id: string) => void; onTopic: (id: string) => void; progress: Progress | null; onScore: (s: number, n: number) => void }) {
+function TopicPage({ t, list: scoped, scopeLabel, level, setLevel, onOpenLesson, onTopic, progress, onScore, hideLevels }: { hideLevels?: boolean; t: Topic; list?: Topic[]; scopeLabel?: string; level: TeachLevel; setLevel: (l: TeachLevel) => void; onOpenLesson: (id: string) => void; onTopic: (id: string) => void; progress: Progress | null; onScore: (s: number, n: number) => void }) {
   const list = scoped && scoped.some((x) => x.id === t.id) ? scoped : courseTopics(t.course);
   const idx = list.findIndex((x) => x.id === t.id);
   const prev = list[idx - 1];
@@ -110,7 +110,7 @@ function TopicPage({ t, list: scoped, scopeLabel, level, setLevel, onOpenLesson,
         </h2>
         {rec?.total !== undefined && <Badge tone={(rec.score ?? 0) / rec.total >= 0.8 ? 'good' : 'warn'}>Last exam {rec.score}/{rec.total}</Badge>}
       </div>
-      <div className="space-y-1">
+      {!hideLevels && <div className="space-y-1">
         <p className="text-[12px] text-muted">How should I teach this?</p>
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Teaching level">
           {LEVELS.map((l) => (
@@ -120,7 +120,7 @@ function TopicPage({ t, list: scoped, scopeLabel, level, setLevel, onOpenLesson,
             </button>
           ))}
         </div>
-      </div>
+      </div>}
       <section className="rounded-[8px] border border-line bg-pane p-4 text-[15.5px] leading-relaxed" data-testid="topic-explanation">
         {t[level]}
       </section>
@@ -347,10 +347,11 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
 }
 
 /** One topic on its own (used by the dashboard playground): level choice, exam and lab link. */
-export function TopicPlayground({ topicId, list, scopeLabel, onTopic, onOpenLesson }: { topicId: string; list?: Topic[]; scopeLabel?: string; onTopic: (id: string) => void; onOpenLesson: (id: string) => void }) {
+export function TopicPlayground({ topicId, list, scopeLabel, onTopic, onOpenLesson, level: fixedLevel }: { topicId: string; list?: Topic[]; scopeLabel?: string; onTopic: (id: string) => void; onOpenLesson: (id: string) => void; level?: TeachLevel }) {
   const t = topicById(topicId);
   const [progress, setProgress] = useState<Progress | null>(null);
-  const [level, setLevelState] = useState<TeachLevel>('simple');
+  const [ownLevel, setLevelState] = useState<TeachLevel>('simple');
+  const level = fixedLevel ?? ownLevel;
   useEffect(() => {
     const p = loadProgress();
     setProgress(p);
@@ -363,6 +364,7 @@ export function TopicPlayground({ topicId, list, scopeLabel, onTopic, onOpenLess
       list={list}
       scopeLabel={scopeLabel}
       level={level}
+      hideLevels={!!fixedLevel}
       setLevel={(l) => {
         setLevelState(l);
         setProgress(updateProgress((p) => {
