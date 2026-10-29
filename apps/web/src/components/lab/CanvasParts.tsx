@@ -70,6 +70,9 @@ const REAL_ASSET: Record<string, string> = {
   'iot-sensor': '/lab/generated/labeled/environmental-sensor-annotated.png',
 };
 
+// Keep device previews singleton while the pointer crosses canvas nodes.
+let activeDeviceHoverClose: (() => void) | null = null;
+
 function deviceSummary(d: Device, up: number, total: number) {
   const m = modelOf(d);
   const lines = [
@@ -96,6 +99,7 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
   const [hover, setHover] = useState<DOMRect | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverCloser = useRef<(() => void) | null>(null);
   const keep = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = null;
@@ -106,6 +110,7 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
     timer.current = null;
     hideTimer.current = null;
     setHover(null);
+    if (hoverCloser.current && activeDeviceHoverClose === hoverCloser.current) activeDeviceHoverClose = null;
   };
   const scheduleCancel = () => {
     if (timer.current) clearTimeout(timer.current);
@@ -116,11 +121,15 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
     if (hideTimer.current) clearTimeout(hideTimer.current);
+    if (hoverCloser.current && activeDeviceHoverClose === hoverCloser.current) activeDeviceHoverClose = null;
   }, []);
   return (
     <div
       onMouseEnter={(e) => {
         if (ghost || e.buttons) return;
+        activeDeviceHoverClose?.();
+        hoverCloser.current = () => setHover(null);
+        activeDeviceHoverClose = hoverCloser.current;
         const el = e.currentTarget;
         timer.current = setTimeout(() => setHover(el.getBoundingClientRect()), 450);
       }}

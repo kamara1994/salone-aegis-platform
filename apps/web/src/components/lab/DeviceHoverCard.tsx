@@ -32,28 +32,30 @@ export function portSummary(m: DeviceModel): string {
 }
 
 /** Model-specific visual assets generated for the lab. Falls back to the original SVG if an asset is unavailable. */
+const LAB_ASSET_ROOT = '/lab/generated/labeled/trimmed';
+const asset = (name: string) => `${LAB_ASSET_ROOT}/${name}`;
 const LAB_ASSET: Record<string, string> = {
-  isr4331: '/lab/generated/labeled/cisco-isr-4331-annotated.png',
-  isr1941: '/lab/generated/labeled/cisco-1941-annotated.png',
-  c2960x24: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
-  c2960x24ps: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
-  'c9300-24t': '/lab/generated/labeled/cisco-catalyst-9300-annotated.png',
-  dec2750: '/lab/generated/labeled/opnsense-dec2750-annotated.png',
-  r650: '/lab/generated/labeled/dell-poweredge-r650-annotated.png',
-  'proxmox-vm': '/lab/generated/labeled/proxmox-vm-annotated.png',
-  optiplex: '/lab/generated/labeled/dell-optiplex-7010-annotated.png',
-  'legacy-pc': '/lab/generated/labeled/legacy-pc-annotated.png',
-  thinkpad: '/lab/generated/labeled/thinkpad-t14-annotated.png',
-  c9120: '/lab/generated/labeled/catalyst-9120axi-annotated.png',
-  'aws-vpc': '/lab/generated/labeled/aws-vpc-annotated.png',
-  internet: '/lab/generated/labeled/internet-wan-annotated.png',
-  'axis-cam': '/lab/generated/labeled/axis-m3106-annotated.png',
-  'iot-sensor': '/lab/generated/labeled/environmental-sensor-annotated.png',
-  c9800l: '/lab/generated/labeled/cisco-catalyst-9800l-annotated.png',
-  'services-server': '/lab/generated/labeled/ubuntu-services-server-annotated.png',
-  'kali-workstation': '/lab/generated/labeled/kali-workstation-annotated.png',
-  'ip-phone-8845': '/lab/generated/labeled/ip-phone-8845-annotated.png',
-  'network-printer': '/lab/generated/labeled/network-printer-annotated.png',
+  isr4331: asset('cisco-isr-4331-annotated.png'),
+  isr1941: asset('cisco-1941-annotated.png'),
+  c2960x24: asset('cisco-catalyst-2960x-annotated.png'),
+  c2960x24ps: asset('cisco-catalyst-2960x-annotated.png'),
+  'c9300-24t': asset('cisco-catalyst-9300-annotated.png'),
+  dec2750: asset('opnsense-dec2750-annotated.png'),
+  r650: asset('dell-poweredge-r650-annotated.png'),
+  'proxmox-vm': asset('proxmox-vm-annotated.png'),
+  optiplex: asset('dell-optiplex-7010-annotated.png'),
+  'legacy-pc': asset('legacy-pc-annotated.png'),
+  thinkpad: asset('thinkpad-t14-annotated.png'),
+  c9120: asset('catalyst-9120axi-annotated.png'),
+  'aws-vpc': asset('aws-vpc-annotated.png'),
+  internet: asset('internet-wan-annotated.png'),
+  'axis-cam': asset('axis-m3106-annotated.png'),
+  'iot-sensor': asset('environmental-sensor-annotated.png'),
+  c9800l: asset('cisco-catalyst-9800l-annotated.png'),
+  'services-server': asset('ubuntu-services-server-annotated.png'),
+  'kali-workstation': asset('kali-workstation-annotated.png'),
+  'ip-phone-8845': asset('ip-phone-8845-annotated.png'),
+  'network-printer': asset('network-printer-annotated.png'),
 };
 
 export function DevicePicture({ model, className }: { model: DeviceModel; className?: string }) {
