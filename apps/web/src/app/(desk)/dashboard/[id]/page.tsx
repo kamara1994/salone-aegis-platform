@@ -1,6 +1,6 @@
 'use client';
 
-import { Award, BookOpenText, BrainCircuit, Calculator, ChevronDown, Compass, History, Images, Joystick, Layers, Link2, ListChecks, MessagesSquare, MousePointerClick, Network, NotebookText, PanelLeftClose, PanelLeftOpen, Route, ScrollText, Settings2, Siren, Tags, Timer, TrendingUp, Wrench, type LucideIcon } from 'lucide-react';
+import { Award, BookOpenText, BrainCircuit, Calculator, ChevronDown, Compass, History, Images, Joystick, Layers, ListChecks, MessagesSquare, MousePointerClick, PanelLeftClose, PanelLeftOpen, Route, ScrollText, Settings2, Siren, Tags, Timer, TrendingUp, Wrench, type LucideIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import LabPage from '@/app/(desk)/lab/page';
@@ -17,7 +17,8 @@ import { TopicPlayground } from '@/components/learn/Topics';
 import { TracksView } from '@/components/learn/Tracks';
 import { VisualsView } from '@/components/learn/Visuals';
 import { ScenarioLibrary } from '@/components/scenarios/ScenarioLibrary';
-import { cx, Dialog, EmptyState } from '@/components/ui';
+import { cx, EmptyState } from '@/components/ui';
+import { ToolDialog, TOOLS, toolsFor, type ToolId } from '@/components/learn/StudyTools';
 import { loadProgress, updateProgress } from '@/content/progress';
 import { allGames } from '@/content';
 import { certById, certTopics, CERTS, dashboardById, type Cert } from '@/content/certs';
@@ -42,6 +43,9 @@ const LEARN_PARTS: Part[] = [
   { key: 'tracks', label: 'Tracks', hint: 'Step-by-step study path', icon: Route, hue: HUE.path },
   { key: 'lessons', label: 'Interactive lessons', hint: 'Guided walk-throughs', icon: Compass, hue: HUE.read },
 ];
+
+/** Practice exam defaults per learning mode: questions and minutes. */
+const EXAM_PRESET: Record<TeachLevel, [number, number]> = { simple: [5, 10], technical: [10, 10], advanced: [20, 20] };
 
 /** Learning mode: how deep the topic explanations go. */
 const MODES: { key: TeachLevel; label: string; hint: string }[] = [
@@ -84,7 +88,7 @@ export default function DashboardPage() {
   const [lesson, setLesson] = useState<string | null>(null);
   const [last, setLast] = useState<string | null>(null);
   const [mode, setModeState] = useState<TeachLevel>('simple');
-  const [terms, setTerms] = useState(false);
+  const [tool, setTool] = useState<ToolId | null>(null);
   const topics = useMemo(() => (focus ? certTopics(focus) : []), [focus]);
   const units = useMemo(() => {
     const g: { name: string; list: Topic[] }[] = [];
@@ -187,20 +191,7 @@ export default function DashboardPage() {
       <h1 className="sr-only" data-testid="dashboard-title">
         {dash.title}
       </h1>
-      <Dialog open={terms} onClose={() => setTerms(false)} title={topic ? `Key terms: ${topic.title}` : 'Key terms'}>
-        {topic ? (
-          <dl className="space-y-2 text-[13px]" data-testid="topic-terms">
-            {topic.terms.map(([k, v]) => (
-              <div key={k}>
-                <dt className="font-medium">{k}</dt>
-                <dd className="text-muted">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : (
-          <p className="text-[13px] text-muted">Choose a topic first.</p>
-        )}
-      </Dialog>
+      <ToolDialog tool={tool} topic={topic} mode={mode} onClose={() => setTool(null)} />
       <DashToolbar>
         {section && parts.length > 0 && (
           <TB label={panel ? 'Hide side panel' : 'Show side panel'} onClick={() => setPanel(!panel)} testid="dash-panel-toggle">
@@ -214,7 +205,10 @@ export default function DashboardPage() {
         )}
         {section === 'learn' && (
           <>
-            <label className="relative ml-1 flex items-center" title="Choose a topic to learn">
+            <TopicTools topic={topic} tools={toolsFor(dash.id)} onPick={setTool} />
+            <Sep />
+            <div className="flex flex-wrap items-center gap-1.5" data-testid="dash-topic-mode">
+            <label className="relative flex items-center" title="Choose a topic to learn">
               <Tags className="pointer-events-none absolute left-2 size-3.5 text-faint" aria-hidden />
               <span className="sr-only">Topic</span>
               <select value={topicId} onChange={(e) => pickTopic(e.target.value)} className="h-8 max-w-[260px] rounded-[6px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px]" data-testid="dash-topic">
@@ -230,22 +224,6 @@ export default function DashboardPage() {
                 ))}
               </select>
             </label>
-            <Sep />
-            <TopicTools
-              topic={topic}
-              items={[
-                { label: 'Read this topic', icon: BookOpenText, onSelect: () => open('learn', 'topics') },
-                { label: 'Quiz on this topic', icon: Timer, onSelect: () => open('learn', 'exam') },
-                { label: 'Flashcards for this topic', icon: Layers, onSelect: () => open('learn', 'flashcards') },
-                { label: 'Scenario questions', icon: ScrollText, onSelect: () => open('learn', 'scenario-questions') },
-                { label: 'Key terms', icon: NotebookText, onSelect: () => setTerms(true) },
-                { label: topic?.lab?.workbook || topic?.lab?.challenge ? 'Practise it in the lab' : 'Open the lab', icon: Network, onSelect: () => openLab(topic?.lab?.workbook ?? (topic?.lab?.challenge ? `challenge:${topic.lab.challenge}` : undefined)) },
-                ...(topic?.lesson ? [{ label: 'Interactive lesson', icon: Compass, onSelect: () => { setLesson(topic.lesson!); open('learn', 'lessons'); } }] : []),
-                { label: 'Copy link to this topic', icon: Link2, onSelect: () => void navigator.clipboard?.writeText(window.location.href) },
-              ]}
-              always={[{ label: 'Subnet calculator drills', icon: Calculator, onSelect: () => open('learn', 'subnetting') }]}
-            />
-            <Sep />
             <div className="flex items-center gap-1" role="radiogroup" aria-label="Learning mode" data-testid="dash-mode">
               <span className="hidden pr-0.5 text-[11.5px] text-faint lg:inline">Mode</span>
               <div className="flex rounded-[6px] border border-line-strong p-0.5">
@@ -255,6 +233,7 @@ export default function DashboardPage() {
                   </button>
                 ))}
               </div>
+            </div>
             </div>
           </>
         )}
@@ -326,7 +305,7 @@ export default function DashboardPage() {
               {part === 'images' && <VisualsView onTopic={studyTopic} />}
               {part === 'exam' && (
                 <div data-testid="playground-exam">
-                  <TimedExam key={scope ?? 'all'} scope={scope} onStudy={studyTopic} />
+                  <TimedExam key={`${scope ?? 'all'}-${mode}`} scope={scope} onStudy={studyTopic} initialCount={EXAM_PRESET[mode][0]} initialMinutes={EXAM_PRESET[mode][1]} />
                 </div>
               )}
               {part === 'flashcards' && (
@@ -339,8 +318,8 @@ export default function DashboardPage() {
                   <ScenarioQuestions key={topicId} gameIds={focus.games} topic={topic} />
                 </div>
               )}
-              {part === 'interview' && <Interview />}
-              {part === 'ai' && <Practice initialTrack={focus.aiTrack as Track | undefined} />}
+              {part === 'interview' && <Interview key={mode} initialLevel={mode === 'simple' ? 'entry' : mode === 'technical' ? 'mid' : 'senior'} />}
+              {part === 'ai' && <Practice key={mode} initialTrack={focus.aiTrack as Track | undefined} initialDifficulty={mode === 'simple' ? 2 : mode === 'technical' ? 3 : 5} />}
               {part === 'subnetting' && <Subnetting />}
               {part === 'tracks' && (
                 <TracksView
@@ -413,10 +392,8 @@ function TB({ label, onClick, active, children, testid }: { label: string; onCli
 
 const Sep = () => <span className="mx-0.5 h-5 w-px bg-line" aria-hidden />;
 
-type Tool = { label: string; icon: LucideIcon; onSelect: () => void };
-
-/** Tools for the chosen topic; most need a topic, a few work without one. */
-function TopicTools({ topic, items, always }: { topic?: Topic; items: Tool[]; always: Tool[] }) {
+/** Study and reference tools: notes, read aloud, timer, calculators and converters that suit this dashboard. */
+function TopicTools({ topic, tools, onPick }: { topic?: Topic; tools: { study: ToolId[]; reference: ToolId[] }; onPick: (t: ToolId) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -432,33 +409,43 @@ function TopicTools({ topic, items, always }: { topic?: Topic; items: Tool[]; al
       document.removeEventListener('keydown', esc);
     };
   }, [open]);
-  const row = (t: Tool, disabled: boolean) => (
-    <li key={t.label}>
-      <button
-        role="menuitem"
-        disabled={disabled}
-        onClick={() => {
-          setOpen(false);
-          t.onSelect();
-        }}
-        className="flex w-full items-center gap-2 rounded-[5px] px-2 py-1.5 text-left text-[13px] hover:bg-pane-2 disabled:opacity-40 disabled:hover:bg-transparent"
-        data-testid={`topic-tool-${t.label.toLowerCase().replace(/\W+/g, '-')}`}
-      >
-        <t.icon className="size-4 text-muted" /> {t.label}
-      </button>
-    </li>
-  );
+  const row = (id: ToolId) => {
+    const t = TOOLS[id];
+    const disabled = !!t.needsTopic && !topic;
+    return (
+      <li key={id}>
+        <button
+          role="menuitem"
+          disabled={disabled}
+          title={disabled ? 'Choose a topic first' : t.hint}
+          onClick={() => {
+            setOpen(false);
+            onPick(id);
+          }}
+          className="flex w-full items-center gap-2.5 rounded-[5px] px-2 py-1.5 text-left hover:bg-pane-2 disabled:opacity-40 disabled:hover:bg-transparent"
+          data-testid={`topic-tool-${id}`}
+        >
+          <t.icon className="size-4 shrink-0 text-muted" />
+          <span className="min-w-0">
+            <span className="block text-[13px]">{t.label}</span>
+            <span className="block text-[11px] text-faint">{disabled ? 'Choose a topic first' : t.hint}</span>
+          </span>
+        </button>
+      </li>
+    );
+  };
   return (
     <div ref={ref} className="relative">
       <TB label="Topic tools" onClick={() => setOpen(!open)} active={open} testid="dash-topic-tools">
-        <Wrench className="size-4" /> Topic tools <ChevronDown className="size-3.5" />
+        <Wrench className="size-4" /> Tools <ChevronDown className="size-3.5" />
       </TB>
       {open && (
-        <div role="menu" className="absolute top-9 left-0 z-30 w-[260px] rounded-[8px] border border-line-strong bg-pane p-1 shadow-lg" data-testid="topic-tools-menu">
-          <p className="px-2 pt-1 pb-1.5 text-[11.5px] text-faint">{topic ? topic.title : 'Choose a topic to use these'}</p>
-          <ul>{items.map((t) => row(t, !topic))}</ul>
+        <div role="menu" className="absolute top-9 left-0 z-30 w-[270px] rounded-[8px] border border-line-strong bg-pane p-1 shadow-lg" data-testid="topic-tools-menu">
+          <p className="px-2 pt-1 pb-1 text-[11.5px] font-medium text-faint">Study</p>
+          <ul>{tools.study.map(row)}</ul>
           <div className="my-1 h-px bg-line" />
-          <ul>{always.map((t) => row(t, false))}</ul>
+          <p className="px-2 pt-1 pb-1 text-[11.5px] font-medium text-faint">Reference</p>
+          <ul>{tools.reference.map(row)}</ul>
         </div>
       )}
     </div>

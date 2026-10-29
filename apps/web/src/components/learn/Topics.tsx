@@ -14,6 +14,54 @@ export const LEVELS: { key: TeachLevel; label: string; hint: string }[] = [
   { key: 'technical', label: 'Technical', hint: 'How it works, with the real terms and commands' },
   { key: 'advanced', label: 'Advanced', hint: 'Design choices, edge cases and what professionals watch for' },
 ];
+
+const MODE_NOTE: Record<TeachLevel, string> = {
+  simple: 'Beginner: plain words and an everyday comparison. Underlined words show their meaning when you point at or tap them.',
+  technical: 'Intermediate: how it works, with the real terms and a worked example.',
+  advanced: 'Senior: design choices, edge cases, commands and what professionals watch for.',
+};
+
+function TermsBlock({ t, title, compact }: { t: Topic; title: string; compact?: boolean }) {
+  return (
+    <section className="space-y-1.5" data-testid="topic-terms-block">
+      <h3 className="text-[14px] font-semibold">{title}</h3>
+      <dl className={cx('grid gap-2', compact ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
+        {t.terms.map(([term, meaning]) => (
+          <div key={term} className={cx('rounded-[6px] border border-line', compact ? 'px-2.5 py-1.5' : 'px-3 py-2')}>
+            <dt className="font-mono text-[13px] font-semibold">{term}</dt>
+            <dd className={cx('text-muted', compact ? 'text-[12px]' : 'text-[13px]')}>{meaning}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+/** Beginner text: each key term is underlined once and shows its meaning on hover, focus or tap. */
+export function Glossed({ text, terms }: { text: string; terms: [string, string][] }) {
+  const usable = terms.filter(([k]) => k.length >= 2).sort((a, b) => b[0].length - a[0].length);
+  if (!usable.length) return <>{text}</>;
+  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\b(${usable.map(([k]) => esc(k)).join('|')})\\b`, 'gi');
+  const seen = new Set<string>();
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    const hit = usable.find(([k]) => k.toLowerCase() === m[0].toLowerCase());
+    if (!hit || seen.has(hit[0])) continue;
+    seen.add(hit[0]);
+    out.push(text.slice(last, m.index));
+    out.push(
+      <abbr key={m.index} title={hit[1]} tabIndex={0} className="cursor-help underline decoration-action decoration-dotted underline-offset-4" data-testid="gloss">
+        {m[0]}
+      </abbr>,
+    );
+    last = m.index! + m[0].length;
+  }
+  out.push(text.slice(last));
+  return <>{out}</>;
+}
+
 const sel = 'h-9 rounded-[5px] border border-line-strong bg-ink px-2 text-[13px]';
 
 function labLink(t: Topic) {
@@ -121,29 +169,21 @@ function TopicPage({ t, list: scoped, scopeLabel, level, setLevel, onOpenLesson,
           ))}
         </div>
       </div>}
-      <section className="rounded-[8px] border border-line bg-pane p-4 text-[15.5px] leading-relaxed" data-testid="topic-explanation">
-        {t[level]}
+      {level === 'simple' && <TermsBlock t={t} title="Words to know first" />}
+      <section className="rounded-[8px] border border-line bg-pane p-4" data-testid="topic-explanation" data-level={level}>
+        <p className="mb-1.5 text-[11.5px] text-faint" data-testid="topic-mode-note">{MODE_NOTE[level]}</p>
+        <div className={cx('leading-relaxed', level === 'simple' ? 'text-[16.5px]' : level === 'technical' ? 'text-[15px]' : 'text-[14.5px]')}>{level === 'simple' ? <Glossed text={t.simple} terms={t.terms} /> : t[level]}</div>
       </section>
       {level !== 'simple' && t.example && (
         <section className="space-y-1">
-          <h3 className="text-[14px] font-semibold">{t.example.title}</h3>
+          <h3 className="text-[14px] font-semibold">{level === 'advanced' ? `Config: ${t.example.title}` : t.example.title}</h3>
           <pre className="overflow-auto rounded-[6px] bg-ink p-3 font-mono text-[12.5px]">{t.example.code}</pre>
         </section>
       )}
-      <section className="space-y-1.5">
-        <h3 className="text-[14px] font-semibold">Key terms</h3>
-        <dl className="grid gap-2 sm:grid-cols-2">
-          {t.terms.map(([term, meaning]) => (
-            <div key={term} className="rounded-[6px] border border-line px-3 py-2">
-              <dt className="font-mono text-[13px] font-semibold">{term}</dt>
-              <dd className="text-[13px] text-muted">{meaning}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
+      {level !== 'simple' && <TermsBlock t={t} title={level === 'advanced' ? 'Terms and commands' : 'Key terms'} compact={level === 'advanced'} />}
       {t.mistakes && t.mistakes.length > 0 && (
         <section>
-          <h3 className="text-[14px] font-semibold">Common mistakes</h3>
+          <h3 className="text-[14px] font-semibold">{level === 'simple' ? 'Watch out for' : level === 'advanced' ? 'What professionals watch for' : 'Common mistakes'}</h3>
           <ul className="list-disc pl-5 text-[13.5px]">
             {t.mistakes.map((m) => (
               <li key={m}>{m}</li>

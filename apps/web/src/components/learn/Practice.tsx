@@ -113,10 +113,10 @@ function QuestionCard({ q, n, total, mode, onDone }: { q: Question; n: number; t
   );
 }
 
-export function Practice({ initialTrack }: { initialTrack?: Track }) {
+export function Practice({ initialTrack, initialDifficulty = 3 }: { initialTrack?: Track; initialDifficulty?: number }) {
   const [track, setTrack] = useState<Track>(initialTrack ?? 'ccna');
   const [topic, setTopic] = useState('');
-  const [difficulty, setDifficulty] = useState(3);
+  const [difficulty, setDifficulty] = useState(initialDifficulty);
   const [count, setCount] = useState(10);
   const [mode, setMode] = useState<QuizMode>('quiz');
   const [useLab, setUseLab] = useState(false);
@@ -259,9 +259,9 @@ export function Practice({ initialTrack }: { initialTrack?: Track }) {
 
 const ROLES = ['Network engineer', 'SOC analyst', 'Help desk / IT support', 'Cloud security engineer', 'Systems administrator', 'Penetration tester'];
 
-export function Interview() {
+export function Interview({ initialLevel = 'entry' }: { initialLevel?: 'entry' | 'mid' | 'senior' } = {}) {
   const [role, setRole] = useState(ROLES[0]);
-  const [level, setLevel] = useState('entry');
+  const [level, setLevel] = useState<string>(initialLevel);
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [answer, setAnswer] = useState('');
   const start = useMutation({ mutationFn: () => learnApi.startInterview(role, level), onSuccess: (s) => setSession({ ...s, turns: s.turns ?? [] }) });

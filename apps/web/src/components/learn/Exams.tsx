@@ -33,11 +33,11 @@ function ScopeOptions({ cert, scope }: { cert?: Cert; scope?: ExamScope }) {
   );
 }
 
-export function TimedExam({ onStudy, scope }: { onStudy: (topicId: string) => void; scope?: ExamScope }) {
+export function TimedExam({ onStudy, scope, initialCount = 10, initialMinutes = 10 }: { onStudy: (topicId: string) => void; scope?: ExamScope; initialCount?: number; initialMinutes?: number }) {
   const cert = certById(useUi((s) => s.certId));
   const [course, setCourse] = useState<ExamScope>(scope ?? (cert ? `cert:${cert.id}` : 'networking'));
-  const [count, setCount] = useState(10);
-  const [minutes, setMinutes] = useState(10);
+  const [count, setCount] = useState(initialCount);
+  const [minutes, setMinutes] = useState(initialMinutes);
   const [items, setItems] = useState<ExamItem[] | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [idx, setIdx] = useState(0);

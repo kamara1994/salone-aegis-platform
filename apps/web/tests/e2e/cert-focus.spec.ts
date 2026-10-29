@@ -34,9 +34,21 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await expect(page.getByTestId('topics-heading')).toHaveCount(0);
   await page.getByTestId('mode-advanced').click();
   await expect(page.getByTestId('mode-advanced')).toHaveAttribute('aria-checked', 'true');
+  // Senior mode changes the explanation; Beginner glosses the jargon
+  await expect(page.getByTestId('topic-explanation')).toHaveAttribute('data-level', 'advanced');
+  await page.getByTestId('mode-simple').click();
+  await expect(page.getByTestId('topic-explanation')).toHaveAttribute('data-level', 'simple');
+  await expect(page.getByTestId('topic-mode-note')).toContainText('Beginner');
+  // tools are real tools, not shortcuts to the side panel
   await page.getByTestId('dash-topic-tools').click();
-  await page.getByTestId('topic-tool-key-terms').click();
-  await expect(page.getByTestId('topic-terms')).toBeVisible();
+  await expect(page.getByTestId('topic-tool-exam')).toHaveCount(0);
+  await page.getByTestId('topic-tool-subnet').click();
+  await page.getByTestId('subnet-input').fill('10.1.2.3/20');
+  await expect(page.getByTestId('tool-subnet')).toContainText('10.1.0.0/20');
+  await page.keyboard.press('Escape');
+  await page.getByTestId('dash-topic-tools').click();
+  await page.getByTestId('topic-tool-notes').click();
+  await page.getByTestId('notes-text').fill('Area 0 is the backbone');
   await page.keyboard.press('Escape');
   await page.getByTestId('dash-topic').selectOption('');
   await page.getByTestId('side-part-exam').click();
