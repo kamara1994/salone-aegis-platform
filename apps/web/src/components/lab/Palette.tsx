@@ -7,7 +7,7 @@ import { CABLE_INFO } from '@/lab/cables';
 import { CATALOG, KIND_LABEL } from '@/lab/catalog';
 import { useLab } from '@/lab/store';
 import type { CableType, DeviceKind } from '@/lab/types';
-import { CABLE_STYLE } from './CanvasParts';
+import { CABLE_ASSET, CABLE_STYLE } from './CanvasParts';
 import { DevicePicture, portSummary } from './DeviceHoverCard';
 
 const ORDER: DeviceKind[] = ['router', 'switch', 'firewall', 'server', 'vm', 'pc', 'laptop', 'ap', 'cloud', 'iot'];
@@ -66,6 +66,8 @@ function CableLibrary() {
                 <CableIcon type={c.type} />
                 <span className="mt-0.5 line-clamp-2 text-[10.5px] leading-tight">{c.name}</span>
                 <span className="pointer-events-none absolute left-full top-0 z-40 ml-2 hidden w-52 rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl group-hover:block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={CABLE_ASSET[c.type] ?? '/lab/generated/cables/cat6-ethernet-blue.png'} alt="" className="mb-1 h-16 w-full rounded bg-white/95 object-contain" />
                   <b className="block text-[11px]">{c.name}</b>
                   <span className="mt-1 block text-muted">{c.use}</span>
                   <span className="mt-1 block font-mono text-faint">{c.connector} · {c.limit}</span>
