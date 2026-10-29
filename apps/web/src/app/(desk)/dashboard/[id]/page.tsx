@@ -236,14 +236,14 @@ export default function DashboardPage() {
                 data-testid="dash-topic"
               />
               {topicPickerOpen && (
-                <div id="dash-topic-options" role="listbox" className="absolute top-full left-0 z-50 mt-1 max-h-80 w-72 overflow-auto rounded-[7px] border border-line-strong bg-pane p-1 shadow-xl sm:w-80">
+                <div id="dash-topic-options" role="listbox" className="absolute top-full left-0 z-50 mt-1 max-h-80 w-72 overflow-auto rounded-[7px] border border-[#59728d] bg-[#0b1724] p-1 shadow-xl sm:w-80">
                   {!filteredUnits.length ? <p className="px-3 py-2 text-[12px] text-muted">No matching topics in this certification.</p> : filteredUnits.map((u) => (
                     <div key={u.name}>
-                      <p className="px-2 pt-2 pb-1 text-[10.5px] font-semibold uppercase tracking-wide text-faint">{u.name}</p>
-                      {u.list.map((t) => <button key={t.id} type="button" role="option" aria-selected={topicId === t.id} onMouseDown={(e) => e.preventDefault()} onClick={() => { pickTopic(t.id); setTopicPickerOpen(false); setTopicQuery(''); }} className={cx('block w-full rounded px-2 py-1.5 text-left text-[12.5px]', topicId === t.id ? 'bg-action/15 text-text' : 'text-muted hover:bg-pane-2 hover:text-text')}>{t.title}</button>)}
+                      <p className="px-2 pt-2 pb-1 text-[10.5px] font-semibold uppercase tracking-wide text-[#b8c8da]">{u.name}</p>
+                      {u.list.map((t) => <button key={t.id} type="button" role="option" aria-selected={topicId === t.id} onMouseDown={(e) => e.preventDefault()} onClick={() => { pickTopic(t.id); setTopicPickerOpen(false); setTopicQuery(''); }} className={cx('block w-full rounded px-2 py-1.5 text-left text-[12.5px]', topicId === t.id ? 'bg-action/25 text-white' : 'text-[#f4f7fb] hover:bg-[#1c3044] hover:text-white')}>{t.title}</button>)}
                     </div>
                   ))}
-                  {topicQuery.trim() && <p className="px-2 py-1 text-[10.5px] text-faint" aria-live="polite">{filteredUnits.reduce((n, u) => n + u.list.length, 0)} matches</p>}
+                  {topicQuery.trim() && <p className="px-2 py-1 text-[10.5px] text-[#b8c8da]" aria-live="polite">{filteredUnits.reduce((n, u) => n + u.list.length, 0)} matches</p>}
                 </div>
               )}
             </div>
