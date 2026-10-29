@@ -150,7 +150,9 @@ function DeviceLibrary() {
                   className="group relative flex w-full cursor-grab flex-col items-center rounded-[6px] border border-line bg-pane-2/40 px-1 py-1.5 text-center hover:border-action focus-visible:border-action active:cursor-grabbing"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <DevicePicture model={m} className="pointer-events-none h-8 w-12 object-contain" />
+                  {/* Keep the compact palette icon visible; the generated real-world asset appears only in the hover preview. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.image} alt="" className="pointer-events-none h-8 w-12 object-contain" draggable={false} />
                   <span className="mt-0.5 line-clamp-2 text-[10.5px] leading-tight">{m.name}</span>
                   <span className="pointer-events-none absolute left-full top-0 z-40 ml-2 hidden w-64 rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl group-hover:block">
                     <span className="mb-1 block h-28 overflow-hidden rounded bg-white/95"><DevicePicture model={m} className="h-full w-full object-contain" /></span>

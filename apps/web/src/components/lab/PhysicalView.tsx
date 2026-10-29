@@ -7,7 +7,7 @@ import { controlPlane } from '@/lab/protocols';
 import { useLab } from '@/lab/store';
 import type { Device, Iface, LabDoc } from '@/lab/types';
 import { cableOnPort, cablesOnPort, cableStatus, CABLE_LABEL, deviceById, otherEnd } from '@/lab/validate';
-import { DevicePicture, portSummary } from './DeviceHoverCard';
+import { portSummary } from './DeviceHoverCard';
 
 type Led = 'up' | 'degraded' | 'blocking' | 'down' | 'off' | 'admin';
 const LED_COLOR: Record<Led, string> = { up: '#2fb36a', degraded: '#e5a23a', blocking: '#e5a23a', down: '#e5484d', off: '#3a4a5c', admin: '#6b7c8f' };
@@ -93,7 +93,9 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
     <div className="space-y-3 text-[12.5px]" data-testid="physical-view">
       <div className="flex gap-3">
         <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded bg-white/95">
-          <DevicePicture model={m} className="max-h-[72px] max-w-[104px] object-contain" />
+          {/* Keep the physical inspector compact; annotated real-world assets are hover-only. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={m.image} alt="" className="max-h-[72px] max-w-[104px] object-contain" />
         </div>
         <div className="min-w-0">
           <p className="font-semibold">
