@@ -1,6 +1,7 @@
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
+import { createPortal } from 'react-dom';
 import { useState } from 'react';
 import { cx } from '@/components/ui';
 import { CABLE_INFO } from '@/lab/cables';
@@ -42,6 +43,7 @@ function CableLibrary() {
   };
   const active = tool === 'cable' ? CABLE_INFO.find((c) => c.type === cableType) : undefined;
   const pendingName = pending ? doc?.devices.find((d) => d.id === pending.device)?.name : undefined;
+  const [hover, setHover] = useState<{ info: (typeof CABLE_INFO)[number]; rect: DOMRect } | null>(null);
   return (
     <div data-testid="cable-library">
       <p className="mb-2 px-1 text-[11.5px] text-muted">Pick a cable, then click the first device and the second device and choose their ports.</p>
@@ -58,6 +60,8 @@ function CableLibrary() {
                   e.dataTransfer.setData('application/aegis-cable', c.type);
                   e.dataTransfer.effectAllowed = 'copy';
                 }}
+                onMouseEnter={(e) => setHover({ info: c, rect: e.currentTarget.getBoundingClientRect() })}
+                onMouseLeave={() => setHover(null)}
                 onClick={() => (on ? useLab.getState().setTool('select') : pick(c.type))}
                 title={`${c.name}: ${c.use} Connector: ${c.connector}. Max: ${c.limit}.`}
                 data-testid={`cable-card-${c.type}`}
@@ -65,18 +69,21 @@ function CableLibrary() {
               >
                 <CableIcon type={c.type} />
                 <span className="mt-0.5 line-clamp-2 text-[10.5px] leading-tight">{c.name}</span>
-                <span className="pointer-events-none absolute left-full top-0 z-40 ml-2 hidden w-52 rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl group-hover:block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={CABLE_ASSET[c.type] ?? '/lab/generated/cables/cat6-ethernet-blue.png'} alt="" className="mb-1 h-16 w-full rounded bg-white/95 object-contain" />
-                  <b className="block text-[11px]">{c.name}</b>
-                  <span className="mt-1 block text-muted">{c.use}</span>
-                  <span className="mt-1 block font-mono text-faint">{c.connector} · {c.limit}</span>
-                </span>
               </button>
             </li>
           );
         })}
       </ul>
+      {hover && typeof document !== 'undefined' && createPortal(
+        <div className="pointer-events-none fixed z-[2100] w-56 rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl" style={{ left: Math.min(hover.rect.right + 8, window.innerWidth - 240), top: Math.min(hover.rect.top, window.innerHeight - 190) }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={CABLE_ASSET[hover.info.type] ?? '/lab/generated/cables/cat6-ethernet-blue.png'} alt="" className="mb-1 h-20 w-full rounded bg-white/95 object-contain" />
+          <b className="block text-[11px]">{hover.info.name}</b>
+          <span className="mt-1 block text-muted">{hover.info.use}</span>
+          <span className="mt-1 block font-mono text-faint">{hover.info.connector} · {hover.info.limit}</span>
+        </div>,
+        document.body,
+      )}
       {active ? (
         <div className="mt-2 space-y-1 rounded border border-action/50 bg-action/5 p-2 text-[11.5px]" data-testid="cable-active">
           <p className="font-semibold">{active.name}</p>
