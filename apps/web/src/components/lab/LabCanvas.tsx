@@ -9,11 +9,12 @@ import { GRID, useLab } from '@/lab/store';
 import type { CableEnd, Device, LabDoc } from '@/lab/types';
 import { cableOnPort, cableStatus, deviceById, otherEnd, suggestCableType } from '@/lab/validate';
 import { useLive } from '@/state/ui';
-import { CableEdge, DeviceNode, GroupFrame, SiteFrame, type CableEdgeData, type CompareMark, type DeviceNodeData } from './CanvasParts';
+import { CableEdge, DeviceNode, GroupFrame, NoteNode, SiteFrame, type CableEdgeData, type CompareMark, type DeviceNodeData, type NoteNodeData } from './CanvasParts';
+import { controlPlane } from '@/lab/protocols';
 import { PacketLayer } from './PacketLayer';
 import { ContextMenu, ErrorBanner, linkTestSummary, PortPicker, type MenuItem } from './Pickers';
 
-const nodeTypes = { device: DeviceNode, site: SiteFrame, group: GroupFrame };
+const nodeTypes = { device: DeviceNode, site: SiteFrame, group: GroupFrame, note: NoteNode };
 const edgeTypes = { cable: CableEdge };
 
 type Picker = { deviceId: string; stage: 'first' | 'second' | 'reconnect'; from?: CableEnd; thenDevice?: string; cableId?: string; end?: 'a' | 'b' };
@@ -53,6 +54,16 @@ function Inner({ actions }: { actions: CanvasActions }) {
   const dragStart = useRef<Record<string, { x: number; y: number }>>({});
 
   const statuses = useMemo(() => Object.fromEntries(doc.cables.map((c) => [c.id, cableStatus(doc, c)])), [doc]);
+  const cp = useMemo(() => controlPlane(doc), [doc]);
+  const [noteSel, setNoteSel] = useState<string | null>(null);
+  const stpPortBlocked = useCallback((dev: string, port: string) => cp.stp[dev]?.enabled && cp.stp[dev]?.ports[port]?.state === 'blocking', [cp]);
+  const channelOf = useCallback(
+    (dev: string, port: string) => {
+      const ch = cp.channels.find((x) => x.device === dev && x.members.includes(port));
+      return ch ? { group: ch.group, ok: ch.ok } : undefined;
+    },
+    [cp],
+  );
   const diff = useMemo(() => (s.compare && s.baseline ? diffDocs(s.baseline, doc) : []), [s.compare, s.baseline, doc]);
   const trace = s.traces.find((t) => t.id === s.activeTrace);
   const onPathDev = useMemo(() => new Set(trace?.path ?? []), [trace]);
@@ -94,10 +105,12 @@ function Inner({ actions }: { actions: CanvasActions }) {
         type: 'device',
         position: { x: d.x, y: d.y },
         selected: s.selection.devices.includes(d.id),
-        data: { device: d, linksUp: lc.up, linksTotal: lc.total, compare: devMark[d.id], labels: s.labelMode, connectable: s.tool === 'cable', pending: s.pendingEnd?.device === d.id, onPath: onPathDev.has(d.id) } satisfies DeviceNodeData,
+        data: { device: d, linksUp: lc.up, linksTotal: lc.total, compare: devMark[d.id], labels: s.labelMode, connectable: s.tool === 'cable', pending: s.pendingEnd?.device === d.id, onPath: onPathDev.has(d.id), stpRoot: !!cp.stp[d.id]?.isRoot && cp.stp[d.id].enabled && Object.values(cp.stp[d.id].ports).some((p) => p.role === 'designated') && Object.keys(cp.stp).length > 1 } satisfies DeviceNodeData,
         ariaLabel: `${d.name}, ${KIND_LABEL[d.kind]}`,
       });
     }
+    for (const n of doc.annotations ?? [])
+      list.push({ id: `note:${n.id}`, type: 'note', position: { x: n.x, y: n.y }, selected: noteSel === n.id, data: { note: n } satisfies NoteNodeData, style: { width: n.w, height: n.h }, zIndex: n.kind === 'text' ? 5 : -1, ariaLabel: `Note: ${n.text}` });
     if (s.compare && s.baseline) {
       for (const d of s.baseline.devices) {
         if (deviceById(doc, d.id)) continue;
@@ -105,7 +118,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
       }
     }
     return list;
-  }, [doc, statuses, s.selection.devices, s.labelMode, s.tool, s.pendingEnd, devMark, onPathDev, s.compare, s.baseline]);
+  }, [doc, statuses, s.selection.devices, s.labelMode, s.tool, s.pendingEnd, devMark, onPathDev, s.compare, s.baseline, cp, noteSel]);
 
   useEffect(() => setNodes(built), [built]);
 
@@ -168,6 +181,8 @@ function Inner({ actions }: { actions: CanvasActions }) {
         flow: c.linkId ? flows[c.linkId] : undefined,
         compare: cableMark[c.id],
         onPath: onPathCable.has(c.id),
+        blocked: [stpPortBlocked(c.a.device, c.a.port) ? ('a' as const) : null, stpPortBlocked(c.b.device, c.b.port) ? ('b' as const) : null].filter((x): x is 'a' | 'b' => !!x),
+        channel: channelOf(c.a.device, c.a.port),
         onEndPointerDown,
         onBendPointerDown,
         onBendReset: (id: string) => useLab.getState().updateCable(id, { bend: undefined }),
@@ -183,7 +198,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
       }
     }
     return list;
-  }, [doc, statuses, s.selection.cables, s.portLabels, flows, cableMark, onPathCable, s.compare, s.baseline, diff, bendDraft, onEndPointerDown, onBendPointerDown]);
+  }, [doc, statuses, s.selection.cables, s.portLabels, flows, cableMark, onPathCable, s.compare, s.baseline, diff, bendDraft, onEndPointerDown, onBendPointerDown, stpPortBlocked, channelOf]);
 
   // Selection lives in the lab store only. React Flow's select changes are translated into it,
   // so the canvas and the store can never disagree (and never ping-pong).
@@ -192,11 +207,12 @@ function Inner({ actions }: { actions: CanvasActions }) {
     const rest = changes.filter((c) => c.type !== 'select');
     if (rest.length) setNodes((ns) => applyNodeChanges(rest, ns));
     if (!sel.length) return;
+    for (const c of sel) if (c.id.startsWith('note:')) setNoteSel((cur) => (c.selected ? c.id.slice(5) : cur === c.id.slice(5) ? null : cur));
     const st = useLab.getState();
     if (st.tool !== 'select') return; // cable and simulation clicks pick devices, they do not select them
     const devices = new Set(st.selection.devices);
     for (const c of sel) {
-      if (c.id.startsWith('ghost:') || c.id.startsWith('site:') || c.id.startsWith('group:')) continue;
+      if (c.id.startsWith('ghost:') || c.id.startsWith('site:') || c.id.startsWith('group:') || c.id.startsWith('note:')) continue;
       if (c.selected) devices.add(c.id);
       else devices.delete(c.id);
     }
@@ -453,6 +469,11 @@ function Inner({ actions }: { actions: CanvasActions }) {
               if (d) pos[id] = { x: d.x + dx, y: d.y + dy };
             }
           }
+          for (const n of ns)
+            if (n.type === 'note') {
+              const a = (n.data as NoteNodeData).note;
+              if (a.x !== n.position.x || a.y !== n.position.y) useLab.getState().updateAnnotation(a.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) });
+            }
           for (const n of ns) if (n.type === 'device') {
             const d = deviceById(doc, n.id);
             if (d && (d.x !== n.position.x || d.y !== n.position.y)) pos[n.id] = n.position;

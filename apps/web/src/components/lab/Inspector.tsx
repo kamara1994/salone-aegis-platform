@@ -2,6 +2,7 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Copy, Monitor, Plus, Power, RotateCw, Terminal, Trash, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useFlows, useNode } from '@/api/hooks';
@@ -9,15 +10,18 @@ import { awaitJob, errorText, useRuntime } from '@/components/providers';
 import { ConsoleView } from '@/components/console/ConsoleView';
 import { Badge, Button, ConfirmDialog, cx, Dialog, Field, IconButton, Input, relTime, Textarea } from '@/components/ui';
 import { KIND_LABEL, modelOf } from '@/lab/catalog';
+import { DesignCli } from '@/lab/cli';
 import { runningConfig } from '@/lab/config';
 import { isIp, macFor, parseCidr } from '@/lab/net';
 import { usePlayer } from '@/lab/player';
 import { serviceName } from '@/lab/simulate';
 import { useLab } from '@/lab/store';
+import { useUi } from '@/state/ui';
 import type { Cable, CableType, Device, FirewallRule, Iface, LabDoc, Route } from '@/lab/types';
 import { CABLE_LABEL, cableOnPort, cableStatus, deviceById, otherEnd, portTypeName } from '@/lab/validate';
 import type { LabState as MockLab } from '@/mock/lab';
 import { CableTypeSelect, IssueList, linkTestSummary } from './Pickers';
+import { CablePhysical, ServicesTab } from './ServicesTab';
 import { DECISION_COLOR } from './PacketLayer';
 import { primaryMac, primaryVlan } from './CanvasParts';
 
@@ -29,6 +33,7 @@ export const DEVICE_TABS = [
   ['terminal', 'Terminal'],
   ['logs', 'Logs'],
   ['packets', 'Packets'],
+  ['services', 'Services'],
   ['routes', 'Routes'],
   ['vlans', 'VLANs'],
   ['firewall', 'Firewall'],
@@ -432,15 +437,52 @@ function Config({ d }: { d: Device }) {
   );
 }
 
+const XtermMock = dynamic(() => import('@/components/console/XtermMock').then((m) => m.XtermMock), { ssr: false });
+
+/** Simulated IOS / command-prompt CLI over the design model (Packet Tracer's CLI tab). */
+function DesignTerminal({ d }: { d: Device }) {
+  const theme = useUi((s) => s.theme);
+  const con = useMemo(() => new DesignCli(d.id), [d.id]);
+  return (
+    <div className="h-[55vh] min-h-[280px] overflow-hidden rounded border border-line bg-pane" data-testid="design-cli">
+      <XtermMock con={con} theme={theme} />
+    </div>
+  );
+}
+
 function TerminalTab({ d }: { d: Device }) {
   const rt = useRuntime();
-  if (!d.nodeId) return <p className="text-[12.5px] text-muted">{d.name} exists only in this design, so there is nothing to connect to. Build it in the lab first; it then appears here with its console.</p>;
   const cli = d.consoles.filter((c) => c === 'ssh' || c === 'serial');
-  if (!cli.length) return <p className="text-[12.5px] text-muted">{d.name} has no SSH or serial console. {d.consoles.length ? 'Use Open VM console in Actions.' : 'It is a managed service without an interactive console.'}</p>;
+  const canModel = !['cloud'].includes(d.kind);
+  const [mode, setMode] = useState<'device' | 'model'>(d.nodeId && cli.length ? 'device' : 'model');
+  useEffect(() => setMode(d.nodeId && cli.length ? 'device' : 'model'), [d.id]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className="h-[55vh] min-h-[280px] overflow-hidden rounded border border-line" data-testid="lab-terminal">
-      <ConsoleView nodeId={d.nodeId} protocols={cli} />
-      {!rt.mock && <p className="sr-only">Live console session from the back end.</p>}
+    <div className="space-y-2">
+      <div className="flex items-center gap-1 text-[12px]" role="radiogroup" aria-label="Terminal source">
+        <button role="radio" aria-checked={mode === 'device'} disabled={!d.nodeId || !cli.length} onClick={() => setMode('device')} className={cx('rounded px-2 py-1 disabled:opacity-40', mode === 'device' ? 'bg-action/20 text-text' : 'text-muted hover:text-text')} data-testid="term-device">
+          Device console
+        </button>
+        <button role="radio" aria-checked={mode === 'model'} disabled={!canModel} onClick={() => setMode('model')} className={cx('rounded px-2 py-1 disabled:opacity-40', mode === 'model' ? 'bg-action/20 text-text' : 'text-muted hover:text-text')} data-testid="term-model">
+          Design CLI
+        </button>
+      </div>
+      {mode === 'device' ? (
+        <>
+          <div className="h-[55vh] min-h-[280px] overflow-hidden rounded border border-line" data-testid="lab-terminal">
+            <ConsoleView nodeId={d.nodeId!} protocols={cli} />
+          </div>
+          {!rt.mock && <p className="sr-only">Live console session from the back end.</p>}
+        </>
+      ) : canModel ? (
+        <>
+          <p className="text-[11.5px] text-muted">
+            {modelOf(d).forwarding === 'host' ? 'Command prompt' : 'IOS-style CLI'} running against this design, not the real device. Changes you type (addresses, VLANs, OSPF, HSRP, NAT, EtherChannel, routes) update the canvas and packet simulation. Type <code>?</code> for commands.
+          </p>
+          <DesignTerminal d={d} />
+        </>
+      ) : (
+        <p className="text-[12.5px] text-muted">{d.name} is a managed service without an interactive console.</p>
+      )}
     </div>
   );
 }
@@ -841,14 +883,14 @@ function Actions({ d, onOpenVm, onPing }: { d: Device; onOpenVm: () => void; onP
       <section className="space-y-2">
         <h4 className="font-semibold">Consoles</h4>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" disabled={!d.nodeId || !d.consoles.some((c) => c === 'ssh' || c === 'serial')} onClick={() => st.setInspectorTab('terminal')}>
+          <Button size="sm" onClick={() => st.setInspectorTab('terminal')}>
             <Terminal className="size-3.5" /> Open terminal
           </Button>
           <Button size="sm" disabled={!hasGui} onClick={onOpenVm} data-testid="open-vm">
             <Monitor className="size-3.5" /> Open VM console
           </Button>
         </div>
-        {!d.nodeId && <p className="text-muted">Design-only devices have no console.</p>}
+        {!d.nodeId && <p className="text-muted">Design-only devices have no real console; use the Design CLI in the Terminal tab.</p>}
       </section>
       <section className="space-y-2">
         <h4 className="font-semibold">Test</h4>
@@ -973,6 +1015,7 @@ export function CableInspector({ cable, doc }: { cable: Cable; doc: LabDoc }) {
           </Field>
         </section>
       )}
+      <CablePhysical cable={cable} />
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
@@ -1041,6 +1084,7 @@ export function DeviceInspector({ device: d, doc, lab, onPing }: { device: Devic
         {t === 'terminal' && <TerminalTab d={d} />}
         {t === 'logs' && <Logs d={d} lab={lab} />}
         {t === 'packets' && <Packets d={d} doc={doc} />}
+        {t === 'services' && <ServicesTab d={d} doc={doc} />}
         {t === 'routes' && <Routes d={d} />}
         {t === 'vlans' && <Vlans d={d} doc={doc} />}
         {t === 'firewall' && <Firewall d={d} />}

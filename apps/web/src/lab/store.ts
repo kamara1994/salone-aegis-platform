@@ -6,9 +6,10 @@ import { create } from 'zustand';
 import { DEFAULT_MODEL, ifaceFromTemplate, KIND_LABEL, MODEL_BY_KEY } from './catalog';
 import { DEVICE_H, DEVICE_W } from './inventory';
 import { diffDocs } from './diff';
+import { applyPoe, checkAssociation, dhcpLease, type DhcpResult } from './protocols';
 import type { PacketTrace } from './simulate';
 import { cableStatus, checkConnection, deviceById } from './validate';
-import type { Cable, CableEnd, CableIssue, CableType, Device, FirewallRule, Iface, LabDoc, LabSite, Rack, Route, Subnet, Vlan } from './types';
+import type { Annotation, Cable, CableEnd, CableIssue, CableType, Device, FirewallRule, Goal, Iface, LabDoc, LabSite, Rack, Route, Subnet, Vlan } from './types';
 
 export type Tool = 'select' | 'cable' | 'simulate';
 export interface Selection {
@@ -130,6 +131,17 @@ interface LabState {
   addTrace(t: PacketTrace[]): void;
   setActiveTrace(id: string | null): void;
   clearTraces(): void;
+  renewDhcp(deviceId: string, iface: string): DhcpResult;
+  associateWireless(clientId: string, apId: string): { ok: boolean; reason?: string };
+  addAnnotation(a: Omit<Annotation, 'id'>): string;
+  updateAnnotation(id: string, patch: Partial<Annotation>): void;
+  removeAnnotation(id: string): void;
+  addGoal(g: Omit<Goal, 'id'>): string;
+  removeGoal(id: string): void;
+  startChallenge(c: { title: string; brief: string; fault: string }, fn: (d: LabDoc) => void): void;
+  revealChallenge(): void;
+  endChallenge(): void;
+  importDoc(doc: LabDoc): void;
 
   saveLayout(name: string): boolean;
   loadLayout(name: string): boolean;
@@ -221,6 +233,7 @@ export const useLab = create<LabState>((set, get) => ({
     const before = s.doc;
     const next = clone(before);
     fn(next);
+    applyPoe(next);
     const at = new Date().toISOString();
     set({ doc: next, past: [...s.past.slice(-HISTORY + 1), before], future: [], log: log?.length ? [...s.log, ...log.map((l) => ({ ...l, at }))].slice(-400) : s.log });
     autosave({ ...get() });
@@ -301,6 +314,9 @@ export const useLab = create<LabState>((set, get) => ({
         firewall: m.kind === 'firewall' ? [{ id: 99, iface: 'any', src: 'any', dst: 'any', proto: 'any', port: 'any', action: 'block', log: true, enabled: true, descr: 'Default deny (logged)' }] : [],
         listening: [...m.listening],
         consoles: [],
+        ...(m.kind === 'switch' ? { stp: { enabled: true, priority: 32768 } } : {}),
+        ...(m.kind === 'ap' ? { wireless: { ssid: 'AEGIS-LAB', security: 'wpa2' as const, key: 'changeme123', channel: 6 } } : {}),
+        ...(m.kind === 'switch' || m.kind === 'router' ? { security: { ssh: false, telnet: true, enableSecret: false } } : {}),
         ...opts,
       };
       doc.devices.push(d);
@@ -628,6 +644,90 @@ export const useLab = create<LabState>((set, get) => ({
   },
   clearTraces() {
     set({ traces: [], activeTrace: null });
+  },
+  renewDhcp(deviceId, iface) {
+    const doc = get().doc;
+    if (!doc) return { ok: false, reason: 'No lab loaded.' };
+    const r = dhcpLease(doc, deviceId, iface);
+    const name = deviceById(doc, deviceId)?.name ?? deviceId;
+    if (r.ok)
+      get().commit(`DHCP lease for ${name}`, (d) => {
+        const i = deviceById(d, deviceId)?.interfaces.find((x) => x.name === iface);
+        if (i) Object.assign(i, { dhcp: true, ip: r.ip, prefix: r.prefix, gateway: r.gateway, dns: r.dns });
+      }, [{ deviceId, level: 'info', text: `DHCP: ${iface} leased ${r.ip}/${r.prefix} from ${r.server}${r.via ? ` via ${r.via}` : ''}` }]);
+    else set((s) => ({ log: [...s.log, { at: new Date().toISOString(), deviceId, level: 'warn' as const, text: `DHCP: ${iface} got no lease. ${r.reason}` }].slice(-400) }));
+    return r;
+  },
+  associateWireless(clientId, apId) {
+    const doc = get().doc;
+    if (!doc) return { ok: false, reason: 'No lab loaded.' };
+    const client = deviceById(doc, clientId);
+    const ap = deviceById(doc, apId);
+    if (!client || !ap) return { ok: false, reason: 'Device not found.' };
+    const res = checkAssociation(client, ap);
+    if (!res.ok) {
+      set({ lastError: { title: `${client.name} cannot join ${ap.name}`, issues: [{ code: 'disabled', severity: 'error', message: res.reason! }] } });
+      return res;
+    }
+    const nic = client.interfaces.find((i) => i.type === 'wireless');
+    const radio = ap.interfaces.find((i) => i.type === 'wireless');
+    if (!nic || !radio) return { ok: false, reason: `${!nic ? client.name : ap.name} has no wireless interface.` };
+    get().commit(`Associate ${client.name} with ${ap.name}`, (d) => {
+      d.cables = d.cables.filter((c) => !((c.a.device === clientId && c.a.port === nic.name) || (c.b.device === clientId && c.b.port === nic.name)));
+      d.cables.push({ id: uid('cbl'), a: { device: clientId, port: nic.name }, b: { device: apId, port: radio.name }, type: 'virtual', disabled: false, label: ap.wireless?.ssid });
+    }, [{ deviceId: clientId, level: 'info', text: `WLAN: associated with SSID "${ap.wireless?.ssid}" on ${ap.name} (${ap.wireless?.security.toUpperCase()})` }]);
+    return { ok: true };
+  },
+  addAnnotation(a) {
+    const id = uid('note');
+    get().commit('Add annotation', (d) => {
+      d.annotations = [...(d.annotations ?? []), { ...a, id }];
+    });
+    return id;
+  },
+  updateAnnotation(id, patch) {
+    get().commit('Edit annotation', (d) => {
+      const a = d.annotations?.find((x) => x.id === id);
+      if (a) Object.assign(a, patch);
+    });
+  },
+  removeAnnotation(id) {
+    get().commit('Delete annotation', (d) => {
+      d.annotations = (d.annotations ?? []).filter((x) => x.id !== id);
+    });
+  },
+  addGoal(g) {
+    const id = uid('goal');
+    get().commit('Add goal', (d) => {
+      d.goals = [...(d.goals ?? []), { ...g, id }];
+    });
+    return id;
+  },
+  removeGoal(id) {
+    get().commit('Remove goal', (d) => {
+      d.goals = (d.goals ?? []).filter((x) => x.id !== id);
+    });
+  },
+  startChallenge(c, fn) {
+    get().commit(`Challenge: ${c.title}`, (d) => {
+      fn(d);
+      d.challenge = { id: uid('chl'), title: c.title, brief: c.brief, fault: c.fault, startedAt: new Date().toISOString(), revealed: false };
+    });
+  },
+  revealChallenge() {
+    get().commit('Reveal challenge', (d) => {
+      if (d.challenge) d.challenge.revealed = true;
+    });
+  },
+  endChallenge() {
+    get().commit('End challenge', (d) => {
+      d.challenge = undefined;
+    });
+  },
+  importDoc(doc) {
+    get().commit('Import lab', (d) => {
+      Object.assign(d, clone(doc), { source: d.source });
+    });
   },
 
   saveLayout(name) {

@@ -64,7 +64,7 @@ function connectedRoutes(d: Device): Route[] {
 }
 
 const LISTEN: Record<string, number[]> = {
-  DC01: [53, 88, 135, 389, 445, 464, 636, 3389],
+  DC01: [53, 67, 88, 135, 389, 445, 464, 636, 3389],
   DC02: [53, 88, 135, 389, 445, 636, 3389],
   FS01: [445, 3389],
   APP01: [22, 80, 443],
@@ -76,7 +76,7 @@ const LISTEN: Record<string, number[]> = {
   'KL-M365': [443, 25, 587],
 };
 const SERVICE_PORT: Record<string, Record<string, number[]>> = {
-  DC01: { DNS: [53], KDC: [88, 464], NTDS: [389, 636, 135], Netlogon: [445] },
+  DC01: { DNS: [53], KDC: [88, 464], NTDS: [389, 636, 135], Netlogon: [445], DHCPServer: [67] },
   DC02: { DNS: [53], KDC: [88], NTDS: [389, 636, 135], Netlogon: [445] },
   FS01: { LanmanServer: [445] },
   APP01: { nginx: [80, 443] },
@@ -127,7 +127,7 @@ function richInterfaces(n: ApiNode, kind: DeviceKind, model: string, lab: LabSta
     const ifs: Iface[] = [
       iface('igb0', 'copper', { mac: mac('igb0'), ip: '198.51.100.10', prefix: 29, alias: 'WAN', description: 'WAN (ISP hand-off)', mode: 'routed' }),
       iface('igb1', 'copper', { mac: mac('igb1'), mode: 'trunk', allowedVlans: 'all', nativeVlan: 1, description: 'LAN trunk to SW-ACC-01' }),
-      ...Object.keys(VLAN_GATEWAYS).map((v) => iface(`igb1.${v}`, 'virtual', { parent: 'igb1', vlan: Number(v), ip: VLAN_GATEWAYS[Number(v)], prefix: 24, alias: `VLAN${v}`, mac: mac('igb1'), description: lab.vlans[Number(v)] ?? '', mode: 'routed' })),
+      ...Object.keys(VLAN_GATEWAYS).map((v) => iface(`igb1.${v}`, 'virtual', { parent: 'igb1', vlan: Number(v), ip: VLAN_GATEWAYS[Number(v)], prefix: 24, alias: `VLAN${v}`, mac: mac('igb1'), description: lab.vlans[Number(v)] ?? '', mode: 'routed', helper: Object.values(lab.dhcp).some((sc) => sc.vlan === Number(v)) ? '10.10.10.10' : undefined })),
       iface('igb2', 'copper', { mac: mac('igb2'), shutdown: true }),
       iface('igb3', 'copper', { mac: mac('igb3'), shutdown: true }),
       iface('ix0', 'sfp', { mac: mac('ix0'), speeds: [10000], shutdown: true }),
@@ -282,6 +282,9 @@ export function buildDoc(topo: Topology, lab?: LabState | null): LabDoc {
       tags: n.tags?.filter((t) => !/^[xy]:/.test(t)),
     };
     d.routes = [...connectedRoutes(d), ...(detail.routes ?? [])];
+    if (kind === 'switch') d.stp = { enabled: true, priority: 32768 };
+    if (lab && n.name === 'DC01' && lab.nodes.DC01?.services?.DHCPServer !== 'Stopped')
+      d.dhcpPools = Object.values(lab.dhcp).map((sc) => ({ name: `VLAN${sc.vlan}`, network: `${sc.scopeId}/24`, gateway: sc.router, dns: sc.dns, start: sc.start, end: sc.end }));
     return d;
   });
 

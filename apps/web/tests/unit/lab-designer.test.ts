@@ -28,7 +28,8 @@ describe('baseline lab built from the simulated lab', () => {
     const doc = buildDoc(topo, initialLab());
     const t = simulatePacket(doc, { srcDevice: id(doc, 'WS-FIN-02'), dst: '10.10.30.20', proto: 'tcp', port: 443 });
     expect(t.status, t.reason).toBe('delivered');
-    expect(t.hops.map((h) => h.deviceName)).toEqual(['WS-FIN-02', 'SW-ACC-01', 'FW01', 'SW-ACC-01', 'APP01']);
+    expect(t.hops.filter((h) => h.decision !== 'arp').map((h) => h.deviceName)).toEqual(['WS-FIN-02', 'SW-ACC-01', 'FW01', 'SW-ACC-01', 'APP01']);
+    expect(t.hops.filter((h) => h.decision === 'arp')).toHaveLength(4);
     expect(simulatePacket(doc, { srcDevice: id(doc, 'WS-FIN-02'), dst: id(doc, 'FS01'), proto: 'tcp', port: 445 }).status).toBe('delivered');
   });
 

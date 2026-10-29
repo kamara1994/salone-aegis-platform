@@ -135,7 +135,10 @@ test('packet simulation: delivered, blocked by the firewall with the rule, and t
   await expect(sim.getByTestId('sim-trace').first()).toHaveAttribute('data-status', 'delivered');
   await expect(sim.getByTestId('sim-result')).toContainText('APP01 accepted the connection on HTTPS (443)');
   await expect(sim.getByTestId('pdu-details')).toContainText('Layer 2');
+  await expect(sim.getByTestId('sim-hop')).toHaveCount(9); // 5 forwarding hops plus ARP request/reply on two segments
+  await sim.getByTestId('sim-filter').selectOption('noarp');
   await expect(sim.getByTestId('sim-hop')).toHaveCount(5);
+  await expect(sim.getByTestId('osi-stack')).toBeVisible();
 });
 
 test('a shut-down switch port shows on the cable and in the packet result', async ({ page }) => {

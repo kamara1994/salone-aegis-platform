@@ -36,6 +36,16 @@ export function cableOnPort(doc: LabDoc, deviceId: string, port: string, ignoreI
   return doc.cables.find((c) => c.id !== ignoreId && ((c.a.device === deviceId && c.a.port === port) || (c.b.device === deviceId && c.b.port === port)));
 }
 
+/** Every cable on a port (an access point radio serves many wireless clients). */
+export function cablesOnPort(doc: LabDoc, deviceId: string, port: string): Cable[] {
+  return doc.cables.filter((c) => (c.a.device === deviceId && c.a.port === port) || (c.b.device === deviceId && c.b.port === port));
+}
+
+const isRadio = (doc: LabDoc, end: CableEnd) => {
+  const d = deviceById(doc, end.device);
+  return d?.kind === 'ap' && d.interfaces.find((i) => i.name === end.port)?.type === 'wireless';
+};
+
 export function otherEnd(c: Cable, deviceId: string, port?: string): CableEnd {
   return c.a.device === deviceId && (port === undefined || c.a.port === port) ? c.b : c.a;
 }
@@ -98,6 +108,7 @@ export function checkConnection(doc: LabDoc, a: CableEnd, b: CableEnd, type: Cab
   if (!B.iface) return [err('port_missing', `${B.device.name} has no port named ${b.port}.`)];
   if (A.device.id === B.device.id) return [err('same_device', `Both ends are on ${A.device.name}. A cable must join two different devices.`)];
   for (const [d, end] of [[A.device, a], [B.device, b]] as const) {
+    if (isRadio(doc, end)) continue; // an AP radio takes many clients
     const used = cableOnPort(doc, end.device, end.port, ignoreCableId);
     if (used) {
       const peer = otherEnd(used, end.device, end.port);
@@ -220,11 +231,26 @@ export function cableStatus(doc: LabDoc, c: Cable): CableStatus {
     if (d.power === 'stopped') issues.push({ code: 'powered_off', severity: 'down', message: `${d.name} is powered off.`, fix: `Power on ${d.name}.` });
     if (i.shutdown) issues.push({ code: 'shutdown', severity: 'down', message: `${d.name} ${i.name} is administratively down (shutdown).`, fix: `no shutdown on ${i.name}.` });
   }
+  const lim = lengthLimit(c, A.iface);
+  if (c.lengthM && lim && c.lengthM > lim.max) issues.push({ code: 'too_long', severity: 'down', message: `${lim.label} is limited to ${lim.max >= 1000 ? `${lim.max / 1000} km` : `${lim.max} m`}; this run is ${c.lengthM >= 1000 ? `${c.lengthM / 1000} km` : `${c.lengthM} m`}. The signal is too weak for a stable link.`, fix: lim.fix });
   const neg = negotiate(A.iface, B.iface, A.device, B.device);
   issues.push(...neg.issues);
   issues.push(...vlanChecks(doc, A.device, A.iface, B.device, B.iface));
   const state = issues.some((i) => i.severity === 'down') ? 'down' : issues.some((i) => i.severity === 'degraded') ? 'degraded' : 'up';
   return { state, issues, negotiated: state === 'down' ? undefined : neg.text };
+}
+
+/** Distance limits per medium (TIA-568 copper, IEEE 802.3 fibre, V.35 serial, RS-232 console). */
+export function lengthLimit(c: Cable, i: Iface): { max: number; label: string; fix: string } | null {
+  if (c.type === 'virtual' || c.type === 'wan') return null;
+  if (c.type === 'fiber') {
+    const tenG = i.speeds.includes(10000) && !i.speeds.includes(1000);
+    if (c.fiberMode === 'smf') return { max: 10000, label: 'Single-mode fibre (LX/LR optics)', fix: 'Use extended-reach optics (ER/ZR) or add a switch in between.' };
+    return tenG ? { max: 300, label: '10G multimode fibre (SR on OM3)', fix: 'Use single-mode fibre with LR optics for longer runs.' } : { max: 550, label: '1G multimode fibre (SX)', fix: 'Use single-mode fibre with LX optics for longer runs.' };
+  }
+  if (c.type === 'serial') return { max: 15, label: 'V.35 serial', fix: 'Keep the DTE/DCE cable short or use a CSU/DSU.' };
+  if (c.type === 'console') return { max: 15, label: 'RS-232 console', fix: 'Use a shorter console cable or a console server.' };
+  return { max: 100, label: 'Copper Ethernet (TIA-568)', fix: 'Stay under 100 m: add a switch in a closer closet, or run fibre.' };
 }
 
 /** Packet Tracer's "automatic connection": the cable type a network engineer would pick. */
@@ -244,7 +270,7 @@ export function suggestCableType(doc: LabDoc, a: CableEnd, b: CableEnd): CableTy
 
 /** Why a port can or cannot take a cable, for the port picker. */
 export function portAvailability(doc: LabDoc, deviceId: string, port: string, type: CableType | 'auto', from?: CableEnd, ignoreCableId?: string): { ok: boolean; reason?: string; usedBy?: string } {
-  const used = cableOnPort(doc, deviceId, port, ignoreCableId);
+  const used = isRadio(doc, { device: deviceId, port }) ? undefined : cableOnPort(doc, deviceId, port, ignoreCableId);
   if (used) {
     const p = otherEnd(used, deviceId, port);
     return { ok: false, reason: `In use by ${deviceById(doc, p.device)?.name ?? '?'} ${p.port}`, usedBy: used.id };

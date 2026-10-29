@@ -12,6 +12,7 @@ import { Palette } from '@/components/lab/Palette';
 import { NewCableDialog } from '@/components/lab/Pickers';
 import { SimPanel } from '@/components/lab/SimPanel';
 import { Toolbar } from '@/components/lab/Toolbar';
+import { ToolsPanel, type ToolKey } from '@/components/lab/ToolsPanel';
 import { Button, cx, ErrorState, IconButton, Loading, relTime } from '@/components/ui';
 import { buildDoc } from '@/lab/inventory';
 import { setFresh, useLab } from '@/lab/store';
@@ -84,7 +85,12 @@ function Designer({ lab }: { lab: MockLab | null }) {
   const [newCable, setNewCable] = useState<{ a?: CableEnd } | null>(null);
   const [replace, setReplace] = useState<string | null>(null);
   const [vmFor, setVmFor] = useState<string | null>(null);
-  const [simOpen, setSimOpen] = useState(false);
+  const [simOpen, setSimOpenRaw] = useState(false);
+  const [tools, setTools] = useState<ToolKey | null>(null);
+  const setSimOpen = (v: boolean) => {
+    setSimOpenRaw(v);
+    if (v) setTools(null);
+  };
   const [hideSource, setHideSource] = useState(false);
   const stale = useMemo(() => s.staleCount(), [s, s.fresh, s.doc]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -132,7 +138,14 @@ function Designer({ lab }: { lab: MockLab | null }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="lab-designer">
-      <Toolbar paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} />
+      <Toolbar paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
+          if (tools) setTools(null);
+          else {
+            setTools('audit');
+            setSimOpenRaw(false);
+            if (s.tool === 'simulate') s.setTool('select');
+          }
+        }} />
       {!hideSource && (
         <Banner onClose={() => setHideSource(true)}>
           {doc.source === 'simulated-lab' ? (
@@ -202,6 +215,11 @@ function Designer({ lab }: { lab: MockLab | null }) {
               if (s.tool === 'simulate') s.setTool('select');
             }}
           />
+        </div>
+      )}
+      {tools && !simOpen && (
+        <div className="h-[320px] shrink-0 max-md:h-[55vh]">
+          <ToolsPanel tab={tools} setTab={setTools} onClose={() => setTools(null)} />
         </div>
       )}
       <LayoutsDialog open={layouts} onClose={() => setLayouts(false)} />

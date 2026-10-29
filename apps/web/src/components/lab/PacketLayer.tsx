@@ -10,6 +10,8 @@ import { cx } from '@/components/ui';
 
 export const DECISION_COLOR: Record<Hop['decision'], string> = {
   send: 'var(--action)',
+  arp: '#38bdf8',
+  nat: '#a78bfa',
   switch: 'var(--action)',
   route: 'var(--action)',
   deliver: 'var(--healthy)',
@@ -21,6 +23,8 @@ export const DECISION_COLOR: Record<Hop['decision'], string> = {
 
 export const DECISION_LABEL: Record<Hop['decision'], string> = {
   send: 'Sent',
+  arp: 'ARP',
+  nat: 'NAT',
   switch: 'Switched',
   route: 'Routed',
   deliver: 'Delivered',

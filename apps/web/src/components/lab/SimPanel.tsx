@@ -35,6 +35,7 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
   const [port, setPort] = useState('443');
   const [dstIp, setDstIp] = useState('');
   const [hopSel, setHopSel] = useState<number | null>(null);
+  const [evFilter, setEvFilter] = useState<'all' | 'noarp' | 'l3'>('all');
   const devices = [...doc.devices].sort((a, b) => a.name.localeCompare(b.name));
   const trace = st.traces.find((t) => t.id === st.activeTrace);
   const dst = dstIp.trim() || st.simDst;
@@ -181,6 +182,22 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
                 </span>{' '}
                 {trace.reason}
                 {trace.fix && <div className="mt-0.5 text-muted">Fix: {trace.fix}</div>}
+                <div className="mt-1 flex items-center gap-2 text-[11.5px] text-muted">
+                  <label className="flex items-center gap-1">
+                    Show
+                    <select aria-label="Event filter" className="h-6 rounded border border-line-strong bg-ink px-1" value={evFilter} onChange={(e) => setEvFilter(e.target.value as typeof evFilter)} data-testid="sim-filter">
+                      <option value="all">every event</option>
+                      <option value="noarp">hide ARP</option>
+                      <option value="l3">layer 3 and above</option>
+                    </select>
+                  </label>
+                  {trace.latencyMs !== undefined && <span>round trip ≈ {trace.latencyMs.toFixed(1)} ms</span>}
+                  {trace.nat && (
+                    <span>
+                      NAT {trace.nat.inside} → {trace.nat.outside}
+                    </span>
+                  )}
+                </div>
               </div>
               <table className="w-full text-[11.5px]">
                 <thead className="sticky top-0 bg-pane text-left text-muted">
@@ -192,7 +209,7 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {trace.hops.map((h, k) => (
+                  {trace.hops.map((h, k) => ({ h, k })).filter(({ h }) => evFilter === 'all' || (evFilter === 'noarp' ? h.decision !== 'arp' : h.layer === 'L3' || h.layer === 'L4')).map(({ h, k }) => (
                     <tr key={h.seq} className={cx('cursor-pointer border-b border-line align-top hover:bg-pane-2', (hopSel ?? Math.min(player.step, trace.hops.length - 1)) === k && 'bg-pane-2')} onClick={() => { setHopSel(k); player.setStep(k); }} data-testid="sim-hop">
                       <td className="px-2 py-1 font-mono">{h.t.toFixed(2)}</td>
                       <td className="px-2 py-1">{h.deviceName}</td>
@@ -219,8 +236,9 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
                   {hop.outIface ? ` out ${hop.outIface}` : ''} · layer {hop.layer.slice(1)}
                 </dd>
               </div>
+              <OsiStack hop={hop} />
               <div className="rounded border border-line p-2 font-mono text-[11px]">
-                <div className="mb-1 font-sans text-[11px] font-semibold text-muted">Layer 2 (Ethernet)</div>
+                <div className="mb-1 font-sans text-[11px] font-semibold text-muted">Layer 2 ({hop.pdu.proto === 'arp' ? 'Ethernet + ARP' : 'Ethernet'})</div>
                 <div>src MAC {hop.pdu.srcMac || '—'}</div>
                 <div>dst MAC {hop.pdu.dstMac || '—'}</div>
                 <div>802.1Q {hop.pdu.vlan !== undefined ? `tag ${hop.pdu.vlan}` : 'untagged'}</div>
@@ -255,6 +273,31 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </section>
+  );
+}
+
+const OSI = ['7 Application', '6 Presentation', '5 Session', '4 Transport', '3 Network', '2 Data link', '1 Physical'];
+
+/** Packet Tracer's OSI model view: which layers this device processed at this hop. */
+function OsiStack({ hop }: { hop: import('@/lab/simulate').Hop }) {
+  const top = Number(hop.layer.slice(1));
+  const tone = DECISION_COLOR[hop.decision];
+  return (
+    <div className="rounded border border-line p-2" data-testid="osi-stack">
+      <div className="mb-1 text-[11px] font-semibold text-muted">OSI model at {hop.deviceName}</div>
+      <ol className="space-y-px text-[11px]">
+        {OSI.map((l) => {
+          const n = Number(l[0]);
+          const active = n <= Math.max(top, hop.decision === 'deliver' ? 7 : top);
+          return (
+            <li key={l} className={cx('rounded px-1.5 py-px', active ? 'text-text' : 'text-faint')} style={active ? { background: `color-mix(in srgb, ${tone} ${n === top ? 30 : 12}%, transparent)` } : undefined}>
+              Layer {l}
+              {n === top && <span className="ml-1 text-muted">· {DECISION_LABEL[hop.decision]}</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 

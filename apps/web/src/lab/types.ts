@@ -40,14 +40,51 @@ export interface Iface {
   counters?: { crc: number; lateCollisions: number; inputErrors: number };
   /** True when the port exists only because the back end did not report interfaces. */
   inferred?: boolean;
+  /** MTU in bytes (default 1500). OSPF neighbours stall in EXSTART when MTUs differ. */
+  mtu?: number;
+  /** DNS servers handed out or configured on a host */
+  dns?: string[];
+  /** OSPF on this interface */
+  ospf?: { area: number; cost?: number; passive?: boolean; hello?: number; dead?: number };
+  /** First-hop redundancy (HSRP) */
+  hsrp?: { group: number; vip: string; priority: number; preempt: boolean };
+  /** NAT role */
+  nat?: 'inside' | 'outside';
+  /** DHCP relay target (ip helper-address) */
+  helper?: string;
+  /** EtherChannel membership */
+  channelGroup?: number;
+  channelMode?: 'active' | 'passive' | 'on' | 'desirable' | 'auto';
+  /** Spanning-tree portfast (edge port) */
+  portfast?: boolean;
+}
+
+export interface DhcpPool {
+  name: string;
+  network: string; // 10.10.20.0/24
+  gateway?: string;
+  dns?: string[];
+  start: string;
+  end: string;
+}
+
+export interface WirelessConfig {
+  ssid: string;
+  security: 'open' | 'wpa2' | 'wpa3';
+  key?: string;
+  channel?: number;
 }
 
 export interface Route {
   prefix: string; // 10.20.0.0/16 or 0.0.0.0/0
   via?: string; // next-hop IP
   iface?: string; // egress interface name
-  kind: 'connected' | 'static' | 'default';
+  kind: 'connected' | 'static' | 'default' | 'ospf';
   description?: string;
+  /** Learned routes: metric, administrative distance and IOS route code (C, S, S*, O, O IA, O*E2) */
+  metric?: number;
+  ad?: number;
+  code?: string;
 }
 
 export interface FirewallRule {
@@ -92,6 +129,21 @@ export interface Device {
   mgmtIp?: string;
   tags?: string[];
   notes?: string;
+  /** Spanning tree (switches) */
+  stp?: { enabled: boolean; priority: number };
+  /** OSPF process */
+  ospfProcess?: { routerId?: string; defaultOriginate?: boolean };
+  /** PAT: translate inside traffic to the address of this outside interface */
+  natOverload?: { outside: string };
+  dhcpPools?: DhcpPool[];
+  /** Access point radio (ap) or client profile (laptop, iot) */
+  wireless?: WirelessConfig;
+  /** Management-plane hardening, checked by the audit */
+  security?: { ssh: boolean; telnet: boolean; enableSecret: boolean; banner?: string };
+  /** Saved configuration (write memory) for the CLI */
+  startupSaved?: string;
+  /** Why a device is off when power comes from elsewhere (PoE) */
+  powerReason?: string;
 }
 
 export type CableType = 'straight' | 'crossover' | 'fiber' | 'serial' | 'console' | 'trunk' | 'access' | 'wan' | 'virtual';
@@ -113,6 +165,33 @@ export interface Cable {
   /** Optional bend point the operator dragged, in canvas coordinates. */
   bend?: { x: number; y: number };
   wan?: { provider?: string; bandwidthMbps?: number; latencyMs?: number };
+  /** Physical length in metres (copper is limited to 100 m) */
+  lengthM?: number;
+  /** Fibre type */
+  fiberMode?: 'mmf' | 'smf';
+  /** Link conditioning (CML-style impairment) */
+  cond?: { enabled: boolean; latencyMs?: number; jitterMs?: number; lossPct?: number; bandwidthMbps?: number };
+}
+
+export interface Annotation {
+  id: string;
+  kind: 'text' | 'rect' | 'ellipse';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  text: string;
+  color: 'blue' | 'green' | 'amber' | 'red' | 'grey';
+}
+
+export interface Goal {
+  id: string;
+  src: string; // device id
+  dst: string; // device id or IP
+  proto: 'icmp' | 'tcp' | 'udp';
+  port?: number;
+  expect: 'reach' | 'blocked';
+  note?: string;
 }
 
 export interface LabSite {
@@ -159,6 +238,10 @@ export interface LabDoc {
   vlans: Vlan[];
   subnets: Subnet[];
   groups: Group[];
+  annotations?: Annotation[];
+  goals?: Goal[];
+  /** Active troubleshooting challenge (the fault is hidden until revealed) */
+  challenge?: { id: string; title: string; brief: string; startedAt: string; revealed: boolean; fault: string };
   /** Where the inventory part came from, for honesty labels. */
   source: 'simulated-lab' | 'live-topology' | 'blank';
   generatedAt: string;
@@ -181,7 +264,11 @@ export type IssueCode =
   | 'shutdown'
   | 'powered_off'
   | 'disabled'
-  | 'mdix_corrected';
+  | 'mdix_corrected'
+  | 'too_long'
+  | 'stp_blocking'
+  | 'channel_mismatch'
+  | 'poe';
 
 export interface CableIssue {
   code: IssueCode;

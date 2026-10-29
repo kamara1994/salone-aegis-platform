@@ -1,7 +1,7 @@
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
-import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup } from 'lucide-react';
+import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useLab } from '@/lab/store';
 import { cx, ConfirmDialog } from '@/components/ui';
@@ -26,7 +26,7 @@ function TB({ label, onClick, active, disabled, children, testid, kbd }: { label
 
 const Sep = () => <span className="mx-0.5 h-5 w-px bg-line" aria-hidden />;
 
-export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, onShortcuts, onNewCable }: { paletteOpen: boolean; setPaletteOpen: (v: boolean) => void; onLayouts: () => void; onStructure: () => void; onShortcuts: () => void; onNewCable: () => void }) {
+export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, onShortcuts, onNewCable, toolsOpen, onTools }: { paletteOpen: boolean; setPaletteOpen: (v: boolean) => void; onLayouts: () => void; onStructure: () => void; onShortcuts: () => void; onNewCable: () => void; toolsOpen: boolean; onTools: () => void }) {
   const s = useLab();
   const rf = useReactFlow();
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[]; title: string } | null>(null);
@@ -61,6 +61,22 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
       </TB>
       <TB label="Simulation" kbd="S" active={s.tool === 'simulate'} onClick={() => s.setTool(s.tool === 'simulate' ? 'select' : 'simulate')} testid="tool-simulate">
         <Radio className="size-4" /> <span className="hidden lg:inline">Simulate</span>
+      </TB>
+      <TB label="Audit, goals, troubleshooting, capture and export" active={toolsOpen} onClick={onTools} testid="tool-tools">
+        <Wrench className="size-4" /> <span className="hidden lg:inline">Tools</span>
+      </TB>
+      <TB
+        label="Add a note"
+        testid="tool-note"
+        onClick={() => {
+          const vp = rf.getViewport();
+          const el = document.querySelector('[aria-label="Canvas"]')?.getBoundingClientRect();
+          const cx0 = el ? (el.width / 2 - vp.x) / vp.zoom : 0;
+          const cy0 = el ? (el.height / 2 - vp.y) / vp.zoom : 0;
+          s.addAnnotation({ kind: 'text', x: Math.round(cx0 - 100), y: Math.round(cy0 - 40), w: 200, h: 80, text: 'Note', color: 'amber' });
+        }}
+      >
+        <StickyNote className="size-4" />
       </TB>
       <Sep />
       <TB label="Undo" kbd="Ctrl+Z" disabled={!s.past.length} onClick={() => s.undo()} testid="undo">

@@ -1,11 +1,12 @@
 'use client';
 
-import { BaseEdge, EdgeLabelRenderer, Handle, Position, useInternalNode, type Edge, type EdgeProps, type Node, type NodeProps } from '@xyflow/react';
-import { memo } from 'react';
+import { BaseEdge, EdgeLabelRenderer, Handle, NodeResizer, Position, useInternalNode, type Edge, type EdgeProps, type Node, type NodeProps } from '@xyflow/react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { KIND_LABEL, modelOf } from '@/lab/catalog';
 import { DEVICE_H, DEVICE_W } from '@/lab/inventory';
 import { primaryIp } from '@/lab/simulate';
-import type { Cable, CableStatus, Device } from '@/lab/types';
+import { useLab } from '@/lab/store';
+import type { Annotation, Cable, CableStatus, Device } from '@/lab/types';
 import { CABLE_LABEL } from '@/lab/validate';
 import { cx, fmtBytes } from '@/components/ui';
 
@@ -21,6 +22,7 @@ export type DeviceNodeData = {
   pending: boolean;
   onPath: boolean;
   ghost?: boolean;
+  stpRoot?: boolean;
 };
 
 export type CableEdgeData = {
@@ -31,6 +33,10 @@ export type CableEdgeData = {
   compare?: CompareMark;
   ghost?: boolean;
   onPath: boolean;
+  /** Which ends spanning tree is blocking */
+  blocked?: ('a' | 'b')[];
+  /** EtherChannel bundle this cable belongs to */
+  channel?: { group: number; ok: boolean };
   onEndPointerDown?: (cableId: string, end: 'a' | 'b', e: React.PointerEvent) => void;
   onBendPointerDown?: (cableId: string, e: React.PointerEvent) => void;
   onBendReset?: (cableId: string) => void;
@@ -58,7 +64,7 @@ function deviceSummary(d: Device, up: number, total: number) {
 }
 
 export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps<Node<DeviceNodeData>>) {
-  const { device: d, linksUp, linksTotal, compare, labels, connectable, pending, onPath, ghost } = data;
+  const { device: d, linksUp, linksTotal, compare, labels, connectable, pending, onPath, ghost, stpRoot } = data;
   const m = modelOf(d);
   const off = d.power === 'stopped';
   const health = off ? 'down' : d.health;
@@ -84,6 +90,12 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
       <Handle type="source" position={Position.Top} id="c" isConnectable={connectable} className={cx('!absolute !inset-0 !h-full !w-full !translate-0 !rounded-[8px] !border-0 !bg-transparent', connectable ? '!cursor-crosshair' : '!pointer-events-none')} />
       {compare && <span className={cx('absolute -top-2 left-1 rounded px-1 text-[9.5px] font-semibold text-white', compare === 'added' ? 'bg-healthy' : compare === 'changed' ? 'bg-degraded' : 'bg-down')}>{compare === 'added' ? 'New' : compare === 'changed' ? 'Changed' : 'Removed'}</span>}
       {d.origin === 'design' && !compare && <span className="absolute -top-2 left-1 rounded border border-line-strong bg-pane px-1 text-[9.5px] text-muted">Design</span>}
+      {stpRoot && <span className="absolute -top-2 right-1 rounded bg-action px-1 text-[9.5px] font-semibold text-white" title="Spanning-tree root bridge">Root</span>}
+      {d.powerReason && (
+        <span className="absolute -bottom-2 left-1/2 max-w-[120px] -translate-x-1/2 truncate rounded bg-down px-1 text-[9.5px] font-semibold text-white" title={d.powerReason} data-testid={`no-power-${d.name}`}>
+          No PoE
+        </span>
+      )}
       <div className="relative">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={m.image} alt="" draggable={false} className={cx('pointer-events-none h-[46px] w-[70px] select-none object-contain', off && 'grayscale opacity-60')} />
@@ -197,6 +209,10 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
   const ta = along(a, bend ?? b, 30);
   const tb = along(b, bend ?? a, 30);
   const light = LIGHT[status.state];
+  const blk = data.blocked ?? [];
+  const lightA = blk.includes('a') ? LIGHT.degraded : light;
+  const lightB = blk.includes('b') ? LIGHT.degraded : light;
+  const cond = cable.cond?.enabled ? cable.cond : undefined;
   const live = !!flow && flow.bytes_per_s > 0 && status.state !== 'down' && status.state !== 'disabled';
   const dur = flow ? Math.max(0.6, 2.6 - Math.log10(Math.max(10, flow.bytes_per_s)) * 0.3) : 2;
   const title = `${CABLE_LABEL[cable.type]}${cable.label ? ` (${cable.label})` : ''}: ${status.state}${status.negotiated ? `, ${status.negotiated}` : ''}${status.issues.filter((i) => i.severity !== 'info').map((i) => `\n- ${i.message}`).join('')}`;
@@ -221,8 +237,9 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
           )}
         </g>
       )}
-      <circle cx={la.x} cy={la.y} r={3.6} fill={light} stroke="var(--pane)" strokeWidth={1} />
-      <circle cx={lb.x} cy={lb.y} r={3.6} fill={light} stroke="var(--pane)" strokeWidth={1} />
+      <circle cx={la.x} cy={la.y} r={3.6} fill={lightA} stroke="var(--pane)" strokeWidth={1} />
+      <circle cx={lb.x} cy={lb.y} r={3.6} fill={lightB} stroke="var(--pane)" strokeWidth={1} />
+      {data.channel && <ellipse cx={mid.x} cy={mid.y} rx={9} ry={14} fill="none" stroke={data.channel.ok ? 'var(--action)' : 'var(--down)'} strokeWidth={1.6} transform={`rotate(${(Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI} ${mid.x} ${mid.y})`} />}
       <EdgeLabelRenderer>
         {portLabels && (
           <>
@@ -233,6 +250,25 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
               {cable.b.port}
             </div>
           </>
+        )}
+        {blk.map((end) => {
+          const p = along(end === 'a' ? a : b, end === 'a' ? (bend ?? b) : (bend ?? a), 18);
+          return (
+            <div key={end} className="nodrag nopan pointer-events-none absolute rounded bg-degraded px-1 font-mono text-[9px] font-semibold text-black" style={{ transform: `translate(-50%, -50%) translate(${p.x}px, ${p.y - 11}px)` }} data-testid="stp-blk" title="Spanning tree is blocking this port to prevent a loop">
+              BLK
+            </div>
+          );
+        })}
+        {data.channel && (
+          <div className="nodrag nopan pointer-events-none absolute rounded bg-pane px-1 font-mono text-[9px]" style={{ transform: `translate(-50%, 60%) translate(${mid.x}px, ${mid.y}px)`, color: data.channel.ok ? 'var(--action)' : 'var(--down)' }}>
+            Po{data.channel.group}
+            {data.channel.ok ? '' : ' ⚠'}
+          </div>
+        )}
+        {cond && (
+          <div className="nodrag nopan pointer-events-none absolute rounded border border-degraded/60 bg-pane px-1 font-mono text-[9px] text-degraded" style={{ transform: `translate(-50%, 160%) translate(${mid.x}px, ${mid.y}px)` }} title="Link conditioning is on">
+            {[cond.latencyMs ? `${cond.latencyMs}ms` : '', cond.jitterMs ? `±${cond.jitterMs}` : '', cond.lossPct ? `${cond.lossPct}% loss` : '', cond.bandwidthMbps ? `${cond.bandwidthMbps}M` : ''].filter(Boolean).join(' ')}
+          </div>
         )}
         {(err || status.state === 'down' || flow?.denied || selected || status.state === 'degraded') && (
           <div className="nodrag nopan pointer-events-none absolute rounded border border-line bg-pane px-1 py-px font-mono text-[9.5px]" style={{ transform: `translate(-50%, -140%) translate(${mid.x}px, ${mid.y}px)` }}>
@@ -272,3 +308,75 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
     </>
   );
 }
+
+// ---------------- annotations ----------------
+
+const NOTE_COLOR: Record<Annotation['color'], string> = { blue: '#3b8ee8', green: '#2fb36a', amber: '#e5a23a', red: '#e5484d', grey: '#8a9bb0' };
+export type NoteNodeData = { note: Annotation };
+
+/** Free text, rectangles and ellipses drawn on the canvas (zones, labels, instructions). */
+export const NoteNode = memo(function NoteNode({ data, selected }: NodeProps<Node<NoteNodeData>>) {
+  const n = data.note;
+  const [edit, setEdit] = useState(false);
+  const [text, setText] = useState(n.text);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => setText(n.text), [n.text]);
+  useEffect(() => {
+    if (edit) ref.current?.focus();
+  }, [edit]);
+  const c = NOTE_COLOR[n.color];
+  const st = useLab.getState;
+  return (
+    <div
+      className="h-full w-full"
+      data-testid={`note-${n.id}`}
+      onDoubleClick={() => setEdit(true)}
+      style={{
+        border: `2px ${n.kind === 'text' ? 'solid' : 'dashed'} ${c}`,
+        borderRadius: n.kind === 'ellipse' ? '50%' : 8,
+        background: n.kind === 'text' ? `${c}22` : `${c}0d`,
+      }}
+    >
+      <NodeResizer isVisible={selected} minWidth={80} minHeight={40} color={c} onResizeEnd={(_e, p) => st().updateAnnotation(n.id, { x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.width), h: Math.round(p.height) })} />
+      {edit ? (
+        <textarea
+          ref={ref}
+          aria-label="Note text"
+          className="nodrag h-full w-full resize-none bg-transparent p-2 text-[12.5px] outline-none"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => {
+            setEdit(false);
+            if (text !== n.text) st().updateAnnotation(n.id, { text });
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') (e.target as HTMLTextAreaElement).blur();
+            e.stopPropagation();
+          }}
+        />
+      ) : (
+        <div className={cx('h-full w-full overflow-hidden whitespace-pre-wrap p-2 text-[12.5px]', n.kind !== 'text' && 'text-[12px] font-semibold')} style={{ color: n.kind === 'text' ? undefined : c }}>
+          {n.text}
+        </div>
+      )}
+      {selected && !edit && (
+        <div className="nodrag absolute -top-8 left-0 flex gap-1 rounded border border-line bg-pane p-0.5 shadow">
+          {(Object.keys(NOTE_COLOR) as Annotation['color'][]).map((k) => (
+            <button key={k} aria-label={`Colour ${k}`} className="size-4 rounded-full" style={{ background: NOTE_COLOR[k] }} onClick={() => st().updateAnnotation(n.id, { color: k })} />
+          ))}
+          {(['text', 'rect', 'ellipse'] as const).map((k) => (
+            <button key={k} className={cx('rounded px-1 text-[10px]', n.kind === k ? 'bg-action/20' : 'text-muted')} onClick={() => st().updateAnnotation(n.id, { kind: k })}>
+              {k === 'text' ? 'Note' : k === 'rect' ? 'Box' : 'Oval'}
+            </button>
+          ))}
+          <button className="rounded px-1 text-[10px]" onClick={() => setEdit(true)} data-testid="note-edit">
+            Edit text
+          </button>
+          <button className="rounded px-1 text-[10px] text-down" onClick={() => st().removeAnnotation(n.id)}>
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+});

@@ -91,6 +91,28 @@ An editable network canvas built on the live topology.
   and a fix. The packet animates across the canvas; the event list and per-hop PDU (MACs, VLAN tag, IPs, TTL,
   ports, route, ACL decision, timestamp) are inspectable. Live traffic from `flow.batch` events animates on cables,
   with blocked flows in red.
+- **Control plane** (computed from the design on every change, `src/lab/protocols.ts`): Rapid-PVST root
+  election, port roles and blocked ports (BLK on the cable, Root on the switch), broadcast-storm detection when a
+  loop has STP off, EtherChannel (LACP, PAgP, static) with mismatch reasons, OSPF adjacencies with the exact
+  reason one is down (area, mask, hello/dead, MTU, passive, router ID) and SPF routes (O, O IA, O*E2, AD 110),
+  HSRP active/standby and virtual IP ownership, PAT, DHCP DORA through relays, PoE budgets (a camera on a non-PoE
+  port stays off and says why) and wireless association (SSID, WPA2/WPA3, passphrase).
+- **Design CLI** (Terminal tab, `src/lab/cli.ts`): an IOS-style CLI on routers, switches and firewalls (modes,
+  `interface range`, addresses, VLANs, trunks, `channel-group`, `standby`, `ip nat`, `ip helper-address`,
+  `router ospf`, static routes, `spanning-tree`, DHCP pools, SSH/enable secret/banner, 20+ `show` commands, ping,
+  traceroute, `write memory`) and a Windows command prompt on hosts (`ipconfig /renew`, `ping`, `tracert`,
+  `arp -a`, `netsh`). It always runs against the design and says so; real devices keep their back-end console.
+- **Services tab**: DHCP client renew, SSID and client join, STP priority and port table, EtherChannel, OSPF per
+  interface with neighbour state, HSRP, NAT, DHCP relay and server pools, PoE budget and management hardening.
+- **Cable physics**: length limits (100 m copper, 550/300 m multimode, 10 km single-mode) and CML-style link
+  conditioning (latency, jitter, loss, bandwidth) that the simulator applies.
+- **Tools panel**: design audit with a score (link faults, control-plane problems, duplicate and off-subnet
+  addressing, Telnet/no SSH/no enable secret, VLAN 1 and native VLAN 1, any-any and shadowed firewall rules,
+  single points of failure, PoE budget); goals ("A must reach B on 443") with Check results; troubleshooting
+  challenges that hide one realistic fault and reveal it afterwards; an any-to-any reachability matrix;
+  Wireshark-style capture per cable with layer decode, hex dump and a real `.pcap` download; export of the lab
+  JSON, port inventory CSV, all running configs and a bill of materials, and JSON import.
+- **Notes** on the canvas (text, box, oval; resizable, coloured).
 - **Lab structure**: sites, racks (place devices by U), VLANs (pushed to switch VLAN databases), subnets (with
   duplicate-address detection), WAN links (provider, bandwidth, latency used by the simulator) and cloud
   connections. Add or remove devices and interfaces (sub-interfaces, SVIs, loopbacks, tunnels, extra ports).
@@ -103,9 +125,11 @@ lab, so a scenario's injected fault shows up on the canvas and in packet results
 `GET /topology`: the contract has no ports, MACs or routes, so cable ports are inferred (marked as such), MACs show
 "not reported", and edits stay in the design. Layouts are stored in the browser until the API offers an endpoint.
 
-Code: `src/lab/` (model, catalog, validation, simulator, inventory, generated config, diff, store) and
-`src/components/lab/` (canvas, inspector, simulation panel, dialogs). Tests: `tests/unit/lab-*.test.ts` and
-`tests/e2e/lab-designer.spec.ts`.
+Code: `src/lab/` (model, catalog, validation, simulator, control plane, CLI, audit, capture, challenges,
+inventory, generated config, diff, store) and `src/components/lab/` (canvas, inspector, services, simulation and
+tools panels, dialogs). Tests: `tests/unit/lab-*.test.ts`, `tests/e2e/lab-designer.spec.ts` and
+`tests/e2e/lab-advanced.spec.ts`. What is built and what is still on the roadmap compared with Packet Tracer, CML,
+EVE-NG, GNS3 and containerlab: `docs/LAB-GAP-ANALYSIS.md`.
 
 ## Code map
 

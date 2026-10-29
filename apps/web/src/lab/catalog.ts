@@ -23,6 +23,11 @@ export interface DeviceModel {
   /** l2 = switches frames by VLAN; l3 = routes between subnets; host = endpoint */
   forwarding: 'l2' | 'l3' | 'host';
   macPrefix: string;
+  /** Switch PoE budget in watts (802.3af/at) */
+  poeBudgetW?: number;
+  /** Device powered over its Ethernet port */
+  poweredBy?: 'poe';
+  poeDrawW?: number;
   consoles: Device['consoles'];
   listening: number[];
   ports: () => PortTemplate[];
@@ -91,8 +96,9 @@ export const CATALOG: DeviceModel[] = [
     key: 'c9300-24t',
     kind: 'switch',
     vendor: 'Cisco',
-    name: 'Catalyst 9300 24T',
-    description: '24 x GE copper, 4 x 10G SFP+, console',
+    name: 'Catalyst 9300 24P',
+    description: '24 x GE PoE+ copper (445 W budget), 4 x 10G SFP+, console',
+    poeBudgetW: 445,
     image: '/lab/devices/switch.svg',
     autoMdix: true,
     forwarding: 'l2',
@@ -100,6 +106,21 @@ export const CATALOG: DeviceModel[] = [
     consoles: ['ssh', 'serial'],
     listening: [22],
     ports: () => [...range(24, (i) => ({ name: `Gi1/0/${i}`, type: 'copper', speeds: COPPER_G })), ...range(4, (i) => ({ name: `Te1/1/${i}`, type: 'sfp', speeds: [10000] })), { name: 'Console', type: 'console', speeds: [10] }],
+  },
+  {
+    key: 'c2960x24ps',
+    kind: 'switch',
+    vendor: 'Cisco',
+    name: 'Catalyst 2960-X 24PS',
+    description: '24 x GE PoE+ copper (370 W budget), 4 x SFP, console',
+    image: '/lab/devices/switch.svg',
+    autoMdix: true,
+    forwarding: 'l2',
+    macPrefix: '00:2a:6a',
+    poeBudgetW: 370,
+    consoles: ['ssh', 'serial'],
+    listening: [22],
+    ports: () => [...range(24, (i) => ({ name: `Gi0/${i}`, type: 'copper', speeds: COPPER_G })), ...range(4, (i) => ({ name: `Gi0/${24 + i}`, type: 'sfp', speeds: [1000] })), { name: 'Console', type: 'console', speeds: [10] }],
   },
   {
     key: 'dec2750',
@@ -208,7 +229,9 @@ export const CATALOG: DeviceModel[] = [
     kind: 'ap',
     vendor: 'Cisco',
     name: 'Catalyst 9120AXI',
-    description: 'GE copper uplink (PoE), Wi-Fi 6 radio',
+    description: 'GE copper uplink (needs 802.3at PoE+, 25.5 W), Wi-Fi 6 radio',
+    poweredBy: 'poe',
+    poeDrawW: 25.5,
     image: '/lab/devices/ap.svg',
     autoMdix: true,
     forwarding: 'l2',
@@ -259,7 +282,9 @@ export const CATALOG: DeviceModel[] = [
     kind: 'iot',
     vendor: 'Axis',
     name: 'M3106 IP camera',
-    description: 'Fast Ethernet PoE, fixed 100/full, no auto-MDIX',
+    description: 'Fast Ethernet, powered by 802.3af PoE (6.5 W), fixed 100/full, no auto-MDIX',
+    poweredBy: 'poe',
+    poeDrawW: 6.5,
     image: '/lab/devices/iot.svg',
     autoMdix: false,
     forwarding: 'host',
