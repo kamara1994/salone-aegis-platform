@@ -49,6 +49,11 @@ const LAB_ASSET: Record<string, string> = {
   internet: '/lab/generated/labeled/internet-wan-annotated.png',
   'axis-cam': '/lab/generated/labeled/axis-m3106-annotated.png',
   'iot-sensor': '/lab/generated/labeled/environmental-sensor-annotated.png',
+  c9800l: '/lab/generated/labeled/cisco-catalyst-9800l-annotated.png',
+  'services-server': '/lab/generated/labeled/ubuntu-services-server-annotated.png',
+  'kali-workstation': '/lab/generated/labeled/kali-workstation-annotated.png',
+  'ip-phone-8845': '/lab/generated/labeled/ip-phone-8845-annotated.png',
+  'network-printer': '/lab/generated/labeled/network-printer-annotated.png',
 };
 
 export function DevicePicture({ model, className }: { model: DeviceModel; className?: string }) {
