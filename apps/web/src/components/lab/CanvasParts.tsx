@@ -216,14 +216,14 @@ const LIGHT: Record<CableStatus['state'], string> = { up: '#2fb36a', degraded: '
 export const CABLE_ASSET: Partial<Record<Cable['type'] | 'auto', string>> = {
   auto: '/lab/generated/cables/cat6-ethernet-blue.png',
   straight: '/lab/generated/cables/cat6-ethernet-blue.png',
-  crossover: '/lab/generated/cables/cat6-ethernet-blue.png',
-  access: '/lab/generated/cables/cat6-ethernet-blue.png',
-  trunk: '/lab/generated/cables/cat6-ethernet-blue.png',
+  crossover: '/lab/generated/cables/ethernet-crossover-orange.png',
+  access: '/lab/generated/cables/ethernet-access-green.png',
+  trunk: '/lab/generated/cables/ethernet-trunk-purple.png',
   fiber: '/lab/generated/cables/fiber-lc-aqua.png',
   console: '/lab/generated/cables/console-rollover-rj45-db9.png',
-  serial: '/lab/generated/cables/console-rollover-rj45-db9.png',
-  wan: '/lab/generated/cables/fiber-lc-aqua.png',
-  virtual: '/lab/generated/cables/cat6-ethernet-blue.png',
+  serial: '/lab/generated/cables/serial-dce-dte-red.png',
+  wan: '/lab/generated/cables/wan-circuit-black.png',
+  virtual: '/lab/generated/cables/virtual-wireless-blue.png',
 };
 
 function center(n: ReturnType<typeof useInternalNode>) {
