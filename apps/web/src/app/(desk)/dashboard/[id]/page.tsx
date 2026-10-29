@@ -1,64 +1,106 @@
 'use client';
 
-import { BookOpen, Briefcase, FlaskConical, Gamepad2, LineChart, Timer } from 'lucide-react';
+import { FlaskConical, Gamepad2, MousePointerClick } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useMemo } from 'react';
 import { CertStrip } from '@/components/cert/CertStrip';
-import { Badge, EmptyState } from '@/components/ui';
-import { CERTS, dashboardById, VENDOR_ACCENT } from '@/content/certs';
+import { useDashItem } from '@/components/cert/DashboardSide';
+import { Flashcards, TimedExam } from '@/components/learn/Exams';
+import { TopicPlayground } from '@/components/learn/Topics';
+import { EmptyState } from '@/components/ui';
+import { allGames } from '@/content';
+import { certById, certTopics, dashboardById } from '@/content/certs';
+import { WORKBOOKS } from '@/lab/workbooks';
 import { useUi } from '@/state/ui';
 
-const SECTIONS = [
-  { key: 'study', title: 'Study', icon: BookOpen, href: '/learn?tab=topics', cta: 'Open topics' },
-  { key: 'labs', title: 'Labs', icon: FlaskConical, href: '/lab', cta: 'Open the Lab' },
-  { key: 'exams', title: 'Practice exams', icon: Timer, href: '/learn?tab=exams', cta: 'Start a practice exam' },
-  { key: 'scenarios', title: 'Scenarios', icon: Gamepad2, href: '/games', cta: 'Play a scenario' },
-  { key: 'progress', title: 'Progress', icon: LineChart, href: '/learn?tab=tracks', cta: 'See tracks and progress' },
-  { key: 'career', title: 'Career', icon: Briefcase, href: '/skills', cta: 'Open skills' },
-] as const;
-
-/** One dashboard per certification area. Sections are placeholders, to be designed one by one. */
+/** A dashboard's playground. The left side (DashboardSide) lists what to cover; the middle stays clear
+ *  until something is picked there. */
 export default function DashboardPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const dash = dashboardById(id);
-  // Opening a dashboard by URL makes it the current focus (once per visit, so switching away is not undone).
+  const focus = certById(id);
+  const { item, setItem } = useDashItem();
+  const topics = useMemo(() => (focus ? certTopics(focus) : []), [focus]);
+  // Opening a dashboard by URL makes it the current focus (once per visit, so switching away is not undone),
+  // and restores the picked item from ?item=.
   useEffect(() => {
     if (dash && useUi.getState().certId !== dash.id) useUi.getState().setCert(dash.id);
+    const it = new URLSearchParams(window.location.search).get('item');
+    useDashItem.setState({ item: it || null });
   }, [dash]);
-  if (!dash) return <EmptyState title="No such dashboard" body="Choose a certification area from the drop-down at the top." />;
-  const members = dash.certs.map((c) => CERTS.find((k) => k.id === c)!).filter(Boolean);
-  const accent = VENDOR_ACCENT[members[0]?.vendor] ?? 'var(--action)';
+  if (!dash || !focus) return <EmptyState title="No such dashboard" body="Choose a certification area from the drop-down at the top." />;
+
+  const topicId = item?.startsWith('topic:') ? item.slice(6) : null;
   return (
     <div className="h-full overflow-auto" data-testid={`dashboard-${dash.id}`}>
-      <header className="border-b border-line px-4 pt-4 pb-3" style={{ borderTop: `3px solid ${accent}` }}>
-        <h1 className="text-[22px] font-semibold" data-testid="dashboard-title">
-          {dash.title}
-        </h1>
-        <p className="max-w-3xl text-[13px] text-muted">{dash.summary}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5" data-testid="dashboard-certs">
-          <span className="text-[12px] text-muted">Covers:</span>
-          {members.map((c) => (
-            <Badge key={c.id} title={`${c.name} · ${c.level} · ${c.format}`}>
-              {c.short} <span className="text-faint">({c.vendor})</span>
-            </Badge>
-          ))}
-        </div>
-      </header>
-      <CertStrip />
-      <section className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3" aria-label={`${dash.title} dashboard sections`}>
-        {SECTIONS.map((s) => (
-          <div key={s.key} className="flex min-h-[160px] flex-col rounded-[8px] border border-dashed border-line-strong p-3" data-testid={`dashboard-section-${s.key}`}>
-            <h2 className="flex items-center gap-2 text-[14px] font-semibold">
-              <s.icon className="size-4" style={{ color: accent }} /> {s.title}
-            </h2>
-            <p className="mt-1 flex-1 text-[12.5px] text-muted">This {dash.title.toLowerCase()} section is reserved. Its content will be designed next.</p>
-            <Link href={s.href} className="mt-2 self-start text-[12.5px] text-action underline">
-              {s.cta}
-            </Link>
+      <h1 className="sr-only" data-testid="dashboard-title">
+        {dash.title}
+      </h1>
+      {!item && (
+        <div className="grid h-full place-items-center p-6" data-testid="dashboard-playground-empty">
+          <div className="text-center text-muted">
+            <MousePointerClick className="mx-auto mb-2 size-8 opacity-50" />
+            <p className="text-[14px]">Pick something from the {dash.title} menu on the left.</p>
           </div>
-        ))}
-      </section>
+        </div>
+      )}
+      {topicId && (
+        <div className="p-4">
+          <TopicPlayground key={topicId} topicId={topicId} list={topics} scopeLabel={dash.short} onTopic={(t) => setItem(`topic:${t}`)} onOpenLesson={(l) => router.push(`/learn?lesson=${l}`)} />
+        </div>
+      )}
+      {item === 'exam' && (
+        <div className="p-4" data-testid="playground-exam">
+          <TimedExam onStudy={(t) => setItem(`topic:${t}`)} />
+        </div>
+      )}
+      {item === 'flashcards' && (
+        <div className="p-4" data-testid="playground-flashcards">
+          <Flashcards />
+        </div>
+      )}
+      {item === 'labs' && (
+        <ul className="grid gap-2 p-4 md:grid-cols-2" data-testid="playground-labs">
+          {focus.labs.map((l) => WORKBOOKS.find((w) => w.id === l)).filter(Boolean).map((w) => (
+            <li key={w!.id}>
+              <Link href={`/lab?workbook=${w!.id}`} className="flex h-full flex-col gap-1 rounded-[6px] border border-line p-3 hover:border-action">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <FlaskConical className="size-4 text-action" /> {w!.title}
+                </span>
+                <span className="line-clamp-2 text-[12.5px] text-muted">{w!.intro}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {item === 'scenarios' && (
+        <ul className="grid gap-2 p-4 md:grid-cols-2" data-testid="playground-scenarios">
+          {allGames()
+            .filter((g) => focus.games.includes(g.id))
+            .map((g) => (
+              <li key={g.id}>
+                <Link href={`/games?template=${g.id}`} className="flex h-full flex-col gap-1 rounded-[6px] border border-line p-3 hover:border-action">
+                  <span className="flex items-center gap-1.5 font-semibold">
+                    <Gamepad2 className="size-4 text-action" /> {g.title}
+                  </span>
+                  <span className="text-[12.5px] text-muted">{g.summary}</span>
+                </Link>
+              </li>
+            ))}
+        </ul>
+      )}
+      {item === 'progress' && (
+        <div data-testid="playground-progress">
+          <CertStrip />
+        </div>
+      )}
+      {item === 'career' && (
+        <div className="p-4" data-testid="playground-career">
+          <EmptyState title="Career" body={`The ${dash.title} career space is reserved and will be designed next.`} />
+        </div>
+      )}
     </div>
   );
 }

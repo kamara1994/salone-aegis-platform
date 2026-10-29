@@ -14,22 +14,35 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
 
   await sw.selectOption('networking');
   await expect(page).toHaveURL(/\/dashboard\/networking$/);
-  await expect(page.getByTestId('dashboard-title')).toHaveText('Networking');
-  await expect(page.getByTestId('dashboard-certs')).toContainText('Network+');
-  await expect(page.getByTestId('dashboard-certs')).toContainText('CCNA');
-  await expect(page.getByTestId('dashboard-certs')).toContainText('CCNP');
-  await expect(page.getByTestId('dashboard-section-labs')).toBeVisible();
+  // the left side becomes the dashboard's own menu; the middle is an empty playground
+  const side = page.getByTestId('dashboard-side');
+  await expect(side).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
+  await expect(page.getByTestId('dashboard-side-title')).toHaveText('Networking');
+  await expect(side).toContainText('Network+ · CCNA · CCNP');
+  await expect(page.getByTestId('dashboard-playground-empty')).toBeVisible();
+  await page.getByTestId('side-group-networking-switching').click();
+  await page.getByTestId('side-topic-vlans').click();
+  await expect(page.getByTestId('topic-title')).toHaveText('VLANs');
+  await expect(page).toHaveURL(/item=topic%3Avlans|item=topic:vlans/);
+  await page.getByTestId('side-labs').click();
+  await expect(page.getByTestId('playground-labs')).toContainText('VLANs and 802.1Q trunking');
+  await page.getByTestId('side-exam').click();
+  await expect(page.getByTestId('exam-course')).toHaveValue('cert:networking');
+  await page.getByTestId('side-search').fill('ospf');
+  await expect(page.getByTestId('side-topic-ospf')).toBeVisible();
 
   await sw.selectOption('security');
   await expect(page).toHaveURL(/\/dashboard\/security$/);
-  await expect(page.getByTestId('dashboard-title')).toHaveText('Security fundamentals');
-  await expect(page.getByTestId('dashboard-certs')).toContainText('Security+');
+  await expect(page.getByTestId('dashboard-side-title')).toHaveText('Security fundamentals');
+  await expect(side).toContainText('Security+');
 
   await sw.selectOption('pentest');
-  await expect(page.getByTestId('dashboard-certs')).toContainText('eJPT');
-  await expect(page.getByTestId('dashboard-certs')).toContainText('PJPT');
+  await expect(side).toContainText('eJPT');
+  await expect(side).toContainText('PJPT');
   await page.reload();
   await expect(sw).toHaveValue('pentest');
+  await page.getByTestId('dashboard-back').click();
   await expect(page.getByTestId('nav-dashboard')).toContainText('Pentest');
 
   // the rest of the app follows the dashboard

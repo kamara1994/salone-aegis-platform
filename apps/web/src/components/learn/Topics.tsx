@@ -345,3 +345,38 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
     </div>
   );
 }
+
+/** One topic on its own (used by the dashboard playground): level choice, exam and lab link. */
+export function TopicPlayground({ topicId, list, scopeLabel, onTopic, onOpenLesson }: { topicId: string; list?: Topic[]; scopeLabel?: string; onTopic: (id: string) => void; onOpenLesson: (id: string) => void }) {
+  const t = topicById(topicId);
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [level, setLevelState] = useState<TeachLevel>('simple');
+  useEffect(() => {
+    const p = loadProgress();
+    setProgress(p);
+    setLevelState(p.teach ?? 'simple');
+  }, []);
+  if (!t) return null;
+  return (
+    <TopicPage
+      t={t}
+      list={list}
+      scopeLabel={scopeLabel}
+      level={level}
+      setLevel={(l) => {
+        setLevelState(l);
+        setProgress(updateProgress((p) => {
+          p.teach = l;
+        }));
+      }}
+      onOpenLesson={onOpenLesson}
+      onTopic={onTopic}
+      progress={progress}
+      onScore={(score, total) =>
+        setProgress(updateProgress((p) => {
+          p.topics = { ...(p.topics ?? {}), [t.id]: { level, score, total, at: new Date().toISOString() } };
+        }))
+      }
+    />
+  );
+}

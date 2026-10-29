@@ -31,7 +31,7 @@ function ScopeOptions({ cert }: { cert?: Cert }) {
   );
 }
 
-function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
+export function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
   const cert = certById(useUi((s) => s.certId));
   const [course, setCourse] = useState<ExamScope>(cert ? `cert:${cert.id}` : 'networking');
   const [count, setCount] = useState(10);
@@ -202,7 +202,7 @@ function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
   );
 }
 
-function Flashcards() {
+export function Flashcards() {
   const cert = certById(useUi((s) => s.certId));
   const [course, setCourse] = useState<ExamScope>(cert ? `cert:${cert.id}` : 'networking');
   const [seed, setSeed] = useState(0);
