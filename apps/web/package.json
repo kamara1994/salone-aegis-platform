@@ -13,7 +13,6 @@
     "gen:api": "openapi-typescript ../../contracts/openapi.yaml -o src/api/schema.d.ts",
     "lint": "next lint",
     "scenarios": "node scripts/bundle-scenarios.mjs",
-    "predev": "node scripts/bundle-scenarios.mjs",
     "prebuild": "node scripts/bundle-scenarios.mjs",
     "contracts:examples": "EXPORT_EXAMPLES=1 vitest run tests/unit/zz-export-examples.test.ts",
     "test:all": "npm run typecheck && npm test && npm run test:e2e"
