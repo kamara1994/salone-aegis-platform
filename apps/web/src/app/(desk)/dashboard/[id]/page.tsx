@@ -86,6 +86,7 @@ export default function DashboardPage() {
   const [panel, setPanel] = useState(true);
   const [topicId, setTopicId] = useState<string>('');
   const [topicQuery, setTopicQuery] = useState('');
+  const [topicPickerOpen, setTopicPickerOpen] = useState(false);
   const [lesson, setLesson] = useState<string | null>(null);
   const [last, setLast] = useState<string | null>(null);
   const [mode, setModeState] = useState<TeachLevel>('simple');
@@ -215,35 +216,37 @@ export default function DashboardPage() {
             <TopicTools topic={topic} tools={toolsFor(dash.id)} onPick={setTool} />
             <Sep />
             <div className="flex flex-wrap items-center gap-1.5" data-testid="dash-topic-mode">
-            <label className="relative flex items-center" title="Search topics in this certification">
-              <span className="sr-only">Search topics</span>
+            <div className="relative" data-testid="dash-topic-picker">
+              <Tags className="pointer-events-none absolute top-2 left-2 z-10 size-3.5 text-faint" aria-hidden />
               <input
                 type="search"
-                value={topicQuery}
-                onChange={(e) => setTopicQuery(e.target.value)}
-                placeholder="Find a topic…"
-                aria-label="Search topics in this certification"
-                className="h-8 w-36 rounded-[6px] border border-line-strong bg-ink px-2 text-[12.5px] placeholder:text-faint focus:border-action focus:outline-none sm:w-44"
-                data-testid="dash-topic-search"
+                value={topicPickerOpen ? topicQuery : topic?.title ?? ''}
+                onFocus={() => { setTopicPickerOpen(true); setTopicQuery(''); }}
+                onChange={(e) => { setTopicQuery(e.target.value); setTopicPickerOpen(true); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') { setTopicPickerOpen(false); setTopicQuery(''); }
+                  if (e.key === 'Enter' && filteredUnits[0]?.list[0]) { pickTopic(filteredUnits[0].list[0].id); setTopicPickerOpen(false); setTopicQuery(''); }
+                }}
+                placeholder={`Choose or search ${topics.length} topics…`}
+                aria-label="Search and choose a topic"
+                aria-expanded={topicPickerOpen}
+                aria-controls="dash-topic-options"
+                role="combobox"
+                className="h-8 w-52 rounded-[6px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px] placeholder:text-faint focus:border-action focus:outline-none sm:w-64"
+                data-testid="dash-topic"
               />
-            </label>
-            <label className="relative flex items-center" title="Choose a topic to learn">
-              <Tags className="pointer-events-none absolute left-2 size-3.5 text-faint" aria-hidden />
-              <span className="sr-only">Topic</span>
-              <select value={topicId} onChange={(e) => pickTopic(e.target.value)} className="h-8 max-w-[260px] rounded-[6px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px]" data-testid="dash-topic">
-                <option value="">Choose a topic ({topics.length})</option>
-                {filteredUnits.map((u) => (
-                  <optgroup key={u.name} label={u.name}>
-                    {u.list.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </label>
-            {topicQuery.trim() && <span className="text-[11px] text-muted" aria-live="polite">{filteredUnits.reduce((n, u) => n + u.list.length, 0)} matches</span>}
+              {topicPickerOpen && (
+                <div id="dash-topic-options" role="listbox" className="absolute top-full left-0 z-50 mt-1 max-h-80 w-72 overflow-auto rounded-[7px] border border-line-strong bg-pane p-1 shadow-xl sm:w-80">
+                  {!filteredUnits.length ? <p className="px-3 py-2 text-[12px] text-muted">No matching topics in this certification.</p> : filteredUnits.map((u) => (
+                    <div key={u.name}>
+                      <p className="px-2 pt-2 pb-1 text-[10.5px] font-semibold uppercase tracking-wide text-faint">{u.name}</p>
+                      {u.list.map((t) => <button key={t.id} type="button" role="option" aria-selected={topicId === t.id} onMouseDown={(e) => e.preventDefault()} onClick={() => { pickTopic(t.id); setTopicPickerOpen(false); setTopicQuery(''); }} className={cx('block w-full rounded px-2 py-1.5 text-left text-[12.5px]', topicId === t.id ? 'bg-action/15 text-text' : 'text-muted hover:bg-pane-2 hover:text-text')}>{t.title}</button>)}
+                    </div>
+                  ))}
+                  {topicQuery.trim() && <p className="px-2 py-1 text-[10.5px] text-faint" aria-live="polite">{filteredUnits.reduce((n, u) => n + u.list.length, 0)} matches</p>}
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-1" role="radiogroup" aria-label="Learning mode" data-testid="dash-mode">
               <span className="hidden pr-0.5 text-[11.5px] text-faint lg:inline">Mode</span>
               <div className="flex rounded-[6px] border border-line-strong p-0.5">
