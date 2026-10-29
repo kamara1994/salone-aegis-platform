@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "notice": "These are generated simulated training interfaces. They are not official vendor screenshots and contain no real credentials or customer data.",
+  "assets": [
+    {
+      "id": "security-onion-alert-timeline",
+      "path": "/learn/visuals/security-onion/alert-timeline.png",
+      "topic": "Security Onion",
+      "title": "Start with severity, source host, timestamp, and timeline",
+      "lesson": "security-onion-first-look",
+      "caption": "Use the alert severity, source host, timestamp, and investigation timeline to define the first scope of a hunt."
+    },
+    {
+      "id": "active-directory-privileged-logon",
+      "path": "/learn/visuals/active-directory/privileged-logon.png",
+      "topic": "Active Directory",
+      "title": "Trace a privileged logon across hosts",
+      "lesson": "active-directory-privileged-logon",
+      "caption": "Compare the account, source workstation, event ID, authentication type, and time window before deciding whether the logon is suspicious."
+    },
+    {
+      "id": "dns-tunneling-packet-analysis",
+      "path": "/learn/visuals/network-forensics/dns-tunneling.png",
+      "topic": "Network forensics",
+      "title": "Spot suspicious DNS and TCP evidence",
+      "lesson": "dns-tunneling-investigation",
+      "caption": "Inspect the DNS query, source and destination IPs, response code, and TCP flags to connect the packet evidence."
+    },
+    {
+      "id": "zeek-suricata-evidence",
+      "path": "/learn/visuals/security-onion/zeek-suricata-evidence.png",
+      "topic": "Security Onion",
+      "title": "Correlate Zeek and Suricata evidence",
+      "lesson": "zeek-suricata-correlation",
+      "caption": "Validate an alert by comparing the detection rule, source, destination, protocol, and supporting evidence timeline."
+    },
+    {
+      "id": "incident-response-contain-escalate",
+      "path": "/learn/visuals/incident-response/contain-escalate.png",
+      "topic": "Incident response",
+      "title": "Choose containment, evidence collection, and escalation",
+      "lesson": "incident-response-containment",
+      "caption": "Assess severity and the affected asset, preserve evidence, contain safely, and escalate when the incident exceeds your scope."
+    }
+  ]
+}
