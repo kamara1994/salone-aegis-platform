@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useTopology } from '@/api/hooks';
 import { EdgePanel } from '@/components/map/EdgePanel';
@@ -17,12 +18,17 @@ export default function TopologyPage() {
         className="min-w-0 flex-1"
         title="Topology"
         actions={
+          <div className="flex items-center gap-2">
+          <Link href="/lab" className="rounded-[5px] border border-line-strong px-2 py-0.5 text-[12px] text-muted hover:border-action hover:text-text">
+            Open in lab designer
+          </Link>
           <div role="tablist" className="flex rounded-[5px] border border-line-strong p-0.5 text-[12px]">
             {(['map', 'list'] as const).map((v) => (
               <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)} className={cx('rounded-[4px] px-2 py-0.5', view === v ? 'bg-pane-2 text-text' : 'text-muted')}>
                 {v === 'map' ? 'Map' : 'List'}
               </button>
             ))}
+          </div>
           </div>
         }
         bodyClassName="flex flex-col"

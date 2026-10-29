@@ -14,7 +14,12 @@ import { useUi } from '@/state/ui';
 const XtermMock = dynamic(() => import('./XtermMock').then((m) => m.XtermMock), { ssr: false, loading: () => <Loading rows={3} /> });
 const GuacConsole = dynamic(() => import('./GuacConsole').then((m) => m.GuacConsole), { ssr: false, loading: () => <Loading rows={3} /> });
 
-export function ConsoleView({ nodeId, ticketId, compact }: { nodeId: string; ticketId?: string; compact?: boolean }) {
+/**
+ * Console for one node. Always asks the back end for a session (POST /nodes/{id}/console-sessions).
+ * In live mode a failed request shows why the console is unavailable; nothing is simulated.
+ * `protocols` limits the choice, e.g. ['rdp', 'vnc'] for a graphical VM console.
+ */
+export function ConsoleView({ nodeId, ticketId, compact, protocols }: { nodeId: string; ticketId?: string; compact?: boolean; protocols?: ConsoleProtocol[] }) {
   const rt = useRuntime();
   const theme = useUi((s) => s.theme);
   const node = useNode(nodeId);
@@ -24,9 +29,13 @@ export function ConsoleView({ nodeId, ticketId, compact }: { nodeId: string; tic
   const [error, setError] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
 
+  const allowed = (node.data?.consoles ?? []).filter((p) => !protocols || protocols.includes(p));
   useEffect(() => {
-    if (node.data && !protocol) setProtocol(node.data.consoles?.includes('ssh') ? 'ssh' : node.data.consoles?.[0] ?? null);
-  }, [node.data, protocol]);
+    if (node.data && !protocol) {
+      const list = (node.data.consoles ?? []).filter((p) => !protocols || protocols.includes(p));
+      setProtocol(list.includes('ssh') ? 'ssh' : list[0] ?? null);
+    }
+  }, [node.data, protocol, protocols]);
 
   useEffect(() => {
     if (!protocol || node.data?.power === 'stopped') return;
@@ -59,6 +68,7 @@ export function ConsoleView({ nodeId, ticketId, compact }: { nodeId: string; tic
   if (node.error) return <ErrorState error={node.error} retry={() => node.refetch()} />;
   const n = node.data!;
   if (!n.consoles?.length) return <p className="p-4 text-[13px] text-muted">{n.name} is a managed service with no interactive console. Use its provider console.</p>;
+  if (!allowed.length) return <p className="p-4 text-[13px] text-muted" data-testid="console-unsupported">{n.name} offers no {protocols?.map((p) => p.toUpperCase()).join(' or ')} console. Available: {n.consoles.map((p) => p.toUpperCase()).join(', ')}.</p>;
   return (
     <div className="flex h-full min-h-0 flex-col">
       {!compact && (
@@ -66,7 +76,7 @@ export function ConsoleView({ nodeId, ticketId, compact }: { nodeId: string; tic
           <span className="font-medium text-text">{n.name}</span>
           <span>{n.mgmt_ip}</span>
           <div className="ml-2 flex gap-0.5" role="radiogroup" aria-label="Console protocol">
-            {n.consoles.map((p) => (
+            {allowed.map((p) => (
               <button key={p} role="radio" aria-checked={protocol === p} onClick={() => setProtocol(p)} className={cx('rounded px-1.5 py-0.5 uppercase', protocol === p ? 'bg-pane-2 text-text' : 'hover:text-text')}>
                 {p}
               </button>
@@ -86,6 +96,14 @@ export function ConsoleView({ nodeId, ticketId, compact }: { nodeId: string; tic
               <Power className="size-3.5" /> Start {n.name}
             </Button>
             {start.error && <p className="text-down">{errorText(start.error)}</p>}
+          </div>
+        ) : error && !rt.mock ? (
+          <div role="alert" className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-[13px]" data-testid="console-unavailable">
+            <p className="font-semibold">Live {protocol?.toUpperCase()} console unavailable</p>
+            <p className="max-w-md text-muted">The back end did not open a session for {n.name}: {errorText(error)}. Nothing is simulated in live mode; check the console broker (Guacamole) and this node&apos;s console configuration.</p>
+            <Button size="sm" onClick={() => setAttempt((a) => a + 1)}>
+              <RotateCw className="size-3.5" /> Try again
+            </Button>
           </div>
         ) : error ? (
           <ErrorState error={error} retry={() => setAttempt((a) => a + 1)} />

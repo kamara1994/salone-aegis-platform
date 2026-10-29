@@ -43,6 +43,7 @@ WebSocket as `?access_token=`. Consoles in live mode call `POST /nodes/{id}/cons
 | `/tickets` | All tickets with views (open, unclaimed, closed), priority and SLA filters |
 | `/tickets/[id]` | The workspace: client chat, ticket details, console tabs, affected map, checks, runbook and hint ladder, inspector, work notes, timeline, evidence chain |
 | `/topology` | Full map or list, node inspector (metrics, power, snapshots, console, tickets, alerts) and link inspector (flows, reconstructed packets) |
+| `/lab` | Lab designer: a Packet Tracer-style canvas over the same lab (see below) |
 | `/soc` | Alert queue, investigation, verdict with rationale, open an investigation ticket |
 | `/scenarios` | Scenario library; launch in practice or exam mode |
 | `/skills` | Skill tree earned only from closed tickets, checks and debrief scores, with links to the evidence |
@@ -60,6 +61,51 @@ itself when the server emits `debrief.started`.
 
 `Ctrl K` actions · `Enter` send chat, `Shift Enter` new line · `Ctrl Enter` submit a debrief answer ·
 `Up`/`Down` console history, `Ctrl L` clear, `Ctrl C` cancel line · `Esc` close drawers and dialogs.
+
+## Lab designer (`/lab`)
+
+An editable network canvas built on the live topology.
+
+- **Canvas**: pan, zoom, minimap, grid with snapping, box and Ctrl/Shift multi-select, groups, align and
+  distribute, duplicate, copy/paste, delete, undo/redo (100 steps), keyboard shortcuts (`?` lists them),
+  right-click menus for devices, cables and the canvas. Devices and cables move: drag a selected cable's round
+  handle to route it, or drag one of its square end handles onto another device to reconnect it.
+- **Devices** come from a catalog of real models (Cisco ISR 4331 and 1941, Catalyst 2960-X and 9300,
+  OPNsense DEC2750, Dell R650, Proxmox VM, OptiPlex, legacy 100 Mb PC, ThinkPad, Catalyst 9120 AP, AWS VPC,
+  ISP cloud, Axis camera, IoT sensor) with their actual port layouts. Each tile shows name, model, IP, VLAN,
+  MAC, port count, power, health and how many links are up. Illustrations live in `public/lab/devices/`.
+- **Cables**: straight-through, crossover, fibre, serial, console, trunk, access, WAN and virtual. Physical
+  mistakes are refused with the reason and the fix (wrong port family, occupied port, wrong cable without
+  auto-MDIX, console misuse, trunk to an end device). Configuration problems connect but keep the link down or
+  amber (speed mismatch, duplex mismatch with lab counters, VLAN and trunk mismatches, shutdown ports, power off).
+  Every cable has link lights at both ends, port labels, and a menu to inspect, replace, disable, test or remove.
+- **Inspector** tabs: overview, ports, interfaces (editable), configuration (generated IOS, pf or Windows/netplan),
+  terminal, logs, packets, routes, VLANs, firewall rules (ordered, editable) and actions (power, snapshot, VM
+  console, ping). Terminal and VM console always request a session from the back end
+  (`POST /nodes/{id}/console-sessions`); in live mode a failed request shows "Live console unavailable" with the
+  reason and nothing is simulated.
+- **Packet simulation**: send a ping (4 echoes) or a TCP/UDP packet between any two devices or to an IP. The
+  simulator applies source address choice, ARP and the default gateway, 802.1Q switching per VLAN, longest-prefix
+  routing, first-match firewall rules with implicit deny, TTL and the listening port. Results are delivered,
+  blocked, dropped, malformed (CRC on a duplex-mismatched link) or delayed, each with the exact reason, the hop,
+  and a fix. The packet animates across the canvas; the event list and per-hop PDU (MACs, VLAN tag, IPs, TTL,
+  ports, route, ACL decision, timestamp) are inspectable. Live traffic from `flow.batch` events animates on cables,
+  with blocked flows in red.
+- **Lab structure**: sites, racks (place devices by U), VLANs (pushed to switch VLAN databases), subnets (with
+  duplicate-address detection), WAN links (provider, bandwidth, latency used by the simulator) and cloud
+  connections. Add or remove devices and interfaces (sub-interfaces, SVIs, loopbacks, tunnels, extra ports).
+- **Layouts**: the draft autosaves; named layouts save and load; reset to baseline; compare with baseline
+  highlights added, changed and removed devices, interfaces, rules and cables. When the lab changes under a saved
+  design, a banner offers Refresh from lab (keeps positions and design-only devices).
+
+Data sources: in mock mode the designer reads ports, VLANs, leases, counters and firewall rules from the simulated
+lab, so a scenario's injected fault shows up on the canvas and in packet results. In live mode it uses only
+`GET /topology`: the contract has no ports, MACs or routes, so cable ports are inferred (marked as such), MACs show
+"not reported", and edits stay in the design. Layouts are stored in the browser until the API offers an endpoint.
+
+Code: `src/lab/` (model, catalog, validation, simulator, inventory, generated config, diff, store) and
+`src/components/lab/` (canvas, inspector, simulation panel, dialogs). Tests: `tests/unit/lab-*.test.ts` and
+`tests/e2e/lab-designer.spec.ts`.
 
 ## Code map
 

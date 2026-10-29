@@ -2,7 +2,7 @@
 
 import clsx from 'clsx';
 import { AlertTriangle, Loader2, X } from 'lucide-react';
-import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
+import { useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import type { Health, Priority, TicketStatus } from '@/api/types';
 import { errorText } from './providers';
 
@@ -161,6 +161,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 
 export function Dialog({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -168,11 +169,13 @@ export function Dialog({ open, onClose, title, children, wide }: { open: boolean
     if (!open && d.open) d.close();
   }, [open]);
   return (
-    <dialog ref={ref} onClose={onClose} onCancel={onClose} className={cx('m-auto w-[calc(100%-32px)] rounded-[8px] border border-line-strong bg-pane p-0 text-text backdrop:bg-black/55', wide ? 'max-w-3xl' : 'max-w-md')}>
+    <dialog ref={ref} onClose={onClose} onCancel={onClose} aria-labelledby={titleId} className={cx('m-auto w-[calc(100%-32px)] rounded-[8px] border border-line-strong bg-pane p-0 text-text backdrop:bg-black/55', wide ? 'max-w-3xl' : 'max-w-md')}>
       {open && (
         <div>
           <header className="flex items-center justify-between border-b border-line px-4 py-3">
-            <h2 className="text-[15px] font-semibold">{title}</h2>
+            <h2 id={titleId} className="text-[15px] font-semibold">
+              {title}
+            </h2>
             <IconButton label="Close" onClick={onClose}>
               <X className="size-4" />
             </IconButton>

@@ -84,7 +84,7 @@ test('launching a scenario injects a fault and opens its ticket', async ({ page 
 test('every screen renders without a page error', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  for (const path of ['/', '/tickets', '/topology', '/soc', '/scenarios', '/skills', '/evidence', '/replay', '/settings', '/recruiter']) {
+  for (const path of ['/', '/tickets', '/topology', '/soc', '/scenarios', '/skills', '/evidence', '/replay', '/settings', '/lab', '/recruiter']) {
     await page.goto(path);
     await page.waitForTimeout(800);
   }

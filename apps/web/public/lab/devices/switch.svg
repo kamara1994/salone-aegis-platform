@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" role="img" aria-label="Switch">
+  <defs>
+    <linearGradient id="sw-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d7dde4"/><stop offset="1" stop-color="#b9c2cc"/></linearGradient>
+    <linearGradient id="sw-front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa6b3"/><stop offset="1" stop-color="#7c8896"/></linearGradient>
+    <linearGradient id="sw-side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8691a0"/><stop offset="1" stop-color="#6b7684"/></linearGradient>
+  </defs>
+  <ellipse cx="48" cy="57" rx="42" ry="4" fill="#000" opacity=".22"/>
+  <path d="M3 31 L15 22 L93 22 L81 31 Z" fill="url(#sw-top)"/>
+  <path d="M81 31 L93 22 L93 38 L81 48 Z" fill="url(#sw-side)"/>
+  <rect x="3" y="31" width="78" height="17" rx="1.4" fill="url(#sw-front)"/>
+  <rect x="5" y="33" width="9" height="12" rx="1" fill="#2b5f93"/>
+  <circle cx="7.5" cy="36" r=".9" fill="#39d36f"/><circle cx="10.5" cy="36" r=".9" fill="#39d36f"/><circle cx="7.5" cy="39" r=".9" fill="#39d36f"/>
+  <g fill="#14191f">
+    <rect x="16" y="33.5" width="4" height="4" rx=".4"/><rect x="20.6" y="33.5" width="4" height="4" rx=".4"/><rect x="25.2" y="33.5" width="4" height="4" rx=".4"/><rect x="29.8" y="33.5" width="4" height="4" rx=".4"/>
+    <rect x="35" y="33.5" width="4" height="4" rx=".4"/><rect x="39.6" y="33.5" width="4" height="4" rx=".4"/><rect x="44.2" y="33.5" width="4" height="4" rx=".4"/><rect x="48.8" y="33.5" width="4" height="4" rx=".4"/>
+    <rect x="54" y="33.5" width="4" height="4" rx=".4"/><rect x="58.6" y="33.5" width="4" height="4" rx=".4"/><rect x="63.2" y="33.5" width="4" height="4" rx=".4"/><rect x="67.8" y="33.5" width="4" height="4" rx=".4"/>
+    <rect x="16" y="39.5" width="4" height="4" rx=".4"/><rect x="20.6" y="39.5" width="4" height="4" rx=".4"/><rect x="25.2" y="39.5" width="4" height="4" rx=".4"/><rect x="29.8" y="39.5" width="4" height="4" rx=".4"/>
+    <rect x="35" y="39.5" width="4" height="4" rx=".4"/><rect x="39.6" y="39.5" width="4" height="4" rx=".4"/><rect x="44.2" y="39.5" width="4" height="4" rx=".4"/><rect x="48.8" y="39.5" width="4" height="4" rx=".4"/>
+    <rect x="54" y="39.5" width="4" height="4" rx=".4"/><rect x="58.6" y="39.5" width="4" height="4" rx=".4"/><rect x="63.2" y="39.5" width="4" height="4" rx=".4"/><rect x="67.8" y="39.5" width="4" height="4" rx=".4"/>
+  </g>
+  <g fill="#39d36f"><circle cx="18" cy="33" r=".5"/><circle cx="22.6" cy="33" r=".5"/><circle cx="27.2" cy="33" r=".5"/><circle cx="37" cy="33" r=".5"/><circle cx="56" cy="33" r=".5"/></g>
+  <g fill="#0f1419" stroke="#d6dde5" stroke-width=".4"><rect x="73.5" y="33.5" width="5.5" height="3.6" rx=".3"/><rect x="73.5" y="39.5" width="5.5" height="3.6" rx=".3"/></g>
+</svg>

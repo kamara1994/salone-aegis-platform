@@ -1242,6 +1242,11 @@ export class MockEngine implements AegisApi, EventStream {
   listControlResults = () => this.net(() => this.controls());
 
   listFlows = (edgeId: string) => this.net(() => this.flowRecords.filter((f) => f.edge_id === edgeId).slice(0, 50));
+  /** Copy of the simulated lab's state, for the lab designer (mock only). */
+  labSnapshot(): LabState {
+    return structuredClone(this.s.lab);
+  }
+
   /** Live flow snapshot for the map (mock only; live mode uses flow.batch events). */
   flowSnapshot() {
     return this.flowState;

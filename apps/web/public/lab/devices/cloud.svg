@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" role="img" aria-label="Cloud">
+  <defs>
+    <linearGradient id="cl-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9f2fc"/><stop offset="1" stop-color="#b8cde4"/></linearGradient>
+  </defs>
+  <ellipse cx="48" cy="58" rx="36" ry="3.5" fill="#000" opacity=".18"/>
+  <path d="M26 50 a12 12 0 0 1 -1.5 -23.9 a16 16 0 0 1 30 -6.5 a12 12 0 0 1 18.6 9.4 a10.5 10.5 0 0 1 -1.6 21 z" fill="url(#cl-body)" stroke="#7fa6cf" stroke-width="1.2"/>
+  <g stroke="#3b8ee8" stroke-width="1.2" fill="none">
+    <path d="M38 40 h20 M48 30 v20"/>
+    <circle cx="48" cy="40" r="7"/>
+  </g>
+  <g fill="#3b8ee8"><circle cx="38" cy="40" r="1.6"/><circle cx="58" cy="40" r="1.6"/><circle cx="48" cy="30" r="1.6"/><circle cx="48" cy="50" r="1.6"/></g>
+</svg>

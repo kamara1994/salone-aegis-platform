@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" role="img" aria-label="Router">
+  <defs>
+    <linearGradient id="rt-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d7088"/><stop offset="1" stop-color="#46576b"/></linearGradient>
+    <linearGradient id="rt-front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f3b4a"/><stop offset="1" stop-color="#1f2833"/></linearGradient>
+    <linearGradient id="rt-side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#263241"/><stop offset="1" stop-color="#1a222c"/></linearGradient>
+  </defs>
+  <ellipse cx="48" cy="58" rx="40" ry="4" fill="#000" opacity=".22"/>
+  <path d="M6 30 L20 20 L90 20 L76 30 Z" fill="url(#rt-top)"/>
+  <path d="M76 30 L90 20 L90 38 L76 50 Z" fill="url(#rt-side)"/>
+  <rect x="6" y="30" width="70" height="20" rx="1.5" fill="url(#rt-front)"/>
+  <rect x="6" y="30" width="70" height="2.2" fill="#1d7bd8"/>
+  <!-- copper ports -->
+  <g fill="#0d1218" stroke="#5b6b7d" stroke-width=".5">
+    <rect x="10" y="36" width="7" height="6" rx=".6"/><rect x="19" y="36" width="7" height="6" rx=".6"/>
+  </g>
+  <g fill="#c9a24a"><rect x="11.2" y="37" width="4.6" height=".8"/><rect x="20.2" y="37" width="4.6" height=".8"/></g>
+  <!-- SFP -->
+  <rect x="29" y="36.5" width="8" height="5" rx=".6" fill="#0d1218" stroke="#8b99a8" stroke-width=".6"/>
+  <!-- NIM serial card -->
+  <rect x="41" y="34.5" width="20" height="10" rx="1" fill="#24527e" stroke="#4b7fb3" stroke-width=".5"/>
+  <g fill="#0d1218"><rect x="43.5" y="37" width="6.5" height="4.5" rx="1.6"/><rect x="52" y="37" width="6.5" height="4.5" rx="1.6"/></g>
+  <!-- console + LEDs -->
+  <rect x="64" y="36.5" width="5" height="4.5" rx=".5" fill="#4aa3df"/>
+  <circle cx="71.5" cy="45.5" r="1" fill="#39d36f"/><circle cx="68.5" cy="45.5" r="1" fill="#39d36f"/><circle cx="65.5" cy="45.5" r="1" fill="#e5a23a"/>
+  <path d="M10 46 h26" stroke="#3d4c5d" stroke-width=".8"/>
+</svg>

@@ -24,6 +24,7 @@
   --down: #e5484d;
   --p1: #ff5d63;
   --focus: #79b8ff;
+  --cable-copper: #c3cfdb;
   color-scheme: dark;
 }
 [data-theme='light'] {
@@ -42,6 +43,7 @@
   --down: #c9353a;
   --p1: #c9353a;
   --focus: #1f6fc9;
+  --cable-copper: #3b4b5c;
   color-scheme: light;
 }
 
