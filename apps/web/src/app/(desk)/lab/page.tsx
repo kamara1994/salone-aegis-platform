@@ -94,7 +94,20 @@ function Designer({ lab }: { lab: MockLab | null }) {
     setSimOpenRaw(v);
     if (v) setTools(null);
   };
-  const [hideSource, setHideSource] = useState(false);
+  const [hideSource, setHideSourceState] = useState(false);
+  const setHideSource = (v: boolean) => {
+    setHideSourceState(v);
+    try {
+      window.sessionStorage.setItem('aegis.lab.hideSourceBanner', v ? '1' : '0');
+    } catch {}
+  };
+  // Small screens: start with the library closed so the canvas has room; remember a dismissed banner for this session.
+  useEffect(() => {
+    if (window.innerWidth < 1024) setPalette(false);
+    try {
+      if (window.sessionStorage.getItem('aegis.lab.hideSourceBanner') === '1') setHideSourceState(true);
+    } catch {}
+  }, []);
   const stale = useMemo(() => s.staleCount(), [s, s.fresh, s.doc]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clicking a single device or cable opens its inspector.

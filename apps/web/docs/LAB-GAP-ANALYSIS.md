@@ -77,6 +77,14 @@ containerlab documentation, and day-to-day enterprise network engineering practi
 | Physical workspace: cities, buildings, wiring closets, rack elevation | PT physical view | Partial (sites, racks with U positions) |
 | Module slots and transceivers (swap a NIM, insert an SFP) | PT, CML node definitions | Roadmap |
 
+### Physical view additions
+
+| Capability | Where it comes from | Status |
+|---|---|---|
+| Rear panel: power supplies (pull/insert, redundancy), fans, module slots | PT Physical tab, real hardware | Built |
+| System LEDs (SYST/STAT/PoE…) and PoE budget meter with powered ports marked | Real switches, PT | Built |
+| Audit warning when a device runs on fewer power supplies than it has | Real-world monitoring | Built |
+
 ## 6. Wireless
 
 | Capability | Where it comes from | Status |
@@ -114,7 +122,7 @@ containerlab documentation, and day-to-day enterprise network engineering practi
 |---|---|---|
 | Annotations: notes, labels, arrows (rotatable), rectangles, ellipses | PT notes/shapes, EVE-NG, CML annotations | Built |
 | Search by name, IP, MAC, VLAN (`vlan 20`) or port (`SW1 Gi0/1`) | PT find, CML search | Built |
-| Diagram export as SVG (devices, cables coloured by state, port labels, notes) | CML/EVE-NG export, Visio-style docs | Built |
+| Diagram export as SVG and PNG (devices, cables coloured by state, port labels, notes) | CML/EVE-NG export, Visio-style docs | Built |
 | Custom canvas backgrounds (PNG/JPEG/WebP/GIF, 4 MB, resized to fit browser storage, overlay, remove) | EVE-NG/CML backgrounds | Built |
 | Export/import the lab as JSON; inventory CSV and bill of materials | CML YAML export, EVE-NG export | Built |
 | Goals ("A must reach B on 443", "users must not reach the DB") with Check results | PT Activity Wizard | Built |
@@ -137,3 +145,5 @@ containerlab documentation, and day-to-day enterprise network engineering practi
 | Content packs (lessons, games, labs as validated JSON) | PT activity files, CML lab sharing | Built |
 | Lesson/game authoring UI (forms instead of JSON) | PT Activity Wizard | Roadmap |
 | DNS, HTTP and traceroute steps in packet simulation; PCAP export | PT simulation mode, CML capture | Partial (traceroute and capture exist; DNS/HTTP steps on the roadmap) |
+| Device library search; smaller, toggleable mini map; library closed by default on small screens; staggered port labels on busy devices | Usability review | Built |
+| Long-press context menu on iPhone/iPad (Safari does not fire contextmenu) | Touch usability | Roadmap |

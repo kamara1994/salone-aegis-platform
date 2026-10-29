@@ -3,6 +3,7 @@
 // addressing mistakes, firewall rule hygiene and management-plane hardening. Every finding says
 // where it is and how to fix it.
 import { MODEL_BY_KEY, modelOf } from './catalog';
+import { hardwareOf, livePsus } from './hardware';
 import { inCidr, ipToInt, maskOf, parseCidr } from './net';
 import { controlPlane } from './protocols';
 import { l3Ifaces, ownerOfIp } from './simulate';
@@ -178,6 +179,15 @@ export function auditDoc(doc: LabDoc): Finding[] {
       return c && (c.a.device === d.id || c.b.device === d.id);
     })).reduce((s, x) => s + (MODEL_BY_KEY[x.model].poeDrawW ?? 0), 0);
     if (drawn > m.poeBudgetW * 0.8) add({ severity: 'warning', area: 'physical', title: `${d.name} PoE budget ${Math.round((drawn / m.poeBudgetW) * 100)}% used`, detail: `${drawn.toFixed(1)} W of ${m.poeBudgetW} W allocated.`, fix: 'Move powered devices to another PoE switch or add a power supply.', devices: [d.id] });
+  }
+
+  // ---- Power supplies pulled or failed ----
+  for (const d of doc.devices) {
+    if (!d.psuOff?.length) continue;
+    const hw = hardwareOf(MODEL_BY_KEY[d.model] ?? modelOf(d));
+    const live = livePsus(d, hw).length;
+    if (live > 0) add({ severity: 'warning', area: 'physical', title: `${d.name} is running on ${live} of ${hw.psus.length} power supplies`, detail: `${d.psuOff.join(', ')} pulled or failed; one more failure takes it down.`, fix: 'Reinsert or replace the power supply (Physical view, rear panel).', devices: [d.id] });
+    else add({ severity: 'critical', area: 'physical', title: `${d.name} has no working power supply`, detail: `${d.psuOff.join(', ')} pulled or failed.`, fix: 'Reinsert a power supply (Physical view, rear panel).', devices: [d.id] });
   }
 
   const rank = { critical: 0, warning: 1, info: 2 };

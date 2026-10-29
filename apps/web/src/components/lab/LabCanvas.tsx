@@ -1,6 +1,7 @@
 'use client';
 
-import { applyNodeChanges, Background, BackgroundVariant, ConnectionMode, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, ViewportPortal, type Edge, type EdgeChange, type Node, type NodeChange } from '@xyflow/react';
+import { applyNodeChanges, Background, BackgroundVariant, ConnectionMode, ControlButton, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, ViewportPortal, type Edge, type EdgeChange, type Node, type NodeChange } from '@xyflow/react';
+import { Map as MapIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_MODEL, KIND_LABEL } from '@/lab/catalog';
 import { diffDocs } from '@/lab/diff';
@@ -55,6 +56,22 @@ function Inner({ actions }: { actions: CanvasActions }) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [picker, setPicker] = useState<Picker | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
+  // Mini map: off on small screens by default, remembered per browser.
+  const [miniMap, setMiniMapState] = useState(true);
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem('aegis.lab.minimap');
+      setMiniMapState(v === null ? window.innerWidth >= 900 : v === '1');
+    } catch {
+      setMiniMapState(window.innerWidth >= 900);
+    }
+  }, []);
+  const setMiniMap = (v: boolean) => {
+    setMiniMapState(v);
+    try {
+      window.localStorage.setItem('aegis.lab.minimap', v ? '1' : '0');
+    } catch {}
+  };
   const [bendDraft, setBendDraft] = useState<{ id: string; x: number; y: number } | null>(null);
   const [ghost, setGhost] = useState<{ from: { x: number; y: number }; to: { x: number; y: number } } | null>(null);
   const dragStart = useRef<Record<string, { x: number; y: number }>>({});
@@ -187,6 +204,23 @@ function Inner({ actions }: { actions: CanvasActions }) {
   );
 
   const edges: Edge[] = useMemo(() => {
+    // Stagger port labels where many cables leave one device, so neighbouring labels don't overlap.
+    const pos = new Map(doc.devices.map((d) => [d.id, d]));
+    const stagger = new Map<string, number>();
+    const byDev = new Map<string, { key: string; angle: number }[]>();
+    for (const c of doc.cables)
+      for (const [me, other, end] of [[c.a.device, c.b.device, 'a'], [c.b.device, c.a.device, 'b']] as const) {
+        const p = pos.get(me);
+        const q = pos.get(other);
+        if (!p || !q) continue;
+        const list = byDev.get(me) ?? [];
+        list.push({ key: `${c.id}:${end}`, angle: Math.atan2(q.y - p.y, q.x - p.x) });
+        byDev.set(me, list);
+      }
+    for (const list of byDev.values()) {
+      if (list.length < 4) continue;
+      list.sort((x, y) => x.angle - y.angle).forEach((e, k) => stagger.set(e.key, (k % 3) * 18));
+    }
     const list: Edge[] = doc.cables.map((c) => ({
       id: c.id,
       source: c.a.device,
@@ -198,6 +232,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
         cable: bendDraft?.id === c.id ? { ...c, bend: { x: bendDraft.x, y: bendDraft.y } } : c,
         status: statuses[c.id],
         portLabels: s.portLabels,
+        labelOffset: { a: stagger.get(`${c.id}:a`) ?? 0, b: stagger.get(`${c.id}:b`) ?? 0 },
         flow: c.linkId ? flows[c.linkId] : undefined,
         compare: cableMark[c.id],
         onPath: onPathCable.has(c.id),
@@ -544,8 +579,12 @@ function Inner({ actions }: { actions: CanvasActions }) {
       >
         <Background id="minor" variant={BackgroundVariant.Dots} gap={GRID} size={1} color="var(--line)" />
         <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 8} lineWidth={0.5} color="var(--line)" />
-        <MiniMap pannable zoomable ariaLabel="Mini map" nodeStrokeWidth={2} nodeColor={(n) => (n.type !== 'device' ? 'transparent' : (n.data as DeviceNodeData).device.power === 'stopped' || (n.data as DeviceNodeData).device.health === 'down' ? '#e5484d' : (n.data as DeviceNodeData).device.health === 'degraded' ? '#e5a23a' : '#2fb36a')} maskColor="rgb(0 0 0 / 0.35)" className="!bg-pane" />
-        <Controls showInteractive={false} />
+        {miniMap && <MiniMap pannable zoomable ariaLabel="Mini map" style={{ width: 168, height: 112 }} nodeStrokeWidth={2} nodeColor={(n) => (n.type !== 'device' ? 'transparent' : (n.data as DeviceNodeData).device.power === 'stopped' || (n.data as DeviceNodeData).device.health === 'down' ? '#e5484d' : (n.data as DeviceNodeData).device.health === 'degraded' ? '#e5a23a' : '#2fb36a')} maskColor="color-mix(in srgb, var(--ink) 55%, transparent)" className="!bg-pane/90 rounded-[6px] border border-line" />}
+        <Controls showInteractive={false}>
+          <ControlButton onClick={() => setMiniMap(!miniMap)} title={miniMap ? 'Hide mini map' : 'Show mini map'} aria-label={miniMap ? 'Hide mini map' : 'Show mini map'} aria-pressed={miniMap} data-testid="toggle-minimap">
+            <MapIcon />
+          </ControlButton>
+        </Controls>
         <PacketLayer />
         {ghost && (
           <ViewportPortal>

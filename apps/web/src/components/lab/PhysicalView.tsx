@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Badge, Button, cx } from '@/components/ui';
 import { modelOf } from '@/lab/catalog';
-import { controlPlane } from '@/lab/protocols';
+import { hardwareOf, livePsus } from '@/lab/hardware';
+import { controlPlane, poeUsage } from '@/lab/protocols';
 import { useLab } from '@/lab/store';
 import type { Device, Iface, LabDoc } from '@/lab/types';
 import { cableOnPort, cablesOnPort, cableStatus, CABLE_LABEL, deviceById, otherEnd } from '@/lab/validate';
@@ -27,7 +28,7 @@ function ledOf(doc: LabDoc, d: Device, i: Iface, blocked: boolean): Led {
   return st.state === 'degraded' ? 'degraded' : 'up';
 }
 
-function PortShape({ i, x, y, led, selected, onClick }: { i: Iface; x: number; y: number; led: Led; selected: boolean; onClick: () => void }) {
+function PortShape({ i, x, y, led, selected, onClick, poe }: { i: Iface; x: number; y: number; led: Led; selected: boolean; onClick: () => void; poe?: number }) {
   const w = i.type === 'sfp' ? 30 : i.type === 'serial' ? 34 : 24;
   const h = i.type === 'sfp' ? 14 : 20;
   const fill = i.type === 'console' ? '#2f6fb0' : i.type === 'terminal' ? '#2f6fb0' : i.type === 'serial' ? '#3b3f46' : '#0d1117';
@@ -35,7 +36,7 @@ function PortShape({ i, x, y, led, selected, onClick }: { i: Iface; x: number; y
     <g
       role="button"
       tabIndex={0}
-      aria-label={`${i.name}, ${LED_TEXT[led]}`}
+      aria-label={`${i.name}, ${LED_TEXT[led]}${poe ? `, supplying ${poe} W PoE` : ''}`}
       aria-pressed={selected}
       onClick={onClick}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onClick())}
@@ -43,7 +44,7 @@ function PortShape({ i, x, y, led, selected, onClick }: { i: Iface; x: number; y
       data-testid={`phys-port-${i.name}`}
       data-led={led}
     >
-      <title>{`${i.name}: ${LED_TEXT[led]}`}</title>
+      <title>{`${i.name}: ${LED_TEXT[led]}${poe ? ` · PoE ${poe} W` : ''}`}</title>
       <rect x={x - 3} y={y - 9} width={w + 6} height={h + 13} rx={3} fill={selected ? 'rgba(59,142,232,0.35)' : 'transparent'} stroke={selected ? '#3b8ee8' : 'transparent'} />
       <circle cx={x + w / 2} cy={y - 4} r={2.6} fill={LED_COLOR[led]} />
       {i.type === 'serial' ? (
@@ -52,6 +53,7 @@ function PortShape({ i, x, y, led, selected, onClick }: { i: Iface; x: number; y
         <rect x={x} y={y} width={w} height={h} rx={i.type === 'sfp' ? 1 : 2} fill={fill} stroke="#9aa7b4" strokeWidth={0.8} />
       )}
       {(i.type === 'copper' || i.type === 'console' || i.type === 'terminal') && <rect x={x + w / 2 - 5} y={y + h - 6} width={10} height={4} fill="#9aa7b4" opacity={0.6} />}
+      {!!poe && <path d={`M${x + w - 5} ${y + 2} l-3 5 h3 l-2 5 l5 -6 h-3 l2 -4 z`} fill="#f5c542" data-poe="on" />}
       {i.type === 'wireless' && <path d={`M${x + 4} ${y + 12} q ${w / 2 - 4} -10 ${w - 8} 0`} fill="none" stroke="#9aa7b4" strokeWidth={1.4} />}
     </g>
   );
@@ -64,6 +66,10 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
   const cp = useMemo(() => controlPlane(doc), [doc]);
   const ports = d.interfaces.filter(PHYSICAL);
   const [sel, setSel] = useState<string | null>(null);
+  const [face, setFace] = useState<'front' | 'rear'>('front');
+  const hw = hardwareOf(m);
+  const poe = m.poeBudgetW ? poeUsage(doc, d.id) : null;
+  const poeOn = new Map((poe?.ports ?? []).map((p) => [p.port, p.watts]));
   const copper = ports.filter((p) => p.type === 'copper');
   const other = ports.filter((p) => p.type !== 'copper');
   // Switch-style panels put odd ports on top and even below; small devices use one row.
@@ -108,20 +114,64 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
           </p>
         </div>
       </div>
-      <div className="overflow-x-auto rounded border border-line bg-[#1b2129] p-1">
-        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="group" aria-label={`${d.name} front panel`}>
-          <rect x={1} y={1} width={width - 2} height={height - 2} rx={6} fill="#2a313b" stroke="#55606e" />
-          <text x={10} y={16} fill="#c9d3dd" fontSize={10} fontFamily="ui-sans-serif, system-ui">
-            {d.name} · {m.name}
-          </text>
-          <circle cx={width - 16} cy={12} r={3.2} fill={d.power === 'stopped' ? '#3a4a5c' : '#2fb36a'}>
-            <title>{`Power ${d.power}`}</title>
-          </circle>
-          {pos.map((p) => (
-            <PortShape key={p.i.name} i={p.i} x={p.x} y={p.y} led={ledOf(doc, d, p.i, blockedOf(p.i.name))} selected={sel === p.i.name} onClick={() => setSel(sel === p.i.name ? null : p.i.name)} />
+      {hw.psus.length > 0 && (
+        <div className="flex gap-1" role="radiogroup" aria-label="Panel side">
+          {(['front', 'rear'] as const).map((f) => (
+            <button key={f} role="radio" aria-checked={face === f} onClick={() => setFace(f)} className={cx('rounded border px-2 py-0.5 text-[11.5px] capitalize', face === f ? 'border-action bg-action/15' : 'border-line text-muted')} data-testid={`phys-face-${f}`}>
+              {f} panel
+            </button>
           ))}
-        </svg>
-      </div>
+        </div>
+      )}
+      {face === 'front' ? (
+        <div className="overflow-x-auto rounded border border-line bg-[#1b2129] p-1">
+          <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="group" aria-label={`${d.name} front panel`}>
+            <rect x={1} y={1} width={width - 2} height={height - 2} rx={6} fill="#2a313b" stroke="#55606e" />
+            <text x={10} y={16} fill="#c9d3dd" fontSize={10} fontFamily="ui-sans-serif, system-ui">
+              {d.name} · {m.name}
+            </text>
+            {hw.leds.map((l, k) => {
+              // System LEDs sit just after the title, so they stay visible when the panel is wider than the inspector.
+              const lx = 10 + `${d.name} · ${m.name}`.length * 5.6 + 18 + k * 40;
+              const on = d.power !== 'stopped';
+              const color = !on ? '#3a4a5c' : l === 'PoE' ? (poe && poe.used > 0 ? '#2fb36a' : '#3a4a5c') : (l === 'STAT' || l === 'HEALTH' || l === 'STATUS' || l === 'ALM') && d.health !== 'healthy' ? '#e5a23a' : '#2fb36a';
+              return (
+                <g key={l} data-testid={`phys-led-${l}`} data-on={color !== '#3a4a5c'}>
+                  <title>{`${l}: ${color === '#3a4a5c' ? 'off' : color === '#e5a23a' ? 'amber' : 'green'}`}</title>
+                  <circle cx={lx + 30} cy={12} r={3} fill={color} />
+                  <text x={lx + 25} y={12} textAnchor="end" dominantBaseline="middle" fill="#8a97a6" fontSize={7.5} fontFamily="ui-sans-serif, system-ui">
+                    {l}
+                  </text>
+                </g>
+              );
+            })}
+            {!hw.leds.length && (
+              <circle cx={width - 16} cy={12} r={3.2} fill={d.power === 'stopped' ? '#3a4a5c' : '#2fb36a'}>
+                <title>{`Power ${d.power}`}</title>
+              </circle>
+            )}
+            {pos.map((p) => (
+              <PortShape key={p.i.name} i={p.i} x={p.x} y={p.y} led={ledOf(doc, d, p.i, blockedOf(p.i.name))} selected={sel === p.i.name} onClick={() => setSel(sel === p.i.name ? null : p.i.name)} poe={poeOn.get(p.i.name)} />
+            ))}
+          </svg>
+        </div>
+      ) : (
+        <RearPanel d={d} />
+      )}
+      {poe && (
+        <div className="space-y-1" data-testid="phys-poe">
+          <div className="flex items-center gap-2 text-[11.5px]">
+            <span className="w-24 text-muted">PoE budget</span>
+            <span className="h-2 flex-1 overflow-hidden rounded bg-pane-2" role="meter" aria-valuenow={poe.used} aria-valuemin={0} aria-valuemax={poe.budget} aria-label="PoE power used">
+              <span className={cx('block h-full', poe.used > poe.budget * 0.8 ? 'bg-degraded' : 'bg-healthy')} style={{ width: `${Math.min(100, (poe.used / poe.budget) * 100)}%` }} />
+            </span>
+            <span className="tabular-nums">
+              {poe.used.toFixed(1)} / {poe.budget} W
+            </span>
+          </div>
+          {poe.ports.length > 0 && <p className="text-[11px] text-muted">Powering: {poe.ports.map((p) => `${p.device} on ${p.port} (${p.watts} W)`).join(', ')}</p>}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2 text-[11px] text-muted">
         {(['up', 'degraded', 'blocking', 'err', 'down', 'off', 'admin'] as Led[]).map((l) => (
           <span key={l} className="flex items-center gap-1">
@@ -201,6 +251,95 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
         <p className="text-muted">Click a port to see what is plugged in, plug a cable in, or shut it down.</p>
       )}
       <p className={cx('text-[11px] text-muted', m.autoMdix ? '' : 'text-degraded')}>{m.autoMdix ? 'Copper ports have auto-MDIX: straight or crossover both work.' : 'No auto-MDIX: use the correct straight or crossover cable.'}</p>
+    </div>
+  );
+}
+
+/** Rear panel: power supplies (click to pull or insert), fans, module slots. */
+function RearPanel({ d }: { d: Device }) {
+  const st = useLab();
+  const m = modelOf(d);
+  const hw = hardwareOf(m);
+  const on = d.power !== 'stopped';
+  const live = livePsus(d, hw);
+  const W = Math.max(300, 40 + hw.psus.length * 96 + hw.fans * 34 + hw.slots.length * 92);
+  const toggle = (slot: string) => {
+    const off = d.psuOff ?? [];
+    const next = off.includes(slot) ? off.filter((x) => x !== slot) : [...off, slot];
+    const liveAfter = hw.psus.filter((p) => p.kind !== 'poe' && !next.includes(p.slot)).length;
+    st.updateDevice(d.id, { psuOff: next.length ? next : undefined });
+    if (liveAfter === 0 && on) st.setPower(d.id, 'stopped');
+    else if (liveAfter > 0 && live.length === 0 && !on) st.setPower(d.id, 'running');
+  };
+  let x = 14;
+  return (
+    <div className="space-y-1.5">
+      <div className="overflow-x-auto rounded border border-line bg-[#1b2129] p-1">
+        <svg width={W} height={96} viewBox={`0 0 ${W} 96`} role="group" aria-label={`${d.name} rear panel`} data-testid="phys-rear">
+          <rect x={1} y={1} width={W - 2} height={94} rx={6} fill="#262c35" stroke="#55606e" />
+          {hw.psus.map((p) => {
+            const px = x;
+            x += 96;
+            const isOn = p.kind === 'poe' ? on : !(d.psuOff ?? []).includes(p.slot);
+            return (
+              <g key={p.slot} role="button" tabIndex={p.kind === 'poe' ? -1 : 0} aria-label={`${p.slot} ${p.watts} W, ${isOn ? 'installed and on' : 'pulled'}${p.kind === 'poe' ? '' : '. Press to ' + (isOn ? 'pull' : 'insert')}`} className={p.kind === 'poe' ? '' : 'cursor-pointer outline-none'} onClick={() => p.kind !== 'poe' && toggle(p.slot)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && p.kind !== 'poe' && (e.preventDefault(), toggle(p.slot))} data-testid={`phys-psu-${p.slot}`} data-on={isOn}>
+                <title>{`${p.slot}: ${p.watts} W ${p.kind.toUpperCase()}, ${isOn ? 'on' : 'pulled'}`}</title>
+                <rect x={px} y={14} width={84} height={66} rx={4} fill={isOn ? '#323a45' : '#1a1f26'} stroke={isOn ? '#7d8a99' : '#4a5562'} strokeDasharray={isOn ? undefined : '4 3'} />
+                {isOn && (
+                  <>
+                    {Array.from({ length: 5 }, (_, k) => (
+                      <line key={k} x1={px + 10} x2={px + 58} y1={26 + k * 8} y2={26 + k * 8} stroke="#4b5563" strokeWidth={2} />
+                    ))}
+                    <circle cx={px + 72} cy={26} r={3.2} fill={on ? '#2fb36a' : '#e5a23a'} />
+                    <rect x={px + 64} y={50} width={14} height={18} rx={2} fill="#14181d" stroke="#7d8a99" />
+                  </>
+                )}
+                <text x={px + 42} y={92} textAnchor="middle" fill="#a9b5c2" fontSize={9} fontFamily="ui-sans-serif, system-ui">
+                  {isOn ? `${p.slot} ${p.watts} W` : `${p.slot} empty`}
+                </text>
+              </g>
+            );
+          })}
+          {Array.from({ length: hw.fans }, (_, k) => {
+            const fx = x + 16;
+            x += 34;
+            return (
+              <g key={`fan${k}`} data-testid="phys-fan" data-spin={on}>
+                <title>{`Fan ${k + 1}: ${on ? 'spinning' : 'stopped'}`}</title>
+                <circle cx={fx} cy={46} r={14} fill="#14181d" stroke="#6b7684" />
+                <g className={on ? 'motion-safe:animate-spin' : ''} style={{ transformOrigin: `${fx}px 46px`, animationDuration: '0.8s' }}>
+                  {[0, 120, 240].map((a) => (
+                    <path key={a} d={`M${fx} 46 q 6 -9 0 -12 q -4 5 0 12`} fill="#8a97a6" transform={`rotate(${a} ${fx} 46)`} />
+                  ))}
+                </g>
+              </g>
+            );
+          })}
+          {hw.slots.map((sl) => {
+            const sx = x + 6;
+            x += 92;
+            return (
+              <g key={sl.name} data-testid="phys-slot">
+                <title>{`${sl.name}: ${sl.module ?? 'empty (blank cover)'}`}</title>
+                <rect x={sx} y={24} width={82} height={42} rx={3} fill={sl.module ? '#2f3946' : '#1f252d'} stroke="#6b7684" strokeDasharray={sl.module ? undefined : '3 3'} />
+                <text x={sx + 41} y={42} textAnchor="middle" fill="#c9d3dd" fontSize={8.5} fontFamily="ui-sans-serif, system-ui">
+                  {sl.name}
+                </text>
+                <text x={sx + 41} y={56} textAnchor="middle" fill={sl.module ? '#8fb3d9' : '#6b7684'} fontSize={7.5} fontFamily="ui-sans-serif, system-ui">
+                  {(sl.module ?? 'blank').slice(0, 20)}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <p className="text-[11px] text-muted">
+        {hw.psus.some((p) => p.kind === 'poe')
+          ? 'Powered over Ethernet from the switch port it is plugged into.'
+          : hw.redundant
+            ? `Redundant power: ${live.length} of ${hw.psus.length} supplies on. Pull one to see the device stay up; pull both and it powers off.`
+            : 'Single power supply: pulling it powers the device off.'}
+      </p>
     </div>
   );
 }

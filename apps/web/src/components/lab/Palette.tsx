@@ -129,6 +129,9 @@ function DeviceLibrary() {
   const add = useLab((s) => s.addDevice);
   const rf = useReactFlow();
   const [hover, setHover] = useState<{ model: DeviceModel; rect: DOMRect } | null>(null);
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const shown = CATALOG.filter((m) => !needle || `${m.vendor} ${m.name} ${m.description} ${KIND_LABEL[m.kind]}`.toLowerCase().includes(needle));
   const center = () => {
     const r = document.querySelector('[data-testid="lab-canvas"]')?.getBoundingClientRect();
     const k = (useLab.getState().doc?.devices.filter((d) => d.origin === 'design').length ?? 0) % 6;
@@ -136,12 +139,14 @@ function DeviceLibrary() {
   };
   return (
     <nav aria-label="Device library" className="h-full overflow-auto p-2" data-testid="palette">
-      <p className="mb-2 px-1 text-[11.5px] text-muted">Drag onto the canvas, or press Enter to add.</p>
-      {ORDER.map((kind) => (
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search devices: PoE, 10G, Cisco…" aria-label="Search the device library" data-testid="palette-search" className="mb-2 h-8 w-full rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px] focus:border-action" />
+      <p className="mb-2 px-1 text-[11.5px] text-muted">Drag onto the canvas, or tap / press Enter to add.</p>
+      {needle && !shown.length && <p className="px-1 text-[12px] text-muted">No device matches “{q}”.</p>}
+      {ORDER.filter((kind) => shown.some((m) => m.kind === kind)).map((kind) => (
         <section key={kind} className="mb-2">
           <h3 className="px-1 pb-1 text-[11.5px] font-semibold text-muted">{KIND_LABEL[kind]}</h3>
           <ul className="grid grid-cols-2 gap-1.5">
-            {CATALOG.filter((m) => m.kind === kind).map((m) => (
+            {shown.filter((m) => m.kind === kind).map((m) => (
               <li key={m.key}>
                 <button
                   type="button"

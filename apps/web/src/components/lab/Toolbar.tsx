@@ -9,7 +9,7 @@ import { prepareBackground } from '@/lab/bgimage';
 import { cx, ConfirmDialog } from '@/components/ui';
 import { CableTypeSelect, ContextMenu, type MenuItem } from './Pickers';
 
-function TB({ label, onClick, active, disabled, children, testid, kbd }: { label: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; active?: boolean; disabled?: boolean; children: ReactNode; testid?: string; kbd?: string }) {
+function TB({ label, onClick, active, disabled, children, testid, kbd, className }: { label: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; active?: boolean; disabled?: boolean; children: ReactNode; testid?: string; kbd?: string; className?: string }) {
   return (
     <button
       type="button"
@@ -19,7 +19,7 @@ function TB({ label, onClick, active, disabled, children, testid, kbd }: { label
       aria-label={label}
       title={kbd ? `${label} (${kbd})` : label}
       data-testid={testid}
-      className={cx('inline-flex h-8 items-center gap-1 rounded-[5px] px-2 text-[12.5px] disabled:opacity-40', active ? 'bg-action/15 text-action ring-1 ring-action/50' : 'text-muted hover:bg-pane-2 hover:text-text')}
+      className={cx('inline-flex h-8 items-center gap-1 rounded-[5px] px-2 text-[12.5px] disabled:opacity-40', active ? 'bg-action/15 text-action ring-1 ring-action/50' : 'text-muted hover:bg-pane-2 hover:text-text', className)}
     >
       {children}
     </button>
@@ -69,7 +69,7 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
         <Cable className="size-4" /> <span className="hidden lg:inline">Cable</span>
       </TB>
       {s.tool === 'cable' && <CableTypeSelect value={s.cableType} onChange={s.setCableType} id="toolbar-cable-type" />}
-      <TB label="New cable form" onClick={onNewCable} testid="tool-new-cable">
+      <TB label="New cable form" className="max-sm:hidden" onClick={onNewCable} testid="tool-new-cable">
         <Plug className="size-4" />
       </TB>
       <TB label="Simulation" kbd="S" active={s.tool === 'simulate'} onClick={() => s.setTool(s.tool === 'simulate' ? 'select' : 'simulate')} testid="tool-simulate">
@@ -163,14 +163,14 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
       <TB label="Redo" kbd="Ctrl+Shift+Z" disabled={!s.future.length} onClick={() => s.redo()} testid="redo">
         <Redo2 className="size-4" />
       </TB>
-      <TB label="Duplicate" kbd="Ctrl+D" disabled={!n} onClick={() => s.duplicate()}>
+      <TB label="Duplicate" className="max-sm:hidden" kbd="Ctrl+D" disabled={!n} onClick={() => s.duplicate()}>
         <Copy className="size-4" />
       </TB>
       <TB label="Delete" kbd="Del" disabled={!n && !s.selection.cables.length} onClick={() => s.deleteSelection()}>
         <Trash className="size-4" />
       </TB>
       <TB
-        label="Align and distribute"
+        label="Align and distribute" className="max-sm:hidden"
         disabled={n < 2}
         testid="tool-align"
         onClick={(e) => {
@@ -180,14 +180,14 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
       >
         <AlignCenterVertical className="size-4" />
       </TB>
-      <TB label="Group" kbd="Ctrl+G" disabled={n < 2} onClick={() => s.group()}>
+      <TB label="Group" className="max-sm:hidden" kbd="Ctrl+G" disabled={n < 2} onClick={() => s.group()}>
         <Group className="size-4" />
       </TB>
-      <TB label="Ungroup" kbd="Ctrl+Shift+G" disabled={!n} onClick={() => s.ungroup()}>
+      <TB label="Ungroup" className="max-sm:hidden" kbd="Ctrl+Shift+G" disabled={!n} onClick={() => s.ungroup()}>
         <Ungroup className="size-4" />
       </TB>
       <Sep />
-      <TB label="Snap to grid" active={s.snap} onClick={() => s.setSnap(!s.snap)}>
+      <TB label="Snap to grid" className="max-sm:hidden" active={s.snap} onClick={() => s.setSnap(!s.snap)}>
         <Grid3x3 className="size-4" />
       </TB>
       <TB label="Port labels" kbd="L" active={s.portLabels} onClick={() => s.setView({ portLabels: !s.portLabels })}>
@@ -196,7 +196,7 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
       <TB label={s.labelMode === 'full' ? 'Compact device labels' : 'Full device labels'} active={s.labelMode === 'full'} onClick={() => s.setView({ labelMode: s.labelMode === 'full' ? 'compact' : 'full' })}>
         <Layers className="size-4" />
       </TB>
-      <TB label="Fit to screen" kbd="F" onClick={() => rf.fitView({ padding: 0.1 })}>
+      <TB label="Fit to screen" className="max-sm:hidden" kbd="F" onClick={() => rf.fitView({ padding: 0.1 })}>
         <Maximize2 className="size-4" />
       </TB>
       <Sep />
@@ -217,7 +217,7 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
       </TB>
       <span className="flex-1" />
       <DeviceFinder />
-      <TB label="Keyboard shortcuts" kbd="?" onClick={onShortcuts}>
+      <TB label="Keyboard shortcuts" className="max-sm:hidden" kbd="?" onClick={onShortcuts}>
         <Keyboard className="size-4" />
       </TB>
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
@@ -268,10 +268,10 @@ function DeviceFinder() {
         list="lab-device-names"
         value={q}
         onChange={(e) => (setQ(e.target.value), setMsg(''))}
-        placeholder="Find name, IP, MAC, VLAN, port"
+        placeholder="Find: name, IP, MAC, vlan 20, Gi0/1"
         aria-label="Find devices by name, IP, MAC, VLAN or port"
         data-testid="device-finder"
-        className="h-8 w-40 rounded-[5px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px] focus:border-action max-2xl:w-32"
+        className="h-8 w-56 rounded-[5px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px] focus:border-action max-sm:w-40"
       />
       <datalist id="lab-device-names">
         {doc?.devices.map((d) => (

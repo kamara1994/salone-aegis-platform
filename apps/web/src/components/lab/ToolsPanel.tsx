@@ -379,6 +379,38 @@ function ExportTab({ doc }: { doc: LabDoc }) {
         <Button size="sm" className="w-full" onClick={() => download(`aegis-diagram-${stamp}.svg`, labToSvg(doc, st.layoutName ?? 'Lab diagram'), 'image/svg+xml')} data-testid="export-svg">
           <Download className="size-3.5" /> Diagram (.svg)
         </Button>
+        <Button
+          size="sm"
+          className="w-full"
+          data-testid="export-png"
+          onClick={() => {
+            const svg = labToSvg(doc, st.layoutName ?? 'Lab diagram');
+            const img = new Image();
+            img.onload = () => {
+              const scale = 2;
+              const c = document.createElement('canvas');
+              c.width = img.naturalWidth * scale;
+              c.height = img.naturalHeight * scale;
+              const ctx = c.getContext('2d');
+              if (!ctx) return setMsg('Could not create the image in this browser.');
+              ctx.scale(scale, scale);
+              ctx.drawImage(img, 0, 0);
+              c.toBlob((b) => {
+                if (!b) return setMsg('Could not create the image in this browser.');
+                const url = URL.createObjectURL(b);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `aegis-diagram-${stamp}.png`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+              }, 'image/png');
+            };
+            img.onerror = () => setMsg('Could not create the image in this browser.');
+            img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+          }}
+        >
+          <Download className="size-3.5" /> Diagram (.png)
+        </Button>
         <Button size="sm" className="w-full" onClick={() => file.current?.click()} data-testid="import-json">
           <Upload className="size-3.5" /> Import lab file
         </Button>

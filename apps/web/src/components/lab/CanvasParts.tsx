@@ -30,6 +30,8 @@ export type CableEdgeData = {
   cable: Cable;
   status: CableStatus;
   portLabels: boolean;
+  /** extra distance along the cable for each end's port label (crowded devices) */
+  labelOffset?: { a: number; b: number };
   flow?: { bytes_per_s: number; allowed: number; denied: number; top_app?: string };
   compare?: CompareMark;
   ghost?: boolean;
@@ -172,7 +174,7 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
         <>
           <div className="w-full truncate font-mono text-[9.5px] leading-tight text-faint">{mac ?? 'MAC not reported'}</div>
           <div className="mt-0.5 flex w-full items-center justify-between text-[9.5px] text-muted">
-            <span>{d.interfaces.filter((i) => i.type !== 'console' && i.type !== 'terminal' && !i.parent).length} ports</span>
+            <span>{(() => { const n = d.interfaces.filter((i) => i.type !== 'console' && i.type !== 'terminal' && !i.parent).length; return `${n} ${n === 1 ? 'port' : 'ports'}`; })()}</span>
             <span className={cx(linksTotal && linksUp < linksTotal ? 'text-degraded' : linksTotal ? 'text-healthy' : 'text-faint')}>{conn}</span>
           </div>
         </>
@@ -281,8 +283,8 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
   const color = ghost ? 'var(--down)' : err ? 'var(--down)' : st.color;
   const la = along(a, bend ?? b, 9);
   const lb = along(b, bend ?? a, 9);
-  const ta = along(a, bend ?? b, 30);
-  const tb = along(b, bend ?? a, 30);
+  const ta = along(a, bend ?? b, 30 + (data.labelOffset?.a ?? 0));
+  const tb = along(b, bend ?? a, 30 + (data.labelOffset?.b ?? 0));
   const light = LIGHT[status.state];
   const blk = data.blocked ?? [];
   const lightA = blk.includes('a') ? LIGHT.degraded : light;

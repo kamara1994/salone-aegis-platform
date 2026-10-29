@@ -194,6 +194,8 @@ export interface Device {
   startupSaved?: string;
   /** Why a device is off when power comes from elsewhere (PoE) */
   powerReason?: string;
+  /** Power supplies the operator pulled or failed in the Physical view (by slot name) */
+  psuOff?: string[];
 }
 
 export type CableType = 'straight' | 'crossover' | 'fiber' | 'serial' | 'console' | 'trunk' | 'access' | 'wan' | 'virtual';

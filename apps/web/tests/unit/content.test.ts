@@ -141,3 +141,15 @@ describe('lab helpers', () => {
     expect(checkBackgroundFile({ type: 'image/gif', size: 1000 })).toBeNull();
   });
 });
+
+describe('device hardware', () => {
+  it('describes power supplies, fans and slots for physical models only', async () => {
+    const { CATALOG } = await import('@/lab/catalog');
+    const { hardwareOf, livePsus } = await import('@/lab/hardware');
+    const r650 = hardwareOf(CATALOG.find((m) => m.key === 'r650')!);
+    expect(r650.redundant).toBe(true);
+    expect(livePsus({ psuOff: ['PSU1'] } as never, r650).map((p) => p.slot)).toEqual(['PSU2']);
+    expect(hardwareOf(CATALOG.find((m) => m.key === 'axis-cam')!).psus[0].kind).toBe('poe');
+    expect(hardwareOf(CATALOG.find((m) => m.key === 'aws-vpc')!).psus).toHaveLength(0);
+  });
+});
