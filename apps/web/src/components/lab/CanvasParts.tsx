@@ -95,13 +95,25 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
   const conn = linksTotal === 0 ? 'not connected' : `${linksUp}/${linksTotal} up`;
   const [hover, setHover] = useState<DOMRect | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keep = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = null;
+  };
   const cancel = () => {
     if (timer.current) clearTimeout(timer.current);
+    if (hideTimer.current) clearTimeout(hideTimer.current);
     timer.current = null;
+    hideTimer.current = null;
     setHover(null);
+  };
+  const scheduleCancel = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setHover(null), 180);
   };
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
+    if (hideTimer.current) clearTimeout(hideTimer.current);
   }, []);
   return (
     <div
@@ -110,7 +122,7 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
         const el = e.currentTarget;
         timer.current = setTimeout(() => setHover(el.getBoundingClientRect()), 450);
       }}
-      onMouseLeave={cancel}
+      onMouseLeave={scheduleCancel}
       onPointerDown={cancel}
       onWheel={cancel}
       aria-description={deviceSummary(d, linksUp, linksTotal)}
@@ -126,7 +138,7 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
       )}
       style={{ width: DEVICE_W, minHeight: labels === 'full' ? DEVICE_H : 78 }}
     >
-      {hover && <DeviceHoverCard device={d} anchor={hover} />}
+      {hover && <DeviceHoverCard device={d} anchor={hover} onEnter={keep} onLeave={scheduleCancel} />}
       <Handle type="source" position={Position.Top} id="c" isConnectable={connectable} className={cx('!absolute !inset-0 !h-full !w-full !translate-0 !rounded-[8px] !border-0 !bg-transparent', connectable ? '!cursor-crosshair' : '!pointer-events-none')} />
       {compare && <span className={cx('absolute -top-2 left-1 rounded px-1 text-[9.5px] font-semibold text-white', compare === 'added' ? 'bg-healthy' : compare === 'changed' ? 'bg-degraded' : 'bg-down')}>{compare === 'added' ? 'New' : compare === 'changed' ? 'Changed' : 'Removed'}</span>}
       {d.origin === 'design' && !compare && <span className="absolute -top-2 left-1 rounded border border-line-strong bg-pane px-1 text-[9.5px] text-muted">Design</span>}
@@ -313,11 +325,11 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
       {data.channel && <ellipse cx={mid.x} cy={mid.y} rx={9} ry={14} fill="none" stroke={data.channel.ok ? 'var(--action)' : 'var(--down)'} strokeWidth={1.6} transform={`rotate(${(Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI} ${mid.x} ${mid.y})`} />}
       <EdgeLabelRenderer>
         {hover && !ghost && (
-          <div className="nodrag nopan pointer-events-none absolute z-50 w-[260px] -translate-x-1/2 -translate-y-full rounded-lg border border-line-strong bg-pane p-2 text-left text-[11px] shadow-xl" style={{ transform: `translate(-50%, -100%) translate(${mid.x}px, ${mid.y - 12}px)` }} data-testid="cable-hover-card">
+          <div className="nodrag nopan pointer-events-none absolute z-50 w-[320px] -translate-x-1/2 -translate-y-full rounded-lg border border-line-strong bg-pane p-2 text-left text-[11px] shadow-xl" style={{ transform: `translate(-50%, -100%) translate(${mid.x}px, ${mid.y - 12}px)` }} data-testid="cable-hover-card">
             <div className="mb-1 flex items-center gap-2">
               {CABLE_ASSET[cable.type] ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={CABLE_ASSET[cable.type]} alt="" className="h-10 w-14 rounded bg-white/95 object-contain" />
+                <img src={CABLE_ASSET[cable.type]} alt="" className="h-16 w-28 rounded bg-white/95 object-contain" />
               ) : <span className="h-10 w-14 rounded bg-pane-2" />}
               <div><b className="block">{CABLE_LABEL[cable.type]}</b><span className="text-muted">{status.state}{status.negotiated ? ` · ${status.negotiated}` : ''}</span></div>
             </div>
