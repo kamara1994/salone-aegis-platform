@@ -323,7 +323,7 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
             <div className="mb-1 flex items-center gap-2">
               {CABLE_ASSET[cable.type] ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <span className="flex h-16 w-28 items-center justify-center overflow-hidden rounded bg-white/95"><img src={CABLE_ASSET[cable.type]} alt="" className="h-full w-full object-contain" /></span>
+                <span className="flex h-16 w-28 items-center justify-center overflow-hidden rounded bg-pane-2"><img src={CABLE_ASSET[cable.type]} alt="" className="h-full w-full object-contain" /></span>
               ) : <span className="h-10 w-14 rounded bg-pane-2" />}
               <div><b className="block">{CABLE_LABEL[cable.type]}</b><span className="text-muted">{status.state}{status.negotiated ? ` · ${status.negotiated}` : ''}</span></div>
             </div>

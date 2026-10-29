@@ -92,7 +92,7 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
   return (
     <div className="space-y-3 text-[12.5px]" data-testid="physical-view">
       <div className="flex gap-3">
-        <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded bg-white/95">
+        <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded bg-pane-2">
           {/* Keep the physical inspector compact; annotated real-world assets are hover-only. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={m.image} alt="" className="max-h-[72px] max-w-[104px] object-contain" />
