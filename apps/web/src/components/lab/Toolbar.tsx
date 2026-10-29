@@ -1,7 +1,7 @@
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
-import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote } from 'lucide-react';
+import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote, Search } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useLab } from '@/lab/store';
 import { cx, ConfirmDialog } from '@/components/ui';
@@ -138,6 +138,7 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
         <RotateCcw className="size-4" />
       </TB>
       <span className="flex-1" />
+      <DeviceFinder />
       <TB label="Keyboard shortcuts" kbd="?" onClick={onShortcuts}>
         <Keyboard className="size-4" />
       </TB>
@@ -155,5 +156,52 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
         }}
       />
     </div>
+  );
+}
+
+/** Find a device by name, IP or MAC and jump to it. */
+function DeviceFinder() {
+  const rf = useReactFlow();
+  const doc = useLab((s) => s.doc);
+  const [q, setQ] = useState('');
+  const [msg, setMsg] = useState('');
+  const go = () => {
+    const needle = q.trim().toLowerCase();
+    if (!needle || !doc) return;
+    const d =
+      doc.devices.find((x) => x.name.toLowerCase() === needle) ??
+      doc.devices.find((x) => x.interfaces.some((i) => i.ip === needle || i.mac.toLowerCase() === needle)) ??
+      doc.devices.find((x) => x.name.toLowerCase().includes(needle));
+    if (!d) return setMsg('Not found');
+    setMsg('');
+    useLab.getState().select({ devices: [d.id], cables: [] });
+    rf.setCenter(d.x + 64, d.y + 52, { zoom: Math.max(rf.getZoom(), 1.1), duration: 400 });
+  };
+  return (
+    <form
+      className="relative mr-1 flex items-center"
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        go();
+      }}
+    >
+      <Search className="pointer-events-none absolute left-2 size-3.5 text-faint" aria-hidden />
+      <input
+        list="lab-device-names"
+        value={q}
+        onChange={(e) => (setQ(e.target.value), setMsg(''))}
+        placeholder="Find device, IP, MAC"
+        aria-label="Find a device by name, IP or MAC"
+        data-testid="device-finder"
+        className="h-8 w-40 rounded-[5px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px] focus:border-action max-2xl:w-32"
+      />
+      <datalist id="lab-device-names">
+        {doc?.devices.map((d) => (
+          <option key={d.id} value={d.name} />
+        ))}
+      </datalist>
+      {msg && <span className="absolute top-full right-0 mt-0.5 rounded bg-down px-1 text-[10.5px] text-white">{msg}</span>}
+    </form>
   );
 }

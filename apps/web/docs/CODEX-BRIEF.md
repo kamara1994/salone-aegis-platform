@@ -87,9 +87,12 @@ nothing is hard-coded. The key never reaches the browser.
 
 - `POST /learn/questions` body `{ track: 'ccna'|'ccnp'|'security-plus'|'aws-security'|'interview-network'|
   'interview-soc'|'interview-helpdesk'|'interview-cloud', topic?, difficulty: 1-5, count: 1-20, mode: 'quiz'|
-  'exam'|'flashcard', use_lab?: { design_id } }` → `{ questions: [{ id, type: 'single'|'multi'|'order'|'free',
+  'exam'|'flashcard', lab_summary?: string (max 2000 chars, a description of the user's own lab design) }` → `{ questions: [{ id, type: 'single'|'multi'|'order'|'free',
   prompt, options?, answer_key (kept server side, not returned until answered), topic, objective }] }`.
-- `POST /learn/answers` `{ question_id, answer }` → `{ correct, score, explanation, references_to_objectives }`.
+- `POST /learn/answers` `{ question_id, answer: string | string[] | null }` → `{ correct, score (0..1),
+  explanation, correct_answer, references_to_objectives }`. `answer: null` means "show me the answer"
+  (flashcards): return the answer and explanation with `correct: false, score: 0` and do not count it.
+  Free-text answers are graded by the model against the stored answer key.
 - Interview mode: `POST /learn/interviews` `{ role, level }` → session; `POST /learn/interviews/{id}/turns`
   `{ answer }` → `{ feedback: { strengths[], missing[], score }, next_question }`; `GET` returns the transcript.
 - `GET /learn/progress` → per track/objective accuracy and weak areas, built from stored answers.
@@ -98,8 +101,12 @@ nothing is hard-coded. The key never reaches the browser.
   exam objectives; **never reproduce real exam questions or brain-dump content**; JSON output only.
 - Validate model output against a JSON schema; retry once; otherwise 502 with a clear error. Rate limit per user.
   When `LLM_MODE` is not `openai-compatible`, return `503 provider_unavailable` (the UI shows "AI not connected").
-- `use_lab`: include a compact summary of the user's design (VLANs, subnets, devices) in the context so
-  questions can be about their own network.
+- `lab_summary`: when present, include it in the model context so questions can be about the user's own
+  network. Treat it as untrusted data, not instructions.
+- Front-end client already built: `apps/web/src/learn/api.ts` (exact request/response shapes) and the page
+  `apps/web/src/app/(desk)/learn/page.tsx`. It expects `404` when endpoints are missing and
+  `503 provider_unavailable` when no model is configured. `GET /learn/progress` returns
+  `{ tracks: [{ track, answered, accuracy (0..1), weak_objectives: string[] }] }`.
 
 ## Task 5 (assets, the only `apps/web` change): real device photos for the hover card
 

@@ -56,6 +56,8 @@ function Inner({ actions }: { actions: CanvasActions }) {
   const statuses = useMemo(() => Object.fromEntries(doc.cables.map((c) => [c.id, cableStatus(doc, c)])), [doc]);
   const cp = useMemo(() => controlPlane(doc), [doc]);
   const [noteSel, setNoteSel] = useState<string | null>(null);
+  const noteSelRef = useRef<string | null>(null);
+  noteSelRef.current = noteSel;
   const stpPortBlocked = useCallback((dev: string, port: string) => cp.stp[dev]?.enabled && cp.stp[dev]?.ports[port]?.state === 'blocking', [cp]);
   const channelOf = useCallback(
     (dev: string, port: string) => {
@@ -120,7 +122,19 @@ function Inner({ actions }: { actions: CanvasActions }) {
     return list;
   }, [doc, statuses, s.selection.devices, s.labelMode, s.tool, s.pendingEnd, devMark, onPathDev, s.compare, s.baseline, cp, noteSel]);
 
-  useEffect(() => setNodes(built), [built]);
+  // Keep measured sizes when nodes are rebuilt, otherwise React Flow hides each node until it re-measures
+  // it, which makes nodes flicker and swallows the second click of a double-click.
+  useEffect(
+    () =>
+      setNodes((prev) => {
+        const old = new Map(prev.map((n) => [n.id, n]));
+        return built.map((n) => {
+          const p = old.get(n.id);
+          return p?.measured ? { ...n, measured: p.measured, width: p.width, height: p.height } : n;
+        });
+      }),
+    [built],
+  );
 
   const onEndPointerDown = useCallback(
     (cableId: string, end: 'a' | 'b', e: React.PointerEvent) => {
@@ -384,7 +398,10 @@ function Inner({ actions }: { actions: CanvasActions }) {
         else st.group();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
-        st.deleteSelection();
+        if (noteSelRef.current && !st.selection.devices.length && !st.selection.cables.length) {
+          st.removeAnnotation(noteSelRef.current);
+          setNoteSel(null);
+        } else st.deleteSelection();
       } else if (e.key === 'Escape') {
         setPicker(null);
         setMenu(null);

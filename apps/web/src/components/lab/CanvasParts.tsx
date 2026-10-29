@@ -6,6 +6,7 @@ import { KIND_LABEL, modelOf } from '@/lab/catalog';
 import { DEVICE_H, DEVICE_W } from '@/lab/inventory';
 import { primaryIp } from '@/lab/simulate';
 import { useLab } from '@/lab/store';
+import { DeviceHoverCard } from './DeviceHoverCard';
 import type { Annotation, Cable, CableStatus, Device } from '@/lab/types';
 import { CABLE_LABEL } from '@/lab/validate';
 import { cx, fmtBytes } from '@/components/ui';
@@ -92,12 +93,30 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
   const vlan = primaryVlan(d);
   const mac = primaryMac(d);
   const conn = linksTotal === 0 ? 'not connected' : `${linksUp}/${linksTotal} up`;
+  const [hover, setHover] = useState<DOMRect | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancel = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    setHover(null);
+  };
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
   return (
     <div
+      onMouseEnter={(e) => {
+        if (ghost || e.buttons) return;
+        const el = e.currentTarget;
+        timer.current = setTimeout(() => setHover(el.getBoundingClientRect()), 450);
+      }}
+      onMouseLeave={cancel}
+      onPointerDown={cancel}
+      onWheel={cancel}
+      aria-description={deviceSummary(d, linksUp, linksTotal)}
       data-device-id={d.id}
       data-testid={`lab-device-${d.name}`}
       aria-label={`${d.name}, ${KIND_LABEL[d.kind]}, ${health}, ${conn}`}
-      title={deviceSummary(d, linksUp, linksTotal)}
       className={cx(
         'group relative flex flex-col items-center rounded-[8px] border bg-pane/95 px-1.5 pt-1 pb-1.5 text-center shadow-sm',
         selected ? 'border-action ring-2 ring-action/40' : pending ? 'border-action border-dashed' : onPath ? 'border-action/70' : 'border-line-strong',
@@ -107,6 +126,7 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
       )}
       style={{ width: DEVICE_W, minHeight: labels === 'full' ? DEVICE_H : 78 }}
     >
+      {hover && <DeviceHoverCard device={d} anchor={hover} />}
       <Handle type="source" position={Position.Top} id="c" isConnectable={connectable} className={cx('!absolute !inset-0 !h-full !w-full !translate-0 !rounded-[8px] !border-0 !bg-transparent', connectable ? '!cursor-crosshair' : '!pointer-events-none')} />
       {compare && <span className={cx('absolute -top-2 left-1 rounded px-1 text-[9.5px] font-semibold text-white', compare === 'added' ? 'bg-healthy' : compare === 'changed' ? 'bg-degraded' : 'bg-down')}>{compare === 'added' ? 'New' : compare === 'changed' ? 'Changed' : 'Removed'}</span>}
       {d.origin === 'design' && !compare && <span className="absolute -top-2 left-1 rounded border border-line-strong bg-pane px-1 text-[9.5px] text-muted">Design</span>}
@@ -357,7 +377,19 @@ export const NoteNode = memo(function NoteNode({ data, selected }: NodeProps<Nod
   const [edit, setEdit] = useState(false);
   const [text, setText] = useState(n.text);
   const ref = useRef<HTMLTextAreaElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   useEffect(() => setText(n.text), [n.text]);
+  // Double-click: React Flow focuses the node on mousedown, so we enter edit mode on the second
+  // click's 'click' event (after focus has settled) instead of on dblclick, which the canvas swallows.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const on = (e: MouseEvent) => {
+      if (e.detail >= 2) setEdit(true);
+    };
+    el.addEventListener('click', on);
+    return () => el.removeEventListener('click', on);
+  }, []);
   useEffect(() => {
     if (edit) ref.current?.focus();
   }, [edit]);
@@ -365,9 +397,9 @@ export const NoteNode = memo(function NoteNode({ data, selected }: NodeProps<Nod
   const st = useLab.getState;
   return (
     <div
+      ref={box}
       className="h-full w-full"
       data-testid={`note-${n.id}`}
-      onDoubleClick={() => setEdit(true)}
       style={{
         border: `2px ${n.kind === 'text' ? 'solid' : 'dashed'} ${c}`,
         borderRadius: n.kind === 'ellipse' ? '50%' : 8,

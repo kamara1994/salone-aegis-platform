@@ -112,7 +112,17 @@ An editable network canvas built on the live topology.
   challenges that hide one realistic fault and reveal it afterwards; an any-to-any reachability matrix;
   Wireshark-style capture per cable with layer decode, hex dump and a real `.pcap` download; export of the lab
   JSON, port inventory CSV, all running configs and a bill of materials, and JSON import.
-- **Notes** on the canvas (text, box, oval; resizable, coloured).
+- **Notes** on the canvas (text, box, oval; resizable, coloured; double-click to edit, Delete to remove).
+- **Library tabs**: Devices and Cables. The Cables tab works like Packet Tracer's Connections: pick a cable
+  (Automatic, straight-through, crossover, trunk, access, fibre, console, serial, WAN, virtual/wireless), then
+  click two devices and choose their ports; each card says what the cable is for, its connector and its limit.
+- **Hover card**: rest the mouse on a device to see what the model looks like, its ports, power and where it
+  sits in a real building. It uses a licensed photo from `public/lab/photos/<model>.webp` when one exists
+  (credited in `public/lab/ATTRIBUTION.md`), otherwise the illustration.
+- **Physical tab**: the front panel drawn from the device's real port list, with live link lights (up, problem,
+  STP blocking, no link, empty, shut down). Click a port to see what is plugged in, unplug it, plug a cable in
+  there, or shut it down.
+- **Find**: jump to a device by name, IP or MAC from the toolbar.
 - **Lab structure**: sites, racks (place devices by U), VLANs (pushed to switch VLAN databases), subnets (with
   duplicate-address detection), WAN links (provider, bandwidth, latency used by the simulator) and cloud
   connections. Add or remove devices and interfaces (sub-interfaces, SVIs, loopbacks, tunnels, extra ports).
@@ -130,6 +140,15 @@ inventory, generated config, diff, store) and `src/components/lab/` (canvas, ins
 tools panels, dialogs). Tests: `tests/unit/lab-*.test.ts`, `tests/e2e/lab-designer.spec.ts` and
 `tests/e2e/lab-advanced.spec.ts`. What is built and what is still on the roadmap compared with Packet Tracer, CML,
 EVE-NG, GNS3 and containerlab: `docs/LAB-GAP-ANALYSIS.md`.
+
+## Learn (`/learn`)
+
+Separate from the lab. AI-generated practice for CCNA, CCNP, Security+ and AWS Security (quiz, timed exam,
+flashcards), AI mock interviews (network, SOC, help desk, cloud security) with per-answer feedback, optional
+questions about your own lab design, and progress by objective. The questions and grading come from the back
+end's model through `/learn/*` (client in `src/learn/api.ts`); the key never reaches the browser. In mock mode,
+or when the back end has no model or no Learn endpoints yet, the page says exactly that. Subnetting drills
+(generated and checked by arithmetic) and lab troubleshooting drills (open `/lab?challenge=<id>`) work offline.
 
 ## Code map
 

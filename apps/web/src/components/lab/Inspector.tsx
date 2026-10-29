@@ -22,11 +22,13 @@ import { CABLE_LABEL, cableOnPort, cableStatus, deviceById, otherEnd, portTypeNa
 import type { LabState as MockLab } from '@/mock/lab';
 import { CableTypeSelect, IssueList, linkTestSummary } from './Pickers';
 import { CablePhysical, ServicesTab } from './ServicesTab';
+import { PhysicalView } from './PhysicalView';
 import { DECISION_COLOR } from './PacketLayer';
 import { primaryMac, primaryVlan } from './CanvasParts';
 
 export const DEVICE_TABS = [
   ['overview', 'Overview'],
+  ['physical', 'Physical'],
   ['ports', 'Ports'],
   ['interfaces', 'Interfaces'],
   ['config', 'Configuration'],
@@ -1078,6 +1080,7 @@ export function DeviceInspector({ device: d, doc, lab, onPing }: { device: Devic
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-3" role="tabpanel" aria-label={DEVICE_TABS.find(([k]) => k === t)?.[1]}>
         {t === 'overview' && <Overview d={d} doc={doc} />}
+        {t === 'physical' && <PhysicalView d={d} doc={doc} />}
         {t === 'ports' && <Ports d={d} doc={doc} />}
         {t === 'interfaces' && <Interfaces d={d} />}
         {t === 'config' && <Config d={d} />}

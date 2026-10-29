@@ -126,9 +126,58 @@ test('notes can be added to the canvas and edited', async ({ page }) => {
   await page.getByTestId('tool-note').click();
   const note = page.locator('[data-testid^="note-"]').first();
   await expect(note).toBeVisible();
-  await note.click({ position: { x: 16, y: 12 } });
-  await page.getByTestId('note-edit').click();
+  await note.dblclick({ position: { x: 40, y: 30 } });
   await page.getByLabel('Note text').fill('Finance VLAN 20');
   await page.getByTestId('lab-canvas').click({ position: { x: 20, y: 20 } });
   await expect(note).toContainText('Finance VLAN 20');
+});
+
+test('cables tab: pick a cable, then click two devices and choose ports', async ({ page }) => {
+  await addFromPalette(page, 'c2960x24');
+  await addFromPalette(page, 'optiplex');
+  await page.getByTestId('library-cables').click();
+  await page.getByTestId('cable-card-straight').click();
+  await expect(page.getByTestId('cable-active')).toContainText('Click the first device');
+  await expect(page.getByTestId('lab-canvas')).toHaveAttribute('data-tool', 'cable');
+  await device(page, 'PC0').click({ position: { x: 64, y: 30 } });
+  await page.getByTestId('port-option-Ethernet').click();
+  await expect(page.getByTestId('cable-active')).toContainText('Now click the second device');
+  await device(page, 'Switch0').click({ position: { x: 64, y: 30 } });
+  await page.getByTestId('port-option-Gi0/1').click();
+  await page.keyboard.press('Escape');
+  await device(page, 'Switch0').click({ position: { x: 64, y: 30 } });
+  await page.getByTestId('tab-physical').click();
+  await expect(page.getByTestId('phys-port-Gi0/1')).toHaveAttribute('data-led', 'up');
+  await page.getByTestId('phys-port-Gi0/1').click();
+  await expect(page.getByTestId('phys-port-detail')).toContainText('PC0');
+});
+
+test('hovering a device shows what it looks like and where it lives', async ({ page }) => {
+  await device(page, 'SW-ACC-01').hover({ position: { x: 64, y: 30 } });
+  const card = page.getByTestId('device-hover-card');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Catalyst 2960-X');
+  await expect(card).toContainText('Wiring closet');
+});
+
+test('device finder jumps to a device by IP', async ({ page }) => {
+  await page.getByTestId('device-finder').fill('10.10.40.10');
+  await page.getByTestId('device-finder').press('Enter');
+  await expect(page.getByTestId('inspector')).toContainText('DB01');
+});
+
+test('learn page: honest AI state in mock mode, subnetting drill works offline, lab drill opens the lab', async ({ page }) => {
+  await page.goto('/learn');
+  await page.getByTestId('learn-generate').click();
+  await expect(page.getByTestId('learn-ai-unavailable')).toContainText('AI not connected');
+  await page.getByRole('tab', { name: /Subnetting/ }).click();
+  const prompt = await page.getByTestId('subnet-drill').locator('p').first().innerText();
+  expect(prompt.length).toBeGreaterThan(5);
+  await page.getByLabel('Subnet answer').fill('0.0.0.0');
+  await page.getByTestId('subnet-submit').click();
+  await expect(page.getByTestId('subnet-verdict')).toBeVisible();
+  await expect(page.getByTestId('subnet-stats')).toContainText('/1 right');
+  await page.getByRole('tab', { name: /Lab drills/ }).click();
+  await page.getByTestId('drill-shut-uplink').click();
+  await expect(page.getByTestId('challenge-active')).toContainText('Ticket');
 });

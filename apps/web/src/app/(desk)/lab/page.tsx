@@ -14,6 +14,7 @@ import { SimPanel } from '@/components/lab/SimPanel';
 import { Toolbar } from '@/components/lab/Toolbar';
 import { ToolsPanel, type ToolKey } from '@/components/lab/ToolsPanel';
 import { Button, cx, ErrorState, IconButton, Loading, relTime } from '@/components/ui';
+import { prepareChallenge } from '@/lab/challenges';
 import { buildDoc } from '@/lab/inventory';
 import { setFresh, useLab } from '@/lab/store';
 import type { CableEnd, LabDoc } from '@/lab/types';
@@ -103,6 +104,21 @@ function Designer({ lab }: { lab: MockLab | null }) {
     else if (st.selection.cables.length === 1 && !st.selection.devices.length) st.openInspector('cable');
     else if (!st.selection.devices.length && !st.selection.cables.length) st.closeInspector();
   }, [selKey, s.tool]);
+
+  // /lab?challenge=<id> (from the Learn page) starts that troubleshooting drill.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('challenge');
+    if (!id) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    const st = useLab.getState();
+    if (!st.doc || st.doc.challenge) {
+      setTools('challenge');
+      return;
+    }
+    const p = prepareChallenge(st.doc, id);
+    if (p) st.startChallenge({ title: p.def.title, brief: p.brief, fault: p.fault }, p.apply);
+    setTools('challenge');
+  }, []);
 
   useEffect(() => {
     if (s.tool === 'simulate') setSimOpen(true);
