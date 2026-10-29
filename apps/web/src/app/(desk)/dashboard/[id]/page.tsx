@@ -85,6 +85,7 @@ export default function DashboardPage() {
   const { item, setItem } = useDashItem();
   const [panel, setPanel] = useState(true);
   const [topicId, setTopicId] = useState<string>('');
+  const [topicQuery, setTopicQuery] = useState('');
   const [lesson, setLesson] = useState<string | null>(null);
   const [last, setLast] = useState<string | null>(null);
   const [mode, setModeState] = useState<TeachLevel>('simple');
@@ -100,6 +101,12 @@ export default function DashboardPage() {
     return g;
   }, [topics]);
   const topic = topics.find((t) => t.id === topicId);
+  const filteredUnits = useMemo(() => {
+    const query = topicQuery.trim().toLowerCase();
+    return units
+      .map((u) => ({ ...u, list: u.list.filter((t) => !query || `${t.title} ${t.unit} ${t.simple} ${t.terms.map((term) => term.join(' ')).join(' ')}`.toLowerCase().includes(query)) }))
+      .filter((u) => u.list.length > 0);
+  }, [units, topicQuery]);
 
   // Opening a dashboard by URL makes it the current focus (once per visit, so switching away is not undone),
   // and restores the picked item from ?item= (older items still open the right place).
@@ -208,12 +215,24 @@ export default function DashboardPage() {
             <TopicTools topic={topic} tools={toolsFor(dash.id)} onPick={setTool} />
             <Sep />
             <div className="flex flex-wrap items-center gap-1.5" data-testid="dash-topic-mode">
+            <label className="relative flex items-center" title="Search topics in this certification">
+              <span className="sr-only">Search topics</span>
+              <input
+                type="search"
+                value={topicQuery}
+                onChange={(e) => setTopicQuery(e.target.value)}
+                placeholder="Find a topic…"
+                aria-label="Search topics in this certification"
+                className="h-8 w-36 rounded-[6px] border border-line-strong bg-ink px-2 text-[12.5px] placeholder:text-faint focus:border-action focus:outline-none sm:w-44"
+                data-testid="dash-topic-search"
+              />
+            </label>
             <label className="relative flex items-center" title="Choose a topic to learn">
               <Tags className="pointer-events-none absolute left-2 size-3.5 text-faint" aria-hidden />
               <span className="sr-only">Topic</span>
               <select value={topicId} onChange={(e) => pickTopic(e.target.value)} className="h-8 max-w-[260px] rounded-[6px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px]" data-testid="dash-topic">
                 <option value="">Choose a topic ({topics.length})</option>
-                {units.map((u) => (
+                {filteredUnits.map((u) => (
                   <optgroup key={u.name} label={u.name}>
                     {u.list.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -224,6 +243,7 @@ export default function DashboardPage() {
                 ))}
               </select>
             </label>
+            {topicQuery.trim() && <span className="text-[11px] text-muted" aria-live="polite">{filteredUnits.reduce((n, u) => n + u.list.length, 0)} matches</span>}
             <div className="flex items-center gap-1" role="radiogroup" aria-label="Learning mode" data-testid="dash-mode">
               <span className="hidden pr-0.5 text-[11.5px] text-faint lg:inline">Mode</span>
               <div className="flex rounded-[6px] border border-line-strong p-0.5">
