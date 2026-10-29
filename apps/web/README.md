@@ -154,33 +154,33 @@ EVE-NG, GNS3 and containerlab: `docs/LAB-GAP-ANALYSIS.md`.
 
 ## Learn (`/learn`)
 
-Separate from the lab. Everything except the AI tabs works offline, and progress stays in this browser
-(`localStorage`); there are no accounts.
+Four tabs. Everything except AI practice works offline; progress stays in this browser (no accounts).
 
-- **Lessons**: an interactive textbook. Next/Back, arrow keys, section list, progress, search across every
-  section, bookmarks and notes, beginner/advanced level, and three modes: *watch* (answers and command output
-  shown), *guided* (interactive, hints available) and *independent* (no hints). Blocks include diagrams,
-  reveals, "what happens next" predictions, quizzes, command examples, a command trainer (it checks what you
-  type; it is clearly labelled as not a live device) and "Open this in the Lab" buttons that start the matching
-  guided lab or troubleshooting drill. Built-in lessons: VLANs from zero to troubleshooting (16 parts), writing a
-  ticket, impact and urgency, finding a MAC on Cisco/Windows/Linux, reading an ARP table, tracing a cable,
-  hunting suspicious traffic, triaging a SIEM alert, reading firewall logs, writing an escalation note,
-  collecting evidence, documenting an outage, closing a ticket, and subnet basics.
-  Deep link: `/learn?lesson=vlans&section=trunk`.
-- **Tracks**: CCNA, CCNP, Security+, eJPT, SOC analyst, cloud security, Linux, Windows/AD, automation, incident
-  response and help desk. Each lists its lessons, guided labs, games, drills and the AI exam/flashcards, with
-  progress. Export/import progress as JSON.
-- **Content packs**: lessons, games and lab layouts as plain JSON (`format: "aegis-content-pack"`). Packs are
-  validated (shape, 2 MB limit) and never run code. Download the template from Tracks to start one. Pack labs
-  open with `/lab?pack=<name>&lab=<index>`.
-- **Practice / Mock interview**: AI-generated questions, exams, flashcards and interviews through the back end's
-  `/learn/*` endpoints (client in `src/learn/api.ts`); the key never reaches the browser. In mock mode, or when
-  the back end has no model yet, the page says exactly that.
-- **Subnetting** drills (generated and checked by arithmetic) and **Lab drills** (guided workbooks and
-  troubleshooting challenges).
+- **Learn with images**: annotated training pictures listed in `public/learn/visuals/manifest.json`
+  (maintained by the visuals pipeline), each linked to its topic.
+- **Topics**: pick a course (Networking/CCNA, Advanced networking/CCNP, Security+, SOC, Pentest/eJPT,
+  Cloud security/AWS, Linux, Windows/AD, IT support, Incident response, Automation), then a topic from the
+  drop-down: 200+ topics in `src/content/topics/`. Each topic is taught three ways (**Simple**: plain words and
+  an everyday example; **Technical**; **Advanced**), with key terms, examples, a check-yourself exam at the end
+  and a **Now practise it** link to the matching guided lab, troubleshooting ticket or game. Some topics also
+  open a full interactive lesson. Deep link: `/learn?topic=vlans`.
+- **Exams and flashcards**: timed exams drawn from the topic question banks (choose course, length and time;
+  explanations and "study these topics next" at the end), flashcards from key terms, subnetting drills, AI
+  practice and mock interviews (AI needs the back end's `/learn/*`; the page says when it is not connected).
+- **Tracks and progress**: certification tracks with progress, export/import, content packs, the interactive
+  lessons library, and guided labs.
 
-Content lives in `src/content/` (types, lessons, games, tracks, progress and packs), separate from the
-components in `src/components/learn/`.
+## Labs picker (`/lab` → Labs)
+
+Labs grouped by type: Getting started (first network, cable types, subnet plan), Switching, Routing,
+Enterprise builds (small office, enterprise campus with core/access/firewall and guest isolation), Security
+(firewall zones and DMZ, ACLs, port security, snooping), SOC and monitoring (SPAN to an IDS sensor, trace an
+alert to a switch port, quarantine VLAN), Services, Wireless (PoE AP, WPA2, client join) and Troubleshooting
+tickets. Every lab builds its own topology and grades tasks from the simulated network.
+
+Cables connect and disconnect like Packet Tracer: the Disconnect tool (X) unplugs a cable with one click or
+lists a device's cables; Delete on a selected cable, the cable menu, the inspector and the port picker's
+Unplug button all work; dropping a cable end on empty canvas unplugs it. Every disconnect can be undone.
 
 ## Games (`/games`)
 

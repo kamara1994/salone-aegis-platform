@@ -169,7 +169,10 @@ export class DesignCli {
     const [cmd, ...rest] = line.split(/\s+/);
     const c = cmd.toLowerCase();
     const d = this.d;
-    const nic = d.interfaces.find((i) => i.type === 'copper' || i.type === 'virtual' || i.type === 'wireless');
+    // The adapter in use: one that is cabled (or associated) first, like Windows picks the connected adapter.
+    const nics = d.interfaces.filter((i) => i.type === 'copper' || i.type === 'virtual' || i.type === 'wireless');
+    const doc0 = useLab.getState().doc!;
+    const nic = nics.find((i) => doc0.cables.some((k) => (k.a.device === d.id && k.a.port === i.name) || (k.b.device === d.id && k.b.port === i.name))) ?? nics[0];
     if (c === 'help' || c === '?') return 'ipconfig [/all | /renew | /release]   ping <ip|name> [-n count]   tracert <ip|name>   arp -a   hostname\r\nnetsh interface ip set address "<nic>" static <ip> <mask> <gateway>   netsh interface ip set address "<nic>" dhcp';
     if (c === 'hostname') return d.name;
     if (c === 'ipconfig') {
@@ -317,6 +320,11 @@ export class DesignCli {
       if (has('name')) {
         st.setVlans(d.id, { ...d.vlans, [this.vlanId]: r.slice(1).join('_') });
         return '';
+      }
+      // IOS: a global command typed in a sub-mode leaves the sub-mode and runs in global config.
+      if (/^(vlan|interface|int|hostname|ip|router|spanning-tree|vtp|access-list|monitor|line|banner|enable|crypto|no)$/i.test(w[0] ?? '')) {
+        this.mode = 'config';
+        return this.exec(raw.join(' '));
       }
       return '% Invalid input in vlan mode (use name <NAME> or exit).';
     }

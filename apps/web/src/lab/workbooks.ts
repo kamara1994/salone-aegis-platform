@@ -8,7 +8,9 @@ import { ping, simulatePacket } from './simulate';
 import type { Cable, CableType, Device, Iface, LabDoc } from './types';
 import { cableStatus, suggestCableType } from './validate';
 
-export type Level = 'CCNA' | 'CCNP';
+export type Level = 'Foundations' | 'CCNA' | 'CCNP' | 'Security' | 'SOC' | 'Enterprise';
+/** How the Labs picker groups labs. */
+export type LabCategory = 'Getting started' | 'Switching' | 'Routing' | 'Enterprise builds' | 'Security' | 'SOC and monitoring' | 'Services' | 'Wireless';
 export interface TaskResult {
   ok: boolean;
   detail?: string;
@@ -38,6 +40,7 @@ export interface Workbook {
   intro: string;
   build: () => LabDoc;
   tasks: WorkbookTask[];
+  category?: LabCategory;
 }
 
 // ---------------- topology builder ----------------
@@ -684,6 +687,327 @@ export const WORKBOOKS: Workbook[] = [
     ],
   },
 ];
+
+
+// ---------------- more labs: getting started, enterprise builds, security, SOC, wireless ----------------
+
+/** A working, error-free cable between two devices (optionally on specific ports). */
+const cabled = (c: Ctx, a: string, b: string, pa?: string, pb?: string): TaskResult => {
+  const cab = c.doc.cables.find((x) => (x.a.device === a && x.b.device === b && (!pa || x.a.port === pa) && (!pb || x.b.port === pb)) || (x.a.device === b && x.b.device === a && (!pb || x.a.port === pb) && (!pa || x.b.port === pa)));
+  if (!cab) return no(`${c.d(a)?.name} is not cabled to ${c.d(b)?.name}${pa ? ` ${pa}` : ''}${pb ? ` → ${pb}` : ''}`);
+  const st = cableStatus(c.doc, cab);
+  if (st.state === 'down' || st.state === 'disabled') return no(`the cable between ${c.d(a)?.name} and ${c.d(b)?.name} has no link: ${st.issues[0]?.message ?? st.state}`);
+  return { ok: true };
+};
+const hasIp = (c: Ctx, dev: string, port: string, ip: string, prefix?: number): TaskResult => {
+  const i = c.i(dev, port);
+  if (i?.ip !== ip) return no(`${c.d(dev)?.name} ${port} has ${i?.ip ?? 'no address'}, expected ${ip}`);
+  if (prefix !== undefined && i.prefix !== prefix) return no(`${c.d(dev)?.name} ${port} has /${i.prefix}, expected /${prefix}`);
+  return { ok: true };
+};
+const rule = (dev: Device | undefined, f: (r: Device['firewall'][number]) => boolean) => !!dev?.firewall.some((r) => r.enabled && f(r));
+
+const MORE: Workbook[] = [
+  {
+    id: 'first-network',
+    title: 'Your first network: cable it, address it, ping it',
+    level: 'Foundations',
+    category: 'Getting started',
+    topic: 'Cabling and IP addressing',
+    minutes: 15,
+    intro: 'Two PCs, one switch and a laptop, all still in their boxes. Cable everything, give the PCs addresses, prove they can talk, then plug a console cable into the switch the way you would on day one.',
+    build() {
+      const b = builder();
+      b.dev('s1', 'c2960x24', 'SW1', 360, 120);
+      b.dev('pc1', 'optiplex', 'PC1', 180, 340);
+      b.dev('pc2', 'optiplex', 'PC2', 540, 340);
+      b.dev('lap', 'thinkpad', 'ADMIN-LAPTOP', 640, 120);
+      b.note('Plan: PC1 192.168.1.10/24, PC2 192.168.1.11/24.\nUse the Cable tool (C): click a device, pick a port, click the other device.', 120, 40, 330, 70);
+      return b.doc;
+    },
+    tasks: [
+      { id: 'cable', text: 'Cable PC1 and PC2 to SW1 with copper Ethernet; both links must come up (green lights).', hint: 'Cable tool → click PC1 → Ethernet → click SW1 → any free Gi port. Straight-through is right for PC to switch.', check: (c) => all(cabled(c, 'pc1', 's1'), cabled(c, 'pc2', 's1')) },
+      { id: 'ip', text: 'Give PC1 192.168.1.10/24 and PC2 192.168.1.11/24.', hint: 'Select the PC → Interfaces tab, or Terminal → netsh interface ip set address "Ethernet" static 192.168.1.10 255.255.255.0', check: (c) => all(hasIp(c, 'pc1', 'Ethernet', '192.168.1.10', 24), hasIp(c, 'pc2', 'Ethernet', '192.168.1.11', 24)) },
+      { id: 'ping', text: 'Ping PC2 from PC1.', hint: 'PC1 → Terminal → Design CLI → ping 192.168.1.11', check: (c) => c.ping('pc1', '192.168.1.11') },
+      { id: 'console', text: 'Connect a console cable from ADMIN-LAPTOP (USB-Console) to the switch Console port.', hint: 'Choose the console (rollover) cable type in the Cable tool, or let it pick the right one automatically.', check: (c) => { const r = cabled(c, 'lap', 's1', 'USB-Console', 'Console'); return r.ok ? (c.doc.cables.find((x) => [x.a.device, x.b.device].includes('lap') && [x.a.device, x.b.device].includes('s1'))?.type === 'console' || no('that is not a console cable')) : r; } },
+    ],
+  },
+  {
+    id: 'cable-types',
+    title: 'Pick the right cable: crossover, fibre and serial',
+    level: 'Foundations',
+    category: 'Getting started',
+    topic: 'Cabling',
+    minutes: 15,
+    intro: 'Old PCs without auto-MDIX, switches joined by SFP fibre, and two routers on a serial WAN. Each pair only links with the right cable. Wrong cables are refused or stay down, with the reason.',
+    build() {
+      const b = builder();
+      b.dev('la', 'legacy-pc', 'LEGACY-A', 80, 120);
+      b.dev('lb', 'legacy-pc', 'LEGACY-B', 280, 120);
+      b.dev('s1', 'c2960x24', 'SW1', 80, 340);
+      b.dev('s2', 'c2960x24', 'SW2', 360, 340);
+      b.dev('r1', 'isr4331', 'R1', 560, 120);
+      b.dev('r2', 'isr4331', 'R2', 760, 120);
+      b.ip('la', 'FastEthernet0', '10.0.0.1', 24);
+      b.ip('lb', 'FastEthernet0', '10.0.0.2', 24);
+      b.ip('r1', 'Se0/1/0', '10.1.1.1', 30);
+      b.ip('r2', 'Se0/1/0', '10.1.1.2', 30);
+      b.note('LEGACY PCs: 100 Mb NICs, no auto-MDIX.\nSW1–SW2: use the SFP ports (Gi0/25-28).\nR1–R2: serial Se0/1/0 on both.', 520, 300, 320, 80);
+      return b.doc;
+    },
+    tasks: [
+      { id: 'xover', text: 'Join LEGACY-A directly to LEGACY-B so the link comes up, and ping 10.0.0.2 from LEGACY-A.', hint: 'Two PCs without auto-MDIX need a crossover cable.', check: (c) => all(cabled(c, 'la', 'lb'), c.ping('la', '10.0.0.2')) },
+      { id: 'fiber', text: 'Join SW1 and SW2 on their SFP ports with fibre; the link must come up.', hint: 'Gi0/25 to Gi0/25, cable type fibre.', check: (c) => { const cab = c.doc.cables.find((x) => [x.a.device, x.b.device].sort().join() === 's1,s2'); return all(cabled(c, 's1', 's2'), cab?.type === 'fiber' || no('the switches are joined, but not with fibre on SFP ports')); } },
+      { id: 'serial', text: 'Join R1 Se0/1/0 to R2 Se0/1/0 with a serial cable and ping 10.1.1.2 from R1.', hint: 'Cable type serial; then R1 Terminal → ping 10.1.1.2', check: (c) => all(cabled(c, 'r1', 'r2', 'Se0/1/0', 'Se0/1/0'), c.ping('r1', '10.1.1.2')) },
+    ],
+  },
+  {
+    id: 'subnet-plan',
+    title: 'Subnet a /24 into four LANs and route between them',
+    level: 'Foundations',
+    category: 'Getting started',
+    topic: 'Subnetting',
+    minutes: 25,
+    intro: 'You were given 192.168.50.0/24 for three departments. Split it into /26 subnets, give the router the first address in each, and address one PC per department so everyone can reach everyone.',
+    build() {
+      const b = builder();
+      b.dev('r1', 'isr4331', 'R1', 360, 60);
+      b.dev('pc1', 'optiplex', 'SALES-PC', 120, 320);
+      b.dev('pc2', 'optiplex', 'HR-PC', 360, 320);
+      b.dev('pc3', 'optiplex', 'IT-PC', 600, 320);
+      b.dev('s3', 'c2960x24', 'IT-SW', 600, 180);
+      b.cable('r1', 'Gi0/0/0', 'pc1', 'Ethernet');
+      b.cable('r1', 'Gi0/0/1', 'pc2', 'Ethernet');
+      b.cable('r1', 'Gi0/0/2', 's3', 'Gi0/25', 'fiber');
+      b.cable('s3', 'Gi0/1', 'pc3', 'Ethernet');
+      b.note('192.168.50.0/24 → /26 blocks of 64:\nSALES first block, HR second, IT third.\nRouter = first usable, PC = second usable.', 680, 20, 300, 80);
+      return b.doc;
+    },
+    tasks: [
+      { id: 'router', text: 'R1: Gi0/0/0 192.168.50.1/26, Gi0/0/1 192.168.50.65/26, Gi0/0/2 192.168.50.129/26.', hint: '/26 = 255.255.255.192. Blocks start at .0, .64, .128, .192.', check: (c) => all(hasIp(c, 'r1', 'Gi0/0/0', '192.168.50.1', 26), hasIp(c, 'r1', 'Gi0/0/1', '192.168.50.65', 26), hasIp(c, 'r1', 'Gi0/0/2', '192.168.50.129', 26)) },
+      { id: 'pcs', text: 'Give each PC the second usable address of its subnet, mask /26, gateway = the router address.', hint: 'SALES-PC 192.168.50.2, HR-PC 192.168.50.66, IT-PC 192.168.50.130', check: (c) => all(hasIp(c, 'pc1', 'Ethernet', '192.168.50.2', 26), hasIp(c, 'pc2', 'Ethernet', '192.168.50.66', 26), hasIp(c, 'pc3', 'Ethernet', '192.168.50.130', 26), c.i('pc1', 'Ethernet')?.gateway === '192.168.50.1' || no('SALES-PC gateway is wrong'), c.i('pc2', 'Ethernet')?.gateway === '192.168.50.65' || no('HR-PC gateway is wrong'), c.i('pc3', 'Ethernet')?.gateway === '192.168.50.129' || no('IT-PC gateway is wrong')) },
+      { id: 'reach', text: 'SALES-PC reaches HR-PC and IT-PC.', hint: 'If one fails, compare the PC mask and gateway with the router interface.', check: (c) => all(c.ping('pc1', '192.168.50.66'), c.ping('pc1', '192.168.50.130')) },
+    ],
+  },
+  {
+    id: 'small-office',
+    title: 'Set up a small office: router, DHCP, printer and internet',
+    level: 'Enterprise',
+    category: 'Enterprise builds',
+    topic: 'Small office build',
+    minutes: 35,
+    intro: 'A new branch office: one router, one PoE switch, three PCs and a printer. Finish the cabling, address the router, hand out addresses with DHCP, give the printer a fixed address and share one public IP for internet access.',
+    build() {
+      const b = builder();
+      b.dev('edge', 'isr4331', 'EDGE', 360, 40);
+      b.dev('sw', 'c2960x24ps', 'OFFICE-SW', 360, 220);
+      b.dev('inet', 'optiplex', 'INTERNET-HOST', 700, 40);
+      b.dev('prn', 'network-printer', 'PRINTER', 640, 380);
+      ['pc1', 'pc2', 'pc3'].forEach((id, k) => {
+        b.dev(id, 'optiplex', `STAFF-PC${k + 1}`, 120 + k * 160, 420);
+        b.set(id, 'Ethernet', { dhcp: true });
+        b.cable('sw', `Gi0/${k + 1}`, id, 'Ethernet');
+      });
+      b.ip('edge', 'Gi0/0/1', '203.0.113.2', 24);
+      b.ip('inet', 'Ethernet', '203.0.113.50', 24, '203.0.113.2');
+      b.cable('edge', 'Gi0/0/1', 'inet', 'Ethernet');
+      b.note('LAN 192.168.10.0/24, gateway 192.168.10.1\nPrinter fixed 192.168.10.5\nISP gave us 203.0.113.2 (already on Gi0/0/1)', 40, 40, 300, 80);
+      return b.doc;
+    },
+    tasks: [
+      { id: 'cable', text: 'Cable OFFICE-SW Gi0/24 to EDGE Gi0/0/0, and the PRINTER to a free switch port.', hint: 'Cable tool (C). Router to switch is straight-through.', check: (c) => all(cabled(c, 'sw', 'edge', 'Gi0/24', 'Gi0/0/0'), cabled(c, 'prn', 'sw')) },
+      { id: 'gw', text: 'Give EDGE Gi0/0/0 the address 192.168.10.1/24.', hint: 'interface g0/0/0 → ip address 192.168.10.1 255.255.255.0 → no shutdown', check: (c) => hasIp(c, 'edge', 'Gi0/0/0', '192.168.10.1', 24) },
+      { id: 'dhcp', text: 'Create DHCP pool OFFICE on EDGE (network 192.168.10.0/24, default-router 192.168.10.1, dns-server 203.0.113.53) and renew all three PCs.', hint: 'ip dhcp pool OFFICE → network 192.168.10.0 255.255.255.0 → default-router 192.168.10.1 → dns-server 203.0.113.53; then ipconfig /renew on each PC', check: (c) => all(!!c.d('edge')?.dhcpPools?.some((p) => p.network === '192.168.10.0/24' && p.gateway === '192.168.10.1') || no('no OFFICE pool with gateway 192.168.10.1'), ...['pc1', 'pc2', 'pc3'].map((id) => (c.i(id, 'Ethernet')?.ip?.startsWith('192.168.10.') ?? false) || no(`${c.d(id)?.name} has ${c.i(id, 'Ethernet')?.ip ?? 'no address'}`))) },
+      { id: 'printer', text: 'Give PRINTER the fixed address 192.168.10.5/24 (gateway 192.168.10.1); STAFF-PC2 can reach it.', hint: 'Printers need an address that never changes so PCs can find them. Select PRINTER → Interfaces.', check: (c) => { const ip = c.i('pc2', 'Ethernet')?.ip; return all(hasIp(c, 'prn', 'eth0', '192.168.10.5', 24), ip ? true : no('STAFF-PC2 has no address yet'), c.ping('pc2', '192.168.10.5')); } },
+      { id: 'pat', text: 'Share the public address: NAT inside on Gi0/0/0, outside on Gi0/0/1, PAT overload. STAFF-PC1 reaches INTERNET-HOST.', hint: 'ip nat inside / ip nat outside; access-list 1 permit 192.168.10.0 0.0.0.255; ip nat inside source list 1 interface g0/0/1 overload', check: (c) => { const src = c.i('pc1', 'Ethernet')?.ip; if (!src) return no('STAFF-PC1 has no address yet'); const t = ping(c.doc, 'pc1', '203.0.113.50', 1)[0]; return all(c.d('edge')?.natOverload?.outside === 'Gi0/0/1' || no('no PAT overload on Gi0/0/1'), t.status === 'delivered' || no(t.reason), t.hops.some((h) => h.decision === 'nat') || no('the packet was not translated')); } },
+    ],
+  },
+  {
+    id: 'enterprise-campus',
+    title: 'Build an enterprise campus: core, access, VLANs, routing and guest isolation',
+    level: 'Enterprise',
+    category: 'Enterprise builds',
+    topic: 'Campus network',
+    minutes: 50,
+    intro: 'A two-tier campus: one layer 3 core and two access switches. Staff, servers and guests each get a VLAN; the core routes between them and sends internet traffic to the firewall. Guests must reach the internet but never the servers.',
+    build() {
+      const b = builder();
+      b.dev('core', 'c9300-24t', 'CORE', 400, 140);
+      b.dev('a1', 'c2960x24', 'ACCESS-1', 200, 300);
+      b.dev('a2', 'c2960x24', 'ACCESS-2', 600, 300);
+      b.dev('fw', 'dec2750', 'FW', 400, -20);
+      b.dev('inet', 'optiplex', 'INTERNET-HOST', 700, -20);
+      b.dev('srv', 'r650', 'APP-SRV', 760, 140);
+      b.dev('st1', 'optiplex', 'STAFF-1', 120, 460);
+      b.dev('st2', 'optiplex', 'STAFF-2', 520, 460);
+      b.dev('g1', 'thinkpad', 'GUEST-1', 700, 460);
+      b.cable('core', 'Gi1/0/1', 'a1', 'Gi0/24');
+      b.cable('core', 'Gi1/0/2', 'a2', 'Gi0/24');
+      b.cable('core', 'Gi1/0/10', 'srv', b.doc.devices.find((d) => d.id === 'srv')!.interfaces.find((i) => i.type === 'copper')!.name);
+      b.cable('core', 'Gi1/0/24', 'fw', 'igb1');
+      b.cable('fw', 'igb0', 'inet', 'Ethernet');
+      b.cable('a1', 'Gi0/1', 'st1', 'Ethernet');
+      b.cable('a2', 'Gi0/1', 'st2', 'Ethernet');
+      b.cable('a2', 'Gi0/2', 'g1', 'Ethernet');
+      const srvNic = b.doc.devices.find((d) => d.id === 'srv')!.interfaces.find((i) => i.type === 'copper')!.name;
+      b.ip('srv', srvNic, '10.10.20.10', 24, '10.10.20.1');
+      b.ip('st1', 'Ethernet', '10.10.10.11', 24, '10.10.10.1');
+      b.ip('st2', 'Ethernet', '10.10.10.12', 24, '10.10.10.1');
+      b.ip('g1', 'Ethernet', '10.10.30.21', 24, '10.10.30.1');
+      b.ip('fw', 'igb0', '203.0.113.2', 24);
+      b.ip('fw', 'igb1', '10.255.0.2', 30);
+      b.set('fw', 'igb0', { alias: 'WAN' });
+      b.set('fw', 'igb1', { alias: 'LAN' });
+      b.ip('inet', 'Ethernet', '203.0.113.50', 24, '203.0.113.2');
+      b.doc.devices.find((d) => d.id === 'srv')!.listening = [22, 443];
+      b.doc.devices.find((d) => d.id === 'inet')!.listening = [80, 443];
+      const fw = b.doc.devices.find((d) => d.id === 'fw')!;
+      fw.routes = [{ prefix: '10.10.0.0/16', via: '10.255.0.1', kind: 'static', description: 'campus via CORE' }];
+      fw.firewall = [{ id: 1, iface: 'LAN', src: '10.10.0.0/16', dst: 'any', proto: 'any', port: 'any', action: 'pass', log: false, enabled: true, descr: 'Campus to anywhere' }];
+      b.note('VLAN 10 STAFF 10.10.10.0/24 · VLAN 20 SERVERS 10.10.20.0/24 · VLAN 30 GUEST 10.10.30.0/24\nGateways .1 on CORE SVIs. CORE Gi1/0/24 is a routed link 10.255.0.1/30 to FW (10.255.0.2).\nFW is already configured.', 40, -120, 560, 70);
+      return b.doc;
+    },
+    tasks: [
+      { id: 'vlans', text: 'Create VLAN 10 STAFF, 20 SERVERS and 30 GUEST on CORE, ACCESS-1 and ACCESS-2.', hint: 'vlan 10 → name STAFF … on each switch (or set up VTP).', check: (c) => all(...['core', 'a1', 'a2'].flatMap((s) => [vlanIs(c, s, 10, 'STAFF') || no(`${c.d(s)?.name} has no VLAN 10 STAFF`), vlanIs(c, s, 20, 'SERVERS') || no(`${c.d(s)?.name} has no VLAN 20 SERVERS`), vlanIs(c, s, 30, 'GUEST') || no(`${c.d(s)?.name} has no VLAN 30 GUEST`)])) },
+      { id: 'ports', text: 'Access ports: STAFF-1 and STAFF-2 in VLAN 10, GUEST-1 in VLAN 30, APP-SRV (CORE Gi1/0/10) in VLAN 20. Uplinks (ACCESS Gi0/24, CORE Gi1/0/1-2) are trunks.', hint: 'switchport mode access / switchport access vlan …; switchport mode trunk on the uplinks', check: (c) => all(access(c, 'a1', 'Gi0/1', 10) || no('ACCESS-1 Gi0/1 is not in VLAN 10'), access(c, 'a2', 'Gi0/1', 10) || no('ACCESS-2 Gi0/1 is not in VLAN 10'), access(c, 'a2', 'Gi0/2', 30) || no('ACCESS-2 Gi0/2 is not in VLAN 30'), access(c, 'core', 'Gi1/0/10', 20) || no('CORE Gi1/0/10 is not in VLAN 20'), ...([['a1', 'Gi0/24'], ['a2', 'Gi0/24'], ['core', 'Gi1/0/1'], ['core', 'Gi1/0/2']] as const).map(([s, p]) => trunk(c, s, p) || no(`${c.d(s)?.name} ${p} is not a trunk`))) },
+      { id: 'svis', text: 'On CORE: SVIs Vlan10 10.10.10.1, Vlan20 10.10.20.1, Vlan30 10.10.30.1 (/24) and ip routing. STAFF-1 reaches APP-SRV.', hint: 'ip routing; interface vlan 10 → ip address 10.10.10.1 255.255.255.0 → no shutdown', check: (c) => all(hasIp(c, 'core', 'Vlan10', '10.10.10.1'), hasIp(c, 'core', 'Vlan20', '10.10.20.1'), hasIp(c, 'core', 'Vlan30', '10.10.30.1'), !!c.d('core')?.ipRouting || no('ip routing is off on CORE'), c.ping('st1', '10.10.20.10')) },
+      { id: 'edge', text: 'Make CORE Gi1/0/24 a routed port 10.255.0.1/30 and add a default route to the firewall (10.255.0.2). STAFF-2 opens https://203.0.113.50.', hint: 'interface g1/0/24 → no switchport → ip address 10.255.0.1 255.255.255.252; ip route 0.0.0.0 0.0.0.0 10.255.0.2', check: (c) => all(hasIp(c, 'core', 'Gi1/0/24', '10.255.0.1', 30), c.d('core')!.routes.some((r) => r.prefix === '0.0.0.0/0' && r.via === '10.255.0.2') || no('no default route to 10.255.0.2'), c.tcp('st2', '203.0.113.50', 443)) },
+      { id: 'guest', text: 'Guest isolation: GUEST-1 opens https://203.0.113.50 but cannot reach APP-SRV; staff still can.', hint: 'Extended ACL inbound on interface Vlan30: deny ip 10.10.30.0 0.0.0.255 10.10.20.0 0.0.0.255, permit ip any any', check: (c) => all(c.tcp('g1', '203.0.113.50', 443), not(c.tcp('g1', '10.10.20.10', 443), 'GUEST-1 can still reach APP-SRV'), c.tcp('st1', '10.10.20.10', 443)) },
+    ],
+  },
+  {
+    id: 'firewall-dmz',
+    title: 'Firewall zones: LAN, DMZ and a published web server',
+    level: 'Security',
+    category: 'Security',
+    topic: 'Firewall rules',
+    minutes: 30,
+    intro: 'The firewall starts with no rules, so it blocks everything (implicit deny). Write the rules: staff may go out, the internet may reach the web server on HTTPS only, and the DMZ may never start connections into the LAN.',
+    build() {
+      const b = builder();
+      b.dev('fw', 'dec2750', 'FW', 400, 120);
+      b.dev('lan', 'optiplex', 'STAFF-PC', 160, 320);
+      b.dev('web', 'services-server', 'WEB', 640, 320);
+      b.dev('inet', 'optiplex', 'INTERNET-HOST', 400, -80);
+      b.ip('fw', 'igb0', '203.0.113.1', 24);
+      b.ip('fw', 'igb1', '10.0.10.1', 24);
+      b.ip('fw', 'igb2', '172.16.50.1', 24);
+      b.set('fw', 'igb0', { alias: 'WAN' });
+      b.set('fw', 'igb1', { alias: 'LAN' });
+      b.set('fw', 'igb2', { alias: 'DMZ' });
+      b.ip('lan', 'Ethernet', '10.0.10.20', 24, '10.0.10.1');
+      b.ip('web', 'eno1', '172.16.50.10', 24, '172.16.50.1');
+      b.ip('inet', 'Ethernet', '203.0.113.50', 24, '203.0.113.1');
+      b.doc.devices.find((d) => d.id === 'web')!.listening = [22, 80, 443];
+      b.doc.devices.find((d) => d.id === 'inet')!.listening = [80, 443];
+      b.cable('fw', 'igb0', 'inet', 'Ethernet');
+      b.cable('fw', 'igb1', 'lan', 'Ethernet');
+      b.cable('fw', 'igb2', 'web', 'eno1');
+      b.note('Interfaces: WAN igb0, LAN igb1, DMZ igb2.\nRules are first match, top to bottom. Select FW → Firewall tab.\n(Simplified: no NAT, the lab treats all addresses as routable.)', 620, 40, 330, 80);
+      return b.doc;
+    },
+    tasks: [
+      { id: 'lan-out', text: 'Allow the LAN out: STAFF-PC opens https://203.0.113.50 and can SSH to WEB.', hint: 'Rule on interface LAN: source LAN net, destination any, protocol any, pass.', check: (c) => all(c.tcp('lan', '203.0.113.50', 443), c.tcp('lan', '172.16.50.10', 22)) },
+      { id: 'publish', text: 'Publish WEB: the internet reaches 172.16.50.10 on TCP 443 only (not SSH), and the rule is logged.', hint: 'Rule on WAN: source any, destination 172.16.50.10, TCP, port 443, pass, log on.', check: (c) => all(c.tcp('inet', '172.16.50.10', 443), not(c.tcp('inet', '172.16.50.10', 22), 'the internet can SSH to WEB'), rule(c.d('fw'), (r) => r.iface.toUpperCase() === 'WAN' && r.action === 'pass' && r.log && (r.dst === '172.16.50.10' || r.dst.startsWith('172.16.50.')) ) || no('no logged WAN pass rule for WEB')) },
+      { id: 'dmz', text: 'Contain the DMZ: WEB cannot open connections to STAFF-PC (if WEB is hacked, the attacker must not reach the LAN).', hint: 'Leave DMZ → LAN to the implicit deny, or add an explicit block rule on DMZ with log on.', check: (c) => all(not(c.tcp('web', '10.0.10.20', 445), 'WEB can reach STAFF-PC on SMB'), not(c.ping('web', '10.0.10.20'), 'WEB can ping STAFF-PC')) },
+      { id: 'no-any', text: 'No lazy rules: there is no enabled WAN rule that passes any → any.', hint: 'A WAN "pass any any" rule publishes every internal host to the internet.', check: (c) => !rule(c.d('fw'), (r) => r.iface.toUpperCase() === 'WAN' && r.action === 'pass' && r.src === 'any' && r.dst === 'any' && r.port === 'any') || no('a WAN pass any → any rule exists') },
+    ],
+  },
+  {
+    id: 'soc-investigate',
+    title: 'SOC: mirror traffic to the sensor, find the scanning host and contain it',
+    level: 'SOC',
+    category: 'SOC and monitoring',
+    topic: 'Detection and containment',
+    minutes: 30,
+    intro: 'Ticket from the SIEM: "10.20.0.66 is port-scanning FILESRV". Nobody knows which desk that is. Send a copy of the server traffic to the IDS sensor, find the switch port behind 10.20.0.66, and contain it without cutting off anyone else.',
+    build() {
+      const b = builder();
+      b.dev('sw', 'c2960x24', 'FLOOR2-SW', 400, 140);
+      b.dev('r1', 'isr4331', 'R1', 400, -40);
+      b.dev('fs', 'services-server', 'FILESRV', 720, 40);
+      b.dev('ids', 'services-server', 'IDS-SENSOR', 720, 240);
+      b.dev('u1', 'optiplex', 'DESK-11', 120, 340);
+      b.dev('u2', 'optiplex', 'DESK-12', 280, 340);
+      b.dev('bad', 'kali-workstation', 'DESK-14', 440, 340);
+      b.dev('u3', 'optiplex', 'DESK-15', 600, 340);
+      b.ip('r1', 'Gi0/0/0', '10.20.0.1', 24);
+      b.ip('fs', 'eno1', '10.20.0.10', 24, '10.20.0.1');
+      b.ip('ids', 'eno1', '10.20.0.250', 24, '10.20.0.1');
+      b.ip('u1', 'Ethernet', '10.20.0.31', 24, '10.20.0.1');
+      b.ip('u2', 'Ethernet', '10.20.0.32', 24, '10.20.0.1');
+      b.ip('bad', 'Ethernet', '10.20.0.66', 24, '10.20.0.1');
+      b.ip('u3', 'Ethernet', '10.20.0.35', 24, '10.20.0.1');
+      b.doc.devices.find((d) => d.id === 'fs')!.listening = [22, 445, 443];
+      b.cable('sw', 'Gi0/24', 'r1', 'Gi0/0/0');
+      b.cable('sw', 'Gi0/10', 'fs', 'eno1');
+      b.cable('sw', 'Gi0/20', 'ids', 'eno1');
+      b.cable('sw', 'Gi0/3', 'u1', 'Ethernet');
+      b.cable('sw', 'Gi0/4', 'u2', 'Ethernet');
+      b.cable('sw', 'Gi0/7', 'bad', 'Ethernet');
+      b.cable('sw', 'Gi0/8', 'u3', 'Ethernet');
+      b.note('SIEM alert #4471: 10.20.0.66 → 10.20.0.10, 1,024 ports in 40 s.\nIDS sensor listens on FLOOR2-SW Gi0/20.\nDesk labels on the canvas are not trusted: prove it from the switch.', 20, -60, 360, 80);
+      return b.doc;
+    },
+    tasks: [
+      { id: 'span', text: 'Mirror FILESRV’s port (Gi0/10) to the IDS sensor on Gi0/20 with a SPAN session.', hint: 'monitor session 1 source interface g0/10; monitor session 1 destination interface g0/20', check: (c) => { const s = c.d('sw')?.span?.find((x) => x.dest === 'Gi0/20'); return all(!!s || no('no SPAN session with destination Gi0/20'), (s?.sources ?? []).includes('Gi0/10') || no('Gi0/10 is not a SPAN source')); } },
+      { id: 'find', text: 'Find the port behind 10.20.0.66: look up its MAC in the ARP table on R1, then in the MAC address table on FLOOR2-SW. Add the port number to its description (e.g. "SUSPECT INC-4471").', hint: 'R1: show ip arp 10.20.0.66 → MAC; FLOOR2-SW: show mac address-table address <mac> → port. interface g0/… → description SUSPECT INC-4471', check: (c) => /suspect/i.test(c.i('sw', 'Gi0/7')?.description ?? '') || no('the port behind 10.20.0.66 is not described as SUSPECT') },
+      { id: 'contain', text: 'Contain without unplugging (keep the evidence): create VLAN 999 QUARANTINE and move that port into it. DESK-14 can no longer reach FILESRV; the other desks still can.', hint: 'vlan 999 → name QUARANTINE; interface g0/7 → switchport access vlan 999', check: (c) => all(vlanIs(c, 'sw', 999, 'QUARANTINE') || no('no VLAN 999 QUARANTINE'), access(c, 'sw', 'Gi0/7', 999) || no('the suspect port is not in VLAN 999'), !c.i('sw', 'Gi0/7')?.shutdown || no('the port is shut down: quarantine it instead, so forensics can still reach it'), not(c.tcp('bad', '10.20.0.10', 445), 'DESK-14 still reaches FILESRV'), c.tcp('u1', '10.20.0.10', 445), c.tcp('u3', '10.20.0.10', 445)) },
+      { id: 'harden', text: 'Stop the next rogue device: port security (maximum 1, sticky, violation restrict) on the other desk ports Gi0/3, Gi0/4 and Gi0/8.', hint: 'interface range g0/3 - 4 , g0/8 → switchport port-security, maximum 1, mac-address sticky, violation restrict', check: (c) => all(...['Gi0/3', 'Gi0/4', 'Gi0/8'].map((p) => { const ps = c.i('sw', p)?.portSecurity; return (ps?.enabled && ps.max === 1 && ps.sticky && ps.violation === 'restrict') || no(`${p} port security is not max 1 / sticky / restrict`); })) },
+    ],
+  },
+  {
+    id: 'wireless-office',
+    title: 'Wireless office: power the AP, set WPA2 and join a laptop',
+    level: 'Foundations',
+    category: 'Wireless',
+    topic: 'Wi-Fi',
+    minutes: 20,
+    intro: 'The new access point is still in its box. It gets power from the switch (PoE+), so cable it to the PoE switch, create a WPA2 network and join the manager’s laptop to it.',
+    build() {
+      const b = builder();
+      b.dev('r1', 'isr4331', 'R1', 400, -20);
+      b.dev('sw', 'c2960x24ps', 'POE-SW', 400, 140);
+      b.dev('ap', 'c9120', 'AP-1', 640, 140);
+      b.dev('lap', 'thinkpad', 'MANAGER-LAPTOP', 760, 340);
+      b.ip('r1', 'Gi0/0/0', '10.30.0.1', 24);
+      b.cable('sw', 'Gi0/24', 'r1', 'Gi0/0/0');
+      b.doc.devices.find((d) => d.id === 'r1')!.dhcpPools = [{ name: 'WIFI', network: '10.30.0.0/24', start: '10.30.0.100', end: '10.30.0.199', gateway: '10.30.0.1', dns: ['10.30.0.1'] }];
+      b.set('lap', 'Wi-Fi', { dhcp: true });
+      b.note('SSID: OFFICE-WIFI · WPA2 · passphrase Salone2026!\nR1 already hands out 10.30.0.100-199.', 120, 40, 300, 60);
+      return b.doc;
+    },
+    tasks: [
+      { id: 'power', text: 'Cable AP-1 Gi0 to a POE-SW port. The AP must power up from PoE.', hint: 'A Catalyst 9120 draws 25.5 W; the 2960-X 24PS supplies PoE+.', check: (c) => all(cabled(c, 'ap', 'sw'), c.d('ap')?.power === 'running' || no(`AP-1 is ${c.d('ap')?.power}${c.d('ap')?.powerReason ? `: ${c.d('ap')?.powerReason}` : ''}`)) },
+      { id: 'ssid', text: 'On AP-1, broadcast SSID OFFICE-WIFI with WPA2 and the passphrase from the note.', hint: 'Select AP-1 → Services → Wireless.', check: (c) => { const w = c.d('ap')?.wireless; return all(w?.ssid === 'OFFICE-WIFI' || no(`SSID is ${w?.ssid ?? 'not set'}`), w?.security === 'wpa2' || no(`security is ${w?.security ?? 'not set'}`), w?.key === 'Salone2026!' || no('the passphrase does not match the note')); } },
+      { id: 'join', text: 'Join MANAGER-LAPTOP: same SSID, WPA2 and passphrase on the laptop, then connect its Wi-Fi to AP-1.', hint: 'Laptop → Services → Wireless profile; then Cable tool → laptop Wi-Fi → AP-1 radio0.', check: (c) => { const cab = c.doc.cables.find((x) => [x.a.device, x.b.device].includes('lap') && [x.a.device, x.b.device].includes('ap')); if (!cab) return no('the laptop is not connected to AP-1'); const st = cableStatus(c.doc, cab); return st.state === 'up' || st.state === 'degraded' || no(st.issues[0]?.message ?? 'not associated'); } },
+      { id: 'dhcp', text: 'The laptop gets an address from R1 and pings 10.30.0.1.', hint: 'Laptop Terminal → ipconfig /renew → ping 10.30.0.1', check: (c) => { const ip = c.i('lap', 'Wi-Fi')?.ip; return all((!!ip && ip.startsWith('10.30.0.')) || no(`the laptop has ${ip ?? 'no address'}`), c.ping('lap', '10.30.0.1')); } },
+    ],
+  },
+];
+WORKBOOKS.push(...MORE);
+
+const CATEGORY: Record<string, LabCategory> = {
+  'basic-switch': 'Getting started',
+  'vlans-trunking': 'Switching',
+  stp: 'Switching',
+  etherchannel: 'Switching',
+  'vtp-dtp': 'Switching',
+  'router-on-a-stick': 'Routing',
+  'l3-switch': 'Routing',
+  'static-routing': 'Routing',
+  ospf: 'Routing',
+  eigrp: 'Routing',
+  fhrp: 'Routing',
+  'port-security': 'Security',
+  'dhcp-snooping': 'Security',
+  acl: 'Security',
+  'stp-guard': 'Security',
+  dhcp: 'Services',
+  nat: 'Services',
+};
+export const labCategory = (w: Workbook): LabCategory => w.category ?? CATEGORY[w.id] ?? 'Switching';
+export const LAB_CATEGORIES: LabCategory[] = ['Getting started', 'Switching', 'Routing', 'Enterprise builds', 'Security', 'SOC and monitoring', 'Services', 'Wireless'];
 
 export function gradeWorkbook(wb: Workbook, doc: LabDoc, log: { deviceId: string; text: string }[]): { id: string; ok: boolean; detail?: string }[] {
   const ctx = makeCtx(doc, log);

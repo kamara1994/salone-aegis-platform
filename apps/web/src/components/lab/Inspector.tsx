@@ -1030,18 +1030,26 @@ export function CableInspector({ cable, doc }: { cable: Cable; doc: LabDoc }) {
           Test link
         </Button>
         <Button size="sm" onClick={() => st.updateCable(cable.id, { disabled: !cable.disabled })}>
-          {cable.disabled ? 'Enable (plug in)' : 'Disable (unplug)'}
+          {cable.disabled ? 'Bring link up' : 'Take link down (keep cable)'}
         </Button>
         {cable.bend && (
           <Button size="sm" onClick={() => st.updateCable(cable.id, { bend: undefined })}>
             Straighten
           </Button>
         )}
-        <Button size="sm" variant="danger" onClick={() => st.removeCable(cable.id)}>
-          Remove cable
+        <Button
+          size="sm"
+          variant="danger"
+          data-testid="cable-disconnect"
+          onClick={() => {
+            st.removeCable(cable.id);
+            useUi.getState().toast({ tone: 'info', title: 'Cable disconnected', body: `${cable.a.port} ↔ ${cable.b.port}`, action: { label: 'Undo', onClick: () => useLab.getState().undo() } });
+          }}
+        >
+          Disconnect cable
         </Button>
       </div>
-      <p className="text-[11.5px] text-muted">To move an end to another port, select the cable and drag one of its square end handles onto a device. Drag the round handle to route it.</p>
+      <p className="text-[11.5px] text-muted">To move an end to another port, drag one of its square end handles onto a device. Drop an end on empty canvas to unplug it. Drag the round handle to route it. Shortcut: select a cable and press Delete, or use the Disconnect tool (X).</p>
       {cable.linkId && (
         <section>
           <h4 className="mb-1 font-semibold">Flows on this link</h4>

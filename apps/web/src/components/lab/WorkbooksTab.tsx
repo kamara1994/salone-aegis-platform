@@ -7,7 +7,7 @@ import { updateProgress } from '@/content/progress';
 import { Badge, Button, cx } from '@/components/ui';
 import { useLab } from '@/lab/store';
 import type { LabDoc } from '@/lab/types';
-import { gradeWorkbook, WORKBOOKS, type Level, type Workbook } from '@/lab/workbooks';
+import { gradeWorkbook, labCategory, LAB_CATEGORIES, WORKBOOKS, type LabCategory, type Workbook } from '@/lab/workbooks';
 
 export function startWorkbookById(id: string, fit?: () => void): boolean {
   const wb = WORKBOOKS.find((w) => w.id === id);
@@ -19,16 +19,19 @@ export function startWorkbookById(id: string, fit?: () => void): boolean {
 
 function Catalog() {
   const rf = useReactFlow();
-  const [level, setLevel] = useState<Level | 'all'>('all');
-  const list = WORKBOOKS.filter((w) => level === 'all' || w.level === level);
+  const [cat, setCat] = useState<LabCategory | 'all'>('all');
+  const list = WORKBOOKS.filter((w) => cat === 'all' || labCategory(w) === cat);
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 text-[12.5px]" data-testid="workbook-catalog">
       <div className="flex items-center gap-2">
         <p className="text-muted">Guided labs build their own topology and grade your work from the live network. Your current design is saved as a layout first.</p>
-        <select className="ml-auto h-8 rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]" value={level} onChange={(e) => setLevel(e.target.value as Level | 'all')} aria-label="Level">
-          <option value="all">All levels</option>
-          <option value="CCNA">CCNA</option>
-          <option value="CCNP">CCNP</option>
+        <select className="ml-auto h-8 rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]" value={cat} onChange={(e) => setCat(e.target.value as LabCategory | 'all')} aria-label="Lab type">
+          <option value="all">All lab types</option>
+          {LAB_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
         </select>
       </div>
       <ul className="grid min-h-0 flex-1 auto-rows-min gap-1.5 overflow-auto md:grid-cols-2 xl:grid-cols-3">

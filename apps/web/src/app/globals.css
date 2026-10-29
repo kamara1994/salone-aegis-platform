@@ -167,3 +167,7 @@ body {
 .xterm-viewport {
   background: transparent !important;
 }
+
+/* Lab: disconnect tool (Packet Tracer's delete tool) */
+[data-tool='disconnect'] .react-flow__edge { cursor: crosshair; }
+[data-tool='disconnect'] .react-flow__edge:hover .react-flow__edge-path { stroke: var(--down) !important; stroke-width: 4px !important; }

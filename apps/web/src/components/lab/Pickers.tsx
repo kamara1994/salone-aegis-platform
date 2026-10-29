@@ -85,7 +85,16 @@ export function PortPicker({ open, deviceId, from, ignoreCableId, title, onPick,
                         </td>
                         <td className="px-2 py-1 text-muted">{portTypeName(i.type)}</td>
                         <td className="px-2 py-1 font-mono text-[11.5px]">{i.speed === 'auto' ? `auto ${i.speeds.join('/')}` : `${i.speed}`}{i.duplex !== 'auto' ? ` ${i.duplex}` : ''}</td>
-                        <td className="px-2 py-1">{i.shutdown ? <span className="text-degraded">shutdown</span> : used ? <span>to {deviceById(doc, peer!.device)?.name} {peer!.port}</span> : <span className="text-healthy">free</span>}</td>
+                        <td className="px-2 py-1">{i.shutdown ? <span className="text-degraded">shutdown</span> : used ? (
+                            <span className="inline-flex flex-wrap items-center gap-1.5">
+                              to {deviceById(doc, peer!.device)?.name} {peer!.port}
+                              {i.type !== 'wireless' && (
+                                <button type="button" className="rounded border border-down/50 px-1 text-[11px] text-down hover:bg-down/10" onClick={() => useLab.getState().removeCable(used.id)} data-testid={`port-unplug-${i.name}`}>
+                                  Unplug
+                                </button>
+                              )}
+                            </span>
+                          ) : <span className="text-healthy">free</span>}</td>
                         <td id={`why-${i.name}`} className="px-2 py-1 text-[12px]">
                           {av.ok ? (
                             <span className="inline-flex items-center gap-1 text-healthy">

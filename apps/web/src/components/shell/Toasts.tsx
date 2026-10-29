@@ -15,6 +15,18 @@ export function Toasts() {
             <div className="min-w-0 flex-1">
               <p className="font-medium">{t.href ? <Link href={t.href} className="hover:underline" onClick={() => dismiss(t.id)}>{t.title}</Link> : t.title}</p>
               {t.body && <p className="mt-0.5 line-clamp-2 text-muted">{t.body}</p>}
+              {t.action && (
+                <button
+                  className="mt-1 rounded border border-line-strong px-2 py-0.5 text-[12px] font-medium hover:border-action"
+                  onClick={() => {
+                    t.action!.onClick();
+                    dismiss(t.id);
+                  }}
+                  data-testid="toast-action"
+                >
+                  {t.action.label}
+                </button>
+              )}
             </div>
             <button aria-label="Dismiss" onClick={() => dismiss(t.id)} className="text-faint hover:text-text">
               <X className="size-4" />

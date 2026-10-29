@@ -13,8 +13,16 @@ import { WORKBOOKS } from '@/lab/workbooks';
 
 /** Which guided labs belong to a track. */
 export function trackWorkbooks(t: TrackId) {
-  const sec = new Set(['port-security', 'dhcp-snooping', 'acl', 'nat', 'stp-guard']);
-  return WORKBOOKS.filter((w) => (t === 'ccna' && w.level === 'CCNA') || (t === 'ccnp' && (w.level === 'CCNP' || ['stp', 'etherchannel', 'ospf', 'fhrp'].includes(w.id))) || ((t === 'security-plus' || t === 'soc') && sec.has(w.id)) || (t === 'helpdesk' && ['basic-switch', 'vlans-trunking', 'dhcp', 'port-security'].includes(w.id)));
+  const sec = new Set(['port-security', 'dhcp-snooping', 'acl', 'nat', 'stp-guard', 'firewall-dmz']);
+  const ids: Partial<Record<TrackId, string[]>> = {
+    ccna: ['first-network', 'cable-types', 'subnet-plan', 'small-office', 'wireless-office'],
+    ccnp: ['stp', 'etherchannel', 'ospf', 'fhrp', 'enterprise-campus'],
+    soc: ['soc-investigate', 'firewall-dmz'],
+    'incident-response': ['soc-investigate'],
+    'security-plus': ['soc-investigate'],
+    helpdesk: ['first-network', 'basic-switch', 'vlans-trunking', 'dhcp', 'port-security', 'small-office', 'wireless-office'],
+  };
+  return WORKBOOKS.filter((w) => (t === 'ccna' && w.level === 'CCNA') || (t === 'ccnp' && w.level === 'CCNP') || ((t === 'security-plus' || t === 'soc') && sec.has(w.id)) || (ids[t] ?? []).includes(w.id));
 }
 
 function download(name: string, text: string) {

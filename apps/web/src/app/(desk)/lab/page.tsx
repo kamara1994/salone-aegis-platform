@@ -1,5 +1,6 @@
 'use client';
 
+import { LabPicker } from '@/components/lab/LabPicker';
 import { loadPacks } from '@/content/progress';
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -90,6 +91,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
   const [vmFor, setVmFor] = useState<string | null>(null);
   const [simOpen, setSimOpenRaw] = useState(false);
   const [tools, setTools] = useState<ToolKey | null>(null);
+  const [labsOpen, setLabsOpen] = useState(false);
   const setSimOpen = (v: boolean) => {
     setSimOpenRaw(v);
     if (v) setTools(null);
@@ -185,7 +187,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="lab-designer">
-      <Toolbar paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
+      <Toolbar onLabs={() => setLabsOpen(true)} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
           if (tools) setTools(null);
           else {
             setTools(useLab.getState().doc?.workbook ? 'labs' : 'audit');
@@ -272,6 +274,27 @@ function Designer({ lab }: { lab: MockLab | null }) {
       <LayoutsDialog open={layouts} onClose={() => setLayouts(false)} />
       <StructureDialog open={structure} onClose={() => setStructure(false)} />
       <ShortcutsDialog open={shortcuts} onClose={() => setShortcuts(false)} />
+      <LabPicker
+        open={labsOpen}
+        onClose={() => setLabsOpen(false)}
+        onStart={(id) => {
+          setLabsOpen(false);
+          startWorkbookById(id);
+          setTools('labs');
+          setSimOpenRaw(false);
+        }}
+        onChallenge={(id) => {
+          setLabsOpen(false);
+          const st = useLab.getState();
+          if (st.doc?.workbook) st.endWorkbook();
+          const cur = useLab.getState();
+          if (cur.doc?.challenge) return setTools('challenge');
+          const p = cur.doc ? prepareChallenge(cur.doc, id) : null;
+          if (p) cur.startChallenge({ title: p.def.title, brief: p.brief, fault: p.fault }, p.apply);
+          else cur.setError({ title: 'This ticket needs a design with a PC on a switch. Reset to the built-in lab and try again.', issues: [], tone: 'error' });
+          setTools('challenge');
+        }}
+      />
       <NewCableDialog open={!!newCable} onClose={() => setNewCable(null)} initial={newCable ?? undefined} />
       <ReplaceCableDialog cableId={replace} onClose={() => setReplace(null)} />
       {vmDevice && <VmDialog device={vmDevice} open={!!vmDevice} onClose={() => setVmFor(null)} />}

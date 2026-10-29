@@ -29,6 +29,12 @@ export interface Progress {
   notes: Record<string, string>;
   mode: 'watch' | 'guided' | 'independent';
   level: 'beginner' | 'advanced';
+  /** Topic catalog: chosen teaching level and the end-of-topic exam result */
+  topics?: Record<string, { level?: 'simple' | 'technical' | 'advanced'; score?: number; total?: number; at: string }>;
+  /** Timed exams taken */
+  exams?: { course: string; score: number; total: number; minutes: number; at: string }[];
+  /** Preferred teaching level for new topics */
+  teach?: 'simple' | 'technical' | 'advanced';
 }
 
 const empty = (): Progress => ({ version: 1, lessons: {}, bookmarks: [], games: [], notes: {}, mode: 'guided', level: 'beginner' });

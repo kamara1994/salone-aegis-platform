@@ -1,7 +1,7 @@
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
-import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Image as ImageIcon, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote, Search } from 'lucide-react';
+import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Image as ImageIcon, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote, Search, Scissors, FlaskConical } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { useLab, type LabBackground } from '@/lab/store';
 import { findDevices } from '@/lab/find';
@@ -36,7 +36,7 @@ const BACKGROUNDS: Array<{ key: LabBackground; name: string; detail: string; ima
   { key: 'global', name: 'Global network', detail: 'Cloud and WAN topology', image: '/lab/backgrounds/global-network.png' },
 ];
 
-export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, onShortcuts, onNewCable, toolsOpen, onTools }: { paletteOpen: boolean; setPaletteOpen: (v: boolean) => void; onLayouts: () => void; onStructure: () => void; onShortcuts: () => void; onNewCable: () => void; toolsOpen: boolean; onTools: () => void }) {
+export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStructure, onShortcuts, onNewCable, toolsOpen, onTools }: { onLabs: () => void; paletteOpen: boolean; setPaletteOpen: (v: boolean) => void; onLayouts: () => void; onStructure: () => void; onShortcuts: () => void; onNewCable: () => void; toolsOpen: boolean; onTools: () => void }) {
   const s = useLab();
   const rf = useReactFlow();
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[]; title: string } | null>(null);
@@ -61,6 +61,9 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
       <TB label={paletteOpen ? 'Hide device library' : 'Show device library'} onClick={() => setPaletteOpen(!paletteOpen)}>
         {paletteOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
       </TB>
+      <button type="button" onClick={onLabs} className="inline-flex h-8 items-center gap-1.5 rounded-[5px] bg-action px-2.5 text-[12.5px] font-medium text-action-ink hover:brightness-110" data-testid="tool-labs" title="Pick a lab: VLANs, enterprise builds, SOC, routing…">
+        <FlaskConical className="size-4" /> Labs
+      </button>
       <Sep />
       <TB label="Select" kbd="V" active={s.tool === 'select'} onClick={() => s.setTool('select')} testid="tool-select">
         <MousePointer2 className="size-4" /> <span className="hidden lg:inline">Select</span>
@@ -69,6 +72,9 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
         <Cable className="size-4" /> <span className="hidden lg:inline">Cable</span>
       </TB>
       {s.tool === 'cable' && <CableTypeSelect value={s.cableType} onChange={s.setCableType} id="toolbar-cable-type" />}
+ <TB label="Disconnect cables" kbd="X" active={s.tool === 'disconnect'} onClick={() => s.setTool(s.tool === 'disconnect' ? 'select' : 'disconnect')} testid="tool-disconnect">
+        <Scissors className="size-4" /> <span className="hidden lg:inline">Disconnect</span>
+      </TB>
       <TB label="New cable form" className="max-sm:hidden" onClick={onNewCable} testid="tool-new-cable">
         <Plug className="size-4" />
       </TB>

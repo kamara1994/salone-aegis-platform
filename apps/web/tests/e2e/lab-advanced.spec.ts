@@ -177,7 +177,7 @@ test('learn page: honest AI state in mock mode, subnetting drill works offline, 
   await page.getByTestId('subnet-submit').click();
   await expect(page.getByTestId('subnet-verdict')).toBeVisible();
   await expect(page.getByTestId('subnet-stats')).toContainText('/1 right');
-  await page.getByRole('tab', { name: /Lab drills/ }).click();
+  await page.getByRole('tab', { name: /Tracks and progress/ }).click();
   await expect(page.getByTestId('learn-workbooks')).toContainText('Port security');
   await page.getByTestId('drill-shut-uplink').click();
   await expect(page.getByTestId('challenge-active')).toContainText('Ticket');

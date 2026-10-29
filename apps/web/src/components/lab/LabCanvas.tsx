@@ -9,7 +9,7 @@ import { DEVICE_H, DEVICE_W } from '@/lab/inventory';
 import { GRID, useLab } from '@/lab/store';
 import type { CableEnd, CableType, Device, LabDoc } from '@/lab/types';
 import { cableOnPort, cableStatus, deviceById, otherEnd, suggestCableType } from '@/lab/validate';
-import { useLive } from '@/state/ui';
+import { useLive, useUi } from '@/state/ui';
 import { CableEdge, DeviceNode, GroupFrame, NoteNode, SiteFrame, type CableEdgeData, type CompareMark, type DeviceNodeData, type NoteNodeData } from './CanvasParts';
 import { controlPlane } from '@/lab/protocols';
 import { PacketLayer } from './PacketLayer';
@@ -56,6 +56,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [picker, setPicker] = useState<Picker | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
+  const disconnectRef = useRef<((id: string) => void) | null>(null);
   // Mini map: off on small screens by default, remembered per browser.
   const [miniMap, setMiniMapState] = useState(true);
   useEffect(() => {
@@ -175,6 +176,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
         const el = document.elementsFromPoint(ev.clientX, ev.clientY).map((x) => (x as HTMLElement).closest?.('[data-device-id]')).find(Boolean) as HTMLElement | undefined;
         const target = el?.dataset.deviceId;
         if (target) setPicker({ deviceId: target, stage: 'reconnect', cableId, end, from: end === 'a' ? c.b : c.a });
+        else if ((document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('.react-flow__pane')) disconnectRef.current?.(cableId); // dropped on empty canvas: unplug
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
@@ -344,6 +346,22 @@ function Inner({ actions }: { actions: CanvasActions }) {
       else startCable(node.id);
       return;
     }
+    if (st.tool === 'disconnect') {
+      const d = deviceById(doc, node.id);
+      const r = (_e.currentTarget as HTMLElement).getBoundingClientRect();
+      const mine = doc.cables.filter((c) => c.a.device === node.id || c.b.device === node.id);
+      setMenu({
+        x: r.right,
+        y: r.top,
+        title: mine.length ? `Unplug a cable from ${d?.name}` : `${d?.name} has no cables`,
+        items: mine.map((c) => {
+          const me = c.a.device === node.id ? c.a : c.b;
+          const far = c.a.device === node.id ? c.b : c.a;
+          return { label: `${me.port} → ${deviceById(doc, far.device)?.name ?? '?'} ${far.port}`, danger: true, onSelect: () => disconnect(c.id) };
+        }),
+      });
+      return;
+    }
     if (st.tool === 'simulate') {
       if (!st.simSrc || (st.simSrc && st.simDst)) st.setView({ simSrc: node.id, simDst: '' });
       else st.setView({ simDst: node.id });
@@ -365,6 +383,14 @@ function Inner({ actions }: { actions: CanvasActions }) {
         { label: 'Open VM console', disabled: !hasConsole || !d.consoles.some((c) => c === 'rdp' || c === 'vnc'), onSelect: () => actions.openVm(d.id) },
         { label: 'Ping from here…', onSelect: () => actions.pingFrom(d.id) },
         { label: 'Start a cable here', hint: 'C', onSelect: () => startCable(d.id) },
+        ...doc.cables
+          .filter((c) => c.a.device === d.id || c.b.device === d.id)
+          .slice(0, 10)
+          .map((c) => {
+            const mine = c.a.device === d.id ? c.a : c.b;
+            const far = c.a.device === d.id ? c.b : c.a;
+            return { label: `Disconnect ${mine.port} → ${deviceById(doc, far.device)?.name ?? '?'} ${far.port}`, danger: true, onSelect: () => disconnect(c.id) };
+          }),
         { separator: true, label: '', onSelect: () => {} },
         { label: d.power === 'stopped' ? 'Power on' : 'Power off', onSelect: () => (d.origin === 'design' ? st.setPower(d.id, d.power === 'stopped' ? 'running' : 'stopped') : st.openInspector('actions')) },
         { label: 'Duplicate', hint: 'Ctrl+D', onSelect: () => st.duplicate([d.id]) },
@@ -373,6 +399,17 @@ function Inner({ actions }: { actions: CanvasActions }) {
       ],
     });
   };
+
+  /** Unplug a cable (Packet Tracer's delete tool), with Undo in a toast. */
+  const disconnect = (cableId: string) => {
+    const st = useLab.getState();
+    const c = st.doc?.cables.find((k) => k.id === cableId);
+    if (!c) return;
+    const label = `${deviceById(st.doc!, c.a.device)?.name} ${c.a.port} ↔ ${deviceById(st.doc!, c.b.device)?.name} ${c.b.port}`;
+    st.removeCable(cableId);
+    useUi.getState().toast({ tone: 'info', title: 'Cable disconnected', body: label, action: { label: 'Undo', onClick: () => useLab.getState().undo() } });
+  };
+  disconnectRef.current = disconnect;
 
   const cableMenu = (cableId: string, x: number, y: number) => {
     const st = useLab.getState();
@@ -385,11 +422,11 @@ function Inner({ actions }: { actions: CanvasActions }) {
       items: [
         { label: 'Inspect', onSelect: () => st.openInspector('cable') },
         { label: 'Replace cable…', onSelect: () => actions.replaceCable(cableId) },
-        { label: c.disabled ? 'Enable (plug in)' : 'Disable (unplug)', onSelect: () => st.updateCable(cableId, { disabled: !c.disabled }) },
+        { label: c.disabled ? 'Bring link up (keep cable)' : 'Take link down (keep cable)', onSelect: () => st.updateCable(cableId, { disabled: !c.disabled }) },
         { label: 'Test link', onSelect: () => { const r = linkTestSummary(useLab.getState().doc!, cableId); st.setError({ title: r.title, issues: r.issues, tone: r.ok ? 'ok' : 'error' }); } },
         { label: 'Straighten', disabled: !c.bend, onSelect: () => st.updateCable(cableId, { bend: undefined }) },
         { separator: true, label: '', onSelect: () => {} },
-        { label: 'Remove', danger: true, hint: 'Del', onSelect: () => st.removeCable(cableId) },
+        { label: 'Disconnect cable', danger: true, hint: 'Del', onSelect: () => disconnect(cableId) },
       ],
     });
   };
@@ -442,7 +479,8 @@ function Inner({ actions }: { actions: CanvasActions }) {
         if (noteSelRef.current && !st.selection.devices.length && !st.selection.cables.length) {
           st.removeAnnotation(noteSelRef.current);
           setNoteSel(null);
-        } else st.deleteSelection();
+        } else if (st.selection.cables.length === 1 && !st.selection.devices.length) disconnectRef.current?.(st.selection.cables[0]);
+        else st.deleteSelection();
       } else if (e.key === 'Escape') {
         setPicker(null);
         setMenu(null);
@@ -456,6 +494,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
         st.nudge(e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0, e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0);
       } else if (!mod && k === 'c') st.setTool(st.tool === 'cable' ? 'select' : 'cable');
       else if (!mod && k === 'v') st.setTool('select');
+      else if (!mod && k === 'x') st.setTool(st.tool === 'disconnect' ? 'select' : 'disconnect');
       else if (!mod && k === 's') st.setTool(st.tool === 'simulate' ? 'select' : 'simulate');
       else if (!mod && k === 'f') rf.fitView({ padding: 0.1 });
       else if (!mod && k === 'l') st.setView({ portLabels: !st.portLabels });
@@ -510,7 +549,10 @@ function Inner({ actions }: { actions: CanvasActions }) {
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         onNodeDoubleClick={(_, n) => n.type === 'device' && !n.id.startsWith('ghost:') && useLab.getState().openInspector('overview')}
-        onEdgeDoubleClick={() => useLab.getState().openInspector('cable')}
+        onEdgeDoubleClick={() => useLab.getState().tool !== 'disconnect' && useLab.getState().openInspector('cable')}
+        onEdgeClick={(_e, edge) => {
+          if (useLab.getState().tool === 'disconnect' && !edge.id.startsWith('ghost:')) disconnect(edge.id);
+        }}
         onNodeDragStart={(_, __, ns) => {
           dragStart.current = Object.fromEntries(ns.map((n) => [n.id, { ...n.position }]));
         }}
@@ -598,6 +640,11 @@ function Inner({ actions }: { actions: CanvasActions }) {
       {s.tool === 'cable' && (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-action/50 bg-pane px-3 py-1 text-[12.5px] shadow" role="status" data-testid="cable-hint">
           {s.pendingEnd ? `Cable from ${deviceById(doc, s.pendingEnd.device)?.name} ${s.pendingEnd.port}: click the second device. Esc cancels.` : 'Cable tool: click a device (or drag from one device to another). Esc to stop.'}
+        </div>
+      )}
+      {s.tool === 'disconnect' && (
+        <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-down/60 bg-pane px-3 py-1 text-[12.5px] shadow" role="status" data-testid="disconnect-hint">
+          Disconnect: click a cable to unplug it, or click a device to choose a port. Esc to stop.
         </div>
       )}
       {s.tool === 'simulate' && (

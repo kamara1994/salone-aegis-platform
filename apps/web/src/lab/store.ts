@@ -12,7 +12,7 @@ import type { PacketTrace } from './simulate';
 import { cableStatus, checkConnection, deviceById } from './validate';
 import type { Annotation, Cable, CableEnd, CableIssue, CableType, Device, FirewallRule, Goal, Iface, LabDoc, LabSite, Rack, Route, Subnet, Vlan } from './types';
 
-export type Tool = 'select' | 'cable' | 'simulate';
+export type Tool = 'select' | 'cable' | 'disconnect' | 'simulate';
 export type LabBackground = 'grid' | 'blueprint' | 'datacenter' | 'soc' | 'global' | 'custom';
 export interface Selection {
   devices: string[];

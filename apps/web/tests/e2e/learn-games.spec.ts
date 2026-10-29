@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('lesson reader: next/back, keyboard, quiz, trainer, bookmark survives reload, open in lab', async ({ page }) => {
-  await page.goto('/learn');
+  await page.goto('/learn?tab=tracks');
   await expect(page.getByTestId('lesson-library')).toBeVisible();
   await page.getByTestId('lesson-search').fill('802.1Q');
   await expect(page.getByTestId('lesson-vlans')).toBeVisible();
@@ -44,7 +44,7 @@ test('lesson reader: next/back, keyboard, quiz, trainer, bookmark survives reloa
   await page.getByTestId('lesson-bookmark').click();
   await page.reload();
   await expect(page.getByTestId('lesson-section-title')).toHaveText('Practice quiz');
-  await page.goto('/learn');
+  await page.goto('/learn?tab=tracks');
   await expect(page.getByTestId('bookmarks')).toContainText('Practice quiz');
   await expect(page.getByTestId('lesson-vlans')).toContainText('%');
 
@@ -82,7 +82,7 @@ test('content pack import adds a lesson; invalid packs are rejected', async ({ p
   await expect(page.getByTestId('packs')).toContainText('Not imported');
   await page.getByTestId('pack-file').setInputFiles(good);
   await expect(page.getByTestId('packs')).toContainText('Installed "Test pack"');
-  await page.goto('/learn');
+  await page.goto('/learn?tab=tracks');
   await page.getByTestId('lesson-search').fill('Imported DNS');
   await page.getByTestId('lesson-pack-lesson').click();
   await expect(page.getByTestId('lesson-reader')).toContainText('DNS turns names into addresses.');

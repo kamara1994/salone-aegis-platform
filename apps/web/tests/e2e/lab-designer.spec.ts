@@ -200,7 +200,7 @@ test('cable context menu: test link, disable, and compare with baseline', async 
   await page.getByTestId('lab-error').getByRole('button', { name: 'Dismiss' }).click();
 
   await page.mouse.click(mid.x, mid.y, { button: 'right' });
-  await page.getByRole('menuitem', { name: 'Disable (unplug)' }).click();
+  await page.getByRole('menuitem', { name: 'Take link down (keep cable)' }).click();
   await page.getByTestId('tool-compare').click();
   await expect(page.getByTestId('diff-panel')).toContainText('disabled');
 });

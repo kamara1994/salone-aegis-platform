@@ -1,7 +1,10 @@
 'use client';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { BookOpen, Bot, Calculator, Check, FlaskConical, Map as MapIcon, MessagesSquare, X } from 'lucide-react';
+import { BookOpen, Bot, Check, Image as ImageIcon, Map as MapIcon, MessagesSquare, Timer, X } from 'lucide-react';
+import { ExamsView, type ExamsSub } from '@/components/learn/Exams';
+import { TopicsView } from '@/components/learn/Topics';
+import { VisualsView } from '@/components/learn/Visuals';
 import { LessonLibrary, LessonReader } from '@/components/learn/Lessons';
 import { TracksView } from '@/components/learn/Tracks';
 import Link from 'next/link';
@@ -13,7 +16,6 @@ import type { LabDoc } from '@/lab/types';
 import { LearnError, learnApi, TRACKS, type AnswerResult, type InterviewSession, type Question, type QuizMode, type Track } from '@/learn/api';
 import { checkDrill, makeDrill, type Drill, type DrillKind } from '@/learn/subnet';
 
-type Tab = 'lessons' | 'tracks' | 'practice' | 'interview' | 'subnetting' | 'labs';
 const sel = 'h-9 rounded-[5px] border border-line-strong bg-ink px-2 text-[13px]';
 
 function readJson<T>(key: string): T | null {
@@ -471,24 +473,46 @@ function LabDrills() {
   );
 }
 
+type LearnTab = 'images' | 'topics' | 'exams' | 'tracks';
+
 export default function LearnPage() {
-  const [tab, setTab] = useState<Tab>('lessons');
+  const [tab, setTab] = useState<LearnTab>('topics');
+  const [examSub, setExamSub] = useState<ExamsSub | undefined>();
   const [lesson, setLesson] = useState<{ id: string; section?: string } | null>(null);
+  const [topic, setTopic] = useState<string | undefined>();
   const [practiceTrack, setPracticeTrack] = useState<Track | undefined>();
-  // Deep links: /learn?lesson=vlans&section=trunk, /learn?tab=subnetting
+  // Deep links: /learn?topic=vlans, /learn?lesson=vlans&section=trunk, /learn?tab=exams&sub=flashcards
+  // (older links ?tab=practice|interview|subnetting|labs|lessons still work)
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const l = p.get('lesson');
-    const t = p.get('tab') as Tab | null;
+    const tp = p.get('topic');
+    const t = p.get('tab');
     if (l) {
-      setTab('lessons');
+      setTab('topics');
       setLesson({ id: l, section: p.get('section') ?? undefined });
-    } else if (t) setTab(t);
+    } else if (tp) {
+      setTab('topics');
+      setTopic(tp);
+    } else if (t === 'practice' || t === 'interview' || t === 'subnetting') {
+      setTab('exams');
+      setExamSub(t === 'practice' ? 'ai' : t);
+    } else if (t === 'exams') {
+      setTab('exams');
+      setExamSub((p.get('sub') as ExamsSub | null) ?? undefined);
+    } else if (t === 'labs' || t === 'lessons' || t === 'tracks') setTab('tracks');
+    else if (t === 'images') setTab('images');
   }, []);
   const openLesson = (id: string, section?: string) => {
-    setTab('lessons');
+    setTab('topics');
     setLesson({ id, section });
     window.history.replaceState(null, '', `/learn?lesson=${id}${section ? `&section=${section}` : ''}`);
+  };
+  const openTopic = (id: string) => {
+    setLesson(null);
+    setTab('topics');
+    setTopic(id);
+    window.history.replaceState(null, '', `/learn?topic=${id}`);
   };
   const progress = useQuery({ queryKey: ['learn-progress'], queryFn: learnApi.progress, retry: false });
   const weak = useMemo(() => progress.data?.tracks.flatMap((t) => t.weak_objectives.map((o) => `${TRACKS.find((x) => x.key === t.track)?.label ?? t.track}: ${o}`)).slice(0, 6) ?? [], [progress.data]);
@@ -497,7 +521,7 @@ export default function LearnPage() {
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <h1 className="text-[18px] font-semibold">Learn</h1>
-          <p className="max-w-3xl text-[13px] text-muted">Interactive lessons, certification tracks, AI practice and mock interviews, subnetting drills, and guided labs. Progress stays on this computer.</p>
+          <p className="max-w-3xl text-[13px] text-muted">Pick a course and a topic, choose how you want it explained, test yourself, then practise it in the Lab. Progress stays on this computer.</p>
         </div>
         {progress.data && (
           <div className="ml-auto flex flex-wrap gap-2 text-[12px]" data-testid="learn-progress">
@@ -510,24 +534,55 @@ export default function LearnPage() {
         )}
       </div>
       {weak.length > 0 && <p className="text-[12.5px] text-muted">Review next: {weak.join(' · ')}</p>}
-      <Tabs<Tab>
+      <Tabs<LearnTab>
         value={tab}
-        onChange={setTab}
+        onChange={(k) => {
+          setTab(k);
+          if (k !== 'topics') setLesson(null);
+        }}
         tabs={[
-          { key: 'lessons', label: <span className="flex items-center gap-1.5"><BookOpen className="size-4" /> Lessons</span> },
-          { key: 'tracks', label: <span className="flex items-center gap-1.5"><MapIcon className="size-4" /> Tracks</span> },
-          { key: 'practice', label: <span className="flex items-center gap-1.5"><Bot className="size-4" /> Practice</span> },
-          { key: 'interview', label: <span className="flex items-center gap-1.5"><MessagesSquare className="size-4" /> Interview</span> },
-          { key: 'subnetting', label: <span className="flex items-center gap-1.5"><Calculator className="size-4" /> Subnetting</span> },
-          { key: 'labs', label: <span className="flex items-center gap-1.5"><FlaskConical className="size-4" /> Lab drills</span> },
+          { key: 'images', label: <span className="flex items-center gap-1.5"><ImageIcon className="size-4" /> Learn with images</span> },
+          { key: 'topics', label: <span className="flex items-center gap-1.5"><BookOpen className="size-4" /> Topics</span> },
+          { key: 'exams', label: <span className="flex items-center gap-1.5"><Timer className="size-4" /> Exams and flashcards</span> },
+          { key: 'tracks', label: <span className="flex items-center gap-1.5"><MapIcon className="size-4" /> Tracks and progress</span> },
         ]}
       />
-      {tab === 'lessons' && (lesson ? <LessonReader key={`${lesson.id}-${lesson.section ?? ''}`} lessonId={lesson.id} initialSection={lesson.section} onClose={() => { setLesson(null); window.history.replaceState(null, '', '/learn'); }} /> : <LessonLibrary onOpen={openLesson} />)}
-      {tab === 'tracks' && <TracksView onLesson={(id) => openLesson(id)} onPractice={(t) => { setPracticeTrack(t as Track); setTab('practice'); }} />}
-      {tab === 'practice' && <Practice key={practiceTrack ?? 'default'} initialTrack={practiceTrack} />}
-      {tab === 'interview' && <Interview />}
-      {tab === 'subnetting' && <Subnetting />}
-      {tab === 'labs' && <LabDrills />}
+      {tab === 'images' && <VisualsView onTopic={openTopic} />}
+      {tab === 'topics' &&
+        (lesson ? (
+          <LessonReader
+            key={`${lesson.id}-${lesson.section ?? ''}`}
+            lessonId={lesson.id}
+            initialSection={lesson.section}
+            onClose={() => {
+              setLesson(null);
+              window.history.replaceState(null, '', topic ? `/learn?topic=${topic}` : '/learn');
+            }}
+          />
+        ) : (
+          <TopicsView key={topic ?? 'none'} initialTopic={topic} onOpenLesson={(id) => openLesson(id)} />
+        ))}
+      {tab === 'exams' && <ExamsView key={examSub ?? 'default'} initial={examSub} onStudy={openTopic} ai={<Practice key={practiceTrack ?? 'default'} initialTrack={practiceTrack} />} subnetting={<Subnetting />} interview={<Interview />} />}
+      {tab === 'tracks' && (
+        <div className="space-y-6">
+          <TracksView
+            onLesson={(id) => openLesson(id)}
+            onPractice={(t) => {
+              setPracticeTrack(t as Track);
+              setExamSub('ai');
+              setTab('exams');
+            }}
+          />
+          <section className="space-y-2">
+            <h2 className="text-[16px] font-semibold">Interactive lessons</h2>
+            <LessonLibrary onOpen={openLesson} />
+          </section>
+          <section className="space-y-2">
+            <h2 className="text-[16px] font-semibold">Guided labs and troubleshooting drills</h2>
+            <LabDrills />
+          </section>
+        </div>
+      )}
     </div>
   );
 }

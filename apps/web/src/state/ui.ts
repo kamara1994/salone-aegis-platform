@@ -8,6 +8,8 @@ export interface Toast {
   title: string;
   body?: string;
   href?: string;
+  /** one button in the toast, e.g. Undo */
+  action?: { label: string; onClick: () => void };
 }
 
 const read = <T,>(k: string, d: T): T => {
