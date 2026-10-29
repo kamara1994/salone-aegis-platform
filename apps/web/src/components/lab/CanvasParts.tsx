@@ -213,6 +213,15 @@ const STYLE: Record<Cable['type'], { color: string; width: number; dash?: string
 export const CABLE_STYLE = STYLE;
 
 const LIGHT: Record<CableStatus['state'], string> = { up: '#2fb36a', degraded: '#e5a23a', down: '#e5484d', disabled: '#6b7c8f' };
+const CABLE_ASSET: Partial<Record<Cable['type'], string>> = {
+  straight: '/lab/generated/cables/cat6-ethernet-blue.png',
+  crossover: '/lab/generated/cables/cat6-ethernet-blue.png',
+  access: '/lab/generated/cables/cat6-ethernet-blue.png',
+  trunk: '/lab/generated/cables/cat6-ethernet-blue.png',
+  fiber: '/lab/generated/cables/fiber-lc-aqua.png',
+  console: '/lab/generated/cables/console-rollover-rj45-db9.png',
+  serial: '/lab/generated/cables/console-rollover-rj45-db9.png',
+};
 
 function center(n: ReturnType<typeof useInternalNode>) {
   const w = n?.measured.width ?? DEVICE_W;
@@ -271,6 +280,7 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
   const lightB = blk.includes('b') ? LIGHT.degraded : light;
   const cond = cable.cond?.enabled ? cable.cond : undefined;
   const live = !!flow && flow.bytes_per_s > 0 && status.state !== 'down' && status.state !== 'disabled';
+  const [hover, setHover] = useState(false);
   const dur = flow ? Math.max(0.6, 2.6 - Math.log10(Math.max(10, flow.bytes_per_s)) * 0.3) : 2;
   const title = `${CABLE_LABEL[cable.type]}${cable.label ? ` (${cable.label})` : ''}: ${status.state}${status.negotiated ? `, ${status.negotiated}` : ''}${status.issues.filter((i) => i.severity !== 'info').map((i) => `\n- ${i.message}`).join('')}`;
   return (
@@ -278,6 +288,7 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
       {(selected || onPath) && <path d={path} fill="none" stroke="var(--action)" strokeWidth={st.width + 7} opacity={selected ? 0.35 : 0.2} />}
       {compare && <path d={path} fill="none" stroke={compare === 'added' ? 'var(--healthy)' : compare === 'changed' ? 'var(--degraded)' : 'var(--down)'} strokeWidth={st.width + 6} opacity={0.35} />}
       <BaseEdge id={id} path={path} interactionWidth={16} style={{ stroke: color, strokeWidth: st.width, strokeDasharray: ghost ? '4 4' : err ? '6 4' : st.dash, opacity: status.state === 'disabled' ? 0.45 : 1 }} />
+      <path d={path} fill="none" stroke="transparent" strokeWidth={18} className="nodrag nopan" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} />
       <title>{title}</title>
       {live && (
         <g aria-hidden>
@@ -298,6 +309,20 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
       <circle cx={lb.x} cy={lb.y} r={3.6} fill={lightB} stroke="var(--pane)" strokeWidth={1} />
       {data.channel && <ellipse cx={mid.x} cy={mid.y} rx={9} ry={14} fill="none" stroke={data.channel.ok ? 'var(--action)' : 'var(--down)'} strokeWidth={1.6} transform={`rotate(${(Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI} ${mid.x} ${mid.y})`} />}
       <EdgeLabelRenderer>
+        {hover && !ghost && (
+          <div className="nodrag nopan pointer-events-none absolute z-50 w-[260px] -translate-x-1/2 -translate-y-full rounded-lg border border-line-strong bg-pane p-2 text-left text-[11px] shadow-xl" style={{ transform: `translate(-50%, -100%) translate(${mid.x}px, ${mid.y - 12}px)` }} data-testid="cable-hover-card">
+            <div className="mb-1 flex items-center gap-2">
+              {CABLE_ASSET[cable.type] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={CABLE_ASSET[cable.type]} alt="" className="h-10 w-14 rounded bg-white/95 object-contain" />
+              ) : <span className="h-10 w-14 rounded bg-pane-2" />}
+              <div><b className="block">{CABLE_LABEL[cable.type]}</b><span className="text-muted">{status.state}{status.negotiated ? ` · ${status.negotiated}` : ''}</span></div>
+            </div>
+            <div className="font-mono text-[10px] text-text/90">{cable.a.port} → {cable.b.port}</div>
+            <div className="mt-1 text-muted">{cable.lengthM ? `${cable.lengthM} m` : 'Length not set'}{cable.label ? ` · ${cable.label}` : ''}</div>
+            {status.issues.filter((i) => i.severity !== 'info').map((i) => <div key={i.code} className={i.severity === 'error' ? 'text-down' : 'text-degraded'}>{i.message}</div>)}
+          </div>
+        )}
         {portLabels && (
           <>
             <div className="nodrag nopan pointer-events-none absolute rounded bg-pane/90 px-1 font-mono text-[9.5px] text-muted" style={{ transform: `translate(-50%, -50%) translate(${ta.x}px, ${ta.y}px)` }} data-testid={`port-label-${cable.a.port}`}>
