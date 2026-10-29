@@ -6,7 +6,7 @@ import { DEFAULT_MODEL, KIND_LABEL } from '@/lab/catalog';
 import { diffDocs } from '@/lab/diff';
 import { DEVICE_H, DEVICE_W } from '@/lab/inventory';
 import { GRID, useLab } from '@/lab/store';
-import type { CableEnd, Device, LabDoc } from '@/lab/types';
+import type { CableEnd, CableType, Device, LabDoc } from '@/lab/types';
 import { cableOnPort, cableStatus, deviceById, otherEnd, suggestCableType } from '@/lab/validate';
 import { useLive } from '@/state/ui';
 import { CableEdge, DeviceNode, GroupFrame, NoteNode, SiteFrame, type CableEdgeData, type CompareMark, type DeviceNodeData, type NoteNodeData } from './CanvasParts';
@@ -438,15 +438,21 @@ function Inner({ actions }: { actions: CanvasActions }) {
       ref={wrap}
       className="relative h-full w-full"
       onDragOver={(e) => {
-        if (e.dataTransfer.types.includes('application/aegis-model')) {
+        if (e.dataTransfer.types.includes('application/aegis-model') || e.dataTransfer.types.includes('application/aegis-cable')) {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'copy';
         }
       }}
       onDrop={(e) => {
         const model = e.dataTransfer.getData('application/aegis-model');
-        if (!model) return;
+        const cable = e.dataTransfer.getData('application/aegis-cable') as CableType | '';
+        if (!model && !cable) return;
         e.preventDefault();
+        if (cable) {
+          useLab.getState().setCableType(cable);
+          useLab.getState().setTool('cable');
+          return;
+        }
         const p = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY });
         useLab.getState().addDevice(model, p.x, p.y);
       }}

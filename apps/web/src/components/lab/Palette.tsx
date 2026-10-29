@@ -8,6 +8,7 @@ import { CATALOG, KIND_LABEL } from '@/lab/catalog';
 import { useLab } from '@/lab/store';
 import type { CableType, DeviceKind } from '@/lab/types';
 import { CABLE_STYLE } from './CanvasParts';
+import { DevicePicture, portSummary } from './DeviceHoverCard';
 
 const ORDER: DeviceKind[] = ['router', 'switch', 'firewall', 'server', 'vm', 'pc', 'laptop', 'ap', 'cloud', 'iot'];
 
@@ -51,14 +52,24 @@ function CableLibrary() {
             <li key={c.type}>
               <button
                 type="button"
+                draggable
                 aria-pressed={on}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/aegis-cable', c.type);
+                  e.dataTransfer.effectAllowed = 'copy';
+                }}
                 onClick={() => (on ? useLab.getState().setTool('select') : pick(c.type))}
                 title={`${c.name}: ${c.use} Connector: ${c.connector}. Max: ${c.limit}.`}
                 data-testid={`cable-card-${c.type}`}
-                className={cx('flex w-full flex-col items-center rounded-[6px] border px-1 py-1.5 text-center', on ? 'border-action bg-action/15' : 'border-line bg-pane-2/40 hover:border-action')}
+                className={cx('group relative flex w-full cursor-grab flex-col items-center rounded-[6px] border px-1 py-1.5 text-center active:cursor-grabbing', on ? 'border-action bg-action/15' : 'border-line bg-pane-2/40 hover:border-action')}
               >
                 <CableIcon type={c.type} />
                 <span className="mt-0.5 line-clamp-2 text-[10.5px] leading-tight">{c.name}</span>
+                <span className="pointer-events-none absolute left-full top-0 z-40 ml-2 hidden w-52 rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl group-hover:block">
+                  <b className="block text-[11px]">{c.name}</b>
+                  <span className="mt-1 block text-muted">{c.use}</span>
+                  <span className="mt-1 block font-mono text-faint">{c.connector} · {c.limit}</span>
+                </span>
               </button>
             </li>
           );
@@ -136,11 +147,17 @@ function DeviceLibrary() {
                   title={`${m.vendor} ${m.name}: ${m.description}`}
                   aria-label={`Add ${m.vendor} ${m.name} (${KIND_LABEL[m.kind]})`}
                   data-testid={`palette-${m.key}`}
-                  className="flex w-full cursor-grab flex-col items-center rounded-[6px] border border-line bg-pane-2/40 px-1 py-1.5 text-center hover:border-action focus-visible:border-action active:cursor-grabbing"
+                  className="group relative flex w-full cursor-grab flex-col items-center rounded-[6px] border border-line bg-pane-2/40 px-1 py-1.5 text-center hover:border-action focus-visible:border-action active:cursor-grabbing"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.image} alt="" className="pointer-events-none h-8 w-12 object-contain" draggable={false} />
+                  <DevicePicture model={m} className="pointer-events-none h-8 w-12 object-contain" />
                   <span className="mt-0.5 line-clamp-2 text-[10.5px] leading-tight">{m.name}</span>
+                  <span className="pointer-events-none absolute left-full top-0 z-40 ml-2 hidden w-64 rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl group-hover:block">
+                    <span className="mb-1 block h-28 overflow-hidden rounded bg-white/95"><DevicePicture model={m} className="h-full w-full object-contain" /></span>
+                    <b className="block text-[11px]">{m.vendor} {m.name}</b>
+                    <span className="mt-1 block text-muted">{m.description}</span>
+                    <span className="mt-1 block font-mono text-faint">Ports: {portSummary(m)}</span>
+                  </span>
                 </button>
               </li>
             ))}
