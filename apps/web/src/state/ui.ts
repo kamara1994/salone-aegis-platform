@@ -32,6 +32,8 @@ const write = (k: string, v: unknown) => {
 interface UiState {
   theme: Theme;
   clientId: string | 'all';
+  /** Certification focus chosen in the top bar ('all' = no focus) */
+  certId: string | 'all';
   paletteOpen: boolean;
   notificationsOpen: boolean;
   toasts: Toast[];
@@ -45,6 +47,7 @@ interface UiState {
   setActiveConsole(key: string): void;
   setTheme(t: Theme): void;
   setClient(id: string | 'all'): void;
+  setCert(id: string | 'all'): void;
   setPalette(open: boolean): void;
   setNotifications(open: boolean): void;
   toast(t: Omit<Toast, 'id'>): void;
@@ -56,6 +59,7 @@ interface UiState {
 export const useUi = create<UiState>((set, get) => ({
   theme: 'dark',
   clientId: 'all',
+  certId: 'all',
   paletteOpen: false,
   notificationsOpen: false,
   toasts: [],
@@ -83,6 +87,10 @@ export const useUi = create<UiState>((set, get) => ({
     write('aegis.client', clientId);
     set({ clientId });
   },
+  setCert(certId) {
+    write('aegis.cert', certId);
+    set({ certId });
+  },
   setPalette: (paletteOpen) => set({ paletteOpen }),
   setNotifications: (notificationsOpen) => set({ notificationsOpen }),
   toast(t) {
@@ -95,7 +103,7 @@ export const useUi = create<UiState>((set, get) => ({
   hydrate() {
     const theme = read<Theme>('aegis.theme', 'dark');
     document.documentElement.dataset.theme = theme;
-    set({ theme, clientId: read<string>('aegis.client', 'all') });
+    set({ theme, clientId: read<string>('aegis.client', 'all'), certId: read<string>('aegis.cert', 'all') });
   },
 }));
 

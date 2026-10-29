@@ -1,13 +1,15 @@
 'use client';
 
 import { Clock, ListChecks, Wrench } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { certById } from '@/content/certs';
+import { useUi } from '@/state/ui';
 import { Badge, cx, Dialog } from '@/components/ui';
 import { CHALLENGES } from '@/lab/challenges';
 import { useLab } from '@/lab/store';
 import { labCategory, LAB_CATEGORIES, WORKBOOKS, type LabCategory } from '@/lab/workbooks';
 
-type Cat = LabCategory | 'Troubleshooting tickets';
+type Cat = LabCategory | 'Troubleshooting tickets' | 'For your certification';
 const BLURB: Record<Cat, string> = {
   'Getting started': 'Cable devices, address them and ping. Start here if the lab is new to you.',
   Switching: 'VLANs, trunks, spanning tree, EtherChannel and VTP on Catalyst switches.',
@@ -18,18 +20,22 @@ const BLURB: Record<Cat, string> = {
   Services: 'DHCP, relay and NAT.',
   Wireless: 'Power an access point over PoE, set up WPA2 and join clients.',
   'Troubleshooting tickets': 'A hidden fault is injected into your current design. Read the ticket, find it and fix it.',
+  'For your certification': 'Labs picked for the certification you chose in the top bar, in a sensible study order.',
 };
 const LEVEL_TONE: Record<string, 'neutral' | 'info' | 'warn' | 'good' | 'bad'> = { Foundations: 'good', CCNA: 'neutral', CCNP: 'warn', Security: 'bad', SOC: 'info', Enterprise: 'info', Ops: 'neutral' };
 
 /** The Labs picker: every kind of lab, grouped the way people look for them. */
 export function LabPicker({ open, onClose, onStart, onChallenge }: { open: boolean; onClose: () => void; onStart: (id: string) => void; onChallenge: (id: string) => void }) {
-  const [cat, setCat] = useState<Cat>('Getting started');
+  const cert = certById(useUi((s) => s.certId));
+  const certLabs = cert ? cert.labs.map((id) => WORKBOOKS.find((w) => w.id === id)).filter((w): w is (typeof WORKBOOKS)[number] => !!w) : [];
+  const [cat, setCat] = useState<Cat>(cert ? 'For your certification' : 'Getting started');
+  useEffect(() => setCat(cert ? 'For your certification' : 'Getting started'), [cert]);
   const [q, setQ] = useState('');
   const active = useLab((s) => s.doc?.workbook?.id);
   const needle = q.trim().toLowerCase();
-  const cats: Cat[] = [...LAB_CATEGORIES, 'Troubleshooting tickets'];
-  const counts = useMemo(() => Object.fromEntries(cats.map((c) => [c, c === 'Troubleshooting tickets' ? CHALLENGES.length : WORKBOOKS.filter((w) => labCategory(w) === c).length])), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const labs = WORKBOOKS.filter((w) => (needle ? `${w.title} ${w.topic} ${w.intro}`.toLowerCase().includes(needle) : labCategory(w) === cat));
+  const cats: Cat[] = [...(cert ? (['For your certification'] as Cat[]) : []), ...LAB_CATEGORIES, 'Troubleshooting tickets'];
+  const counts = useMemo(() => Object.fromEntries(cats.map((c) => [c, c === 'Troubleshooting tickets' ? CHALLENGES.length : c === 'For your certification' ? certLabs.length : WORKBOOKS.filter((w) => labCategory(w) === c).length])), [cert]); // eslint-disable-line react-hooks/exhaustive-deps
+  const labs = needle ? WORKBOOKS.filter((w) => `${w.title} ${w.topic} ${w.intro}`.toLowerCase().includes(needle)) : cat === 'For your certification' ? certLabs : WORKBOOKS.filter((w) => labCategory(w) === cat);
   const tickets = needle ? CHALLENGES.filter((c) => c.title.toLowerCase().includes(needle)) : cat === 'Troubleshooting tickets' ? CHALLENGES : [];
   return (
     <Dialog open={open} onClose={onClose} title="Labs" wide>
@@ -40,7 +46,7 @@ export function LabPicker({ open, onClose, onStart, onChallenge }: { open: boole
             {cats.map((c) => (
               <li key={c}>
                 <button role="tab" aria-selected={!needle && cat === c} onClick={() => (setCat(c), setQ(''))} className={cx('flex w-full items-center justify-between rounded-[5px] px-2 py-1.5 text-left text-[13px]', !needle && cat === c ? 'bg-action/15 text-text' : 'text-muted hover:bg-pane-2 hover:text-text')} data-testid={`lab-cat-${c.replace(/\W+/g, '-').toLowerCase()}`}>
-                  {c}
+                  {c === 'For your certification' && cert ? `For ${cert.short}` : c}
                   <span className="text-[11px] tabular-nums text-faint">{counts[c]}</span>
                 </button>
               </li>
@@ -48,7 +54,7 @@ export function LabPicker({ open, onClose, onStart, onChallenge }: { open: boole
           </ul>
         </div>
         <div className="min-w-0 space-y-2">
-          <p className="text-[13px] text-muted">{needle ? `Labs matching “${q}”` : BLURB[cat]}</p>
+          <p className="text-[13px] text-muted">{needle ? `Labs matching “${q}”` : cat === 'For your certification' && cert ? `Labs for ${cert.name}, in study order.` : BLURB[cat]}</p>
           <ul className="grid gap-2 lg:grid-cols-2">
             {labs.map((w) => (
               <li key={w.id}>

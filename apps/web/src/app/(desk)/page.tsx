@@ -11,6 +11,7 @@ import { useRuntime } from '@/components/providers';
 import { OPEN, TicketQueue } from '@/components/tickets/TicketQueue';
 import { Badge, Button, EmptyState, fmtDuration, HealthDot, PriorityBadge, QueryView, relTime, useNow } from '@/components/ui';
 import { useUi } from '@/state/ui';
+import { CertStrip } from '@/components/cert/CertStrip';
 
 function ShiftPanel() {
   const { mock } = useRuntime();
@@ -186,6 +187,7 @@ export default function CockpitPage() {
   );
   return (
     <div className="flex h-full flex-col">
+      <CertStrip />
       <div className="flex items-center justify-between px-3 pt-2 text-[12.5px] text-muted">
         <span>Drag tabs to rearrange panels. Your layout is saved.</span>
         <button

@@ -4,7 +4,9 @@ import { Bot, Calculator, Layers, MessagesSquare, RotateCcw, Shuffle, Timer } fr
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Badge, Button, cx, Tabs } from '@/components/ui';
 import { updateProgress } from '@/content/progress';
-import { buildExam, shuffle, type ExamItem } from '@/content/exam';
+import { certById, certTopics, type Cert } from '@/content/certs';
+import { buildExam, scopeTopics, shuffle, type ExamItem, type ExamScope } from '@/content/exam';
+import { useUi } from '@/state/ui';
 import { ALL_TOPICS, COURSES, type CourseId } from '@/content/topics';
 export { buildExam };
 
@@ -15,8 +17,23 @@ function fmt(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+function ScopeOptions({ cert }: { cert?: Cert }) {
+  return (
+    <>
+      {cert && <option value={`cert:${cert.id}`}>{cert.name} ({certTopics(cert).length} topics)</option>}
+      <option value="all">All courses</option>
+      {COURSES.map((c) => (
+        <option key={c.id} value={c.id}>
+          {c.title}
+        </option>
+      ))}
+    </>
+  );
+}
+
 function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
-  const [course, setCourse] = useState<CourseId | 'all'>('networking');
+  const cert = certById(useUi((s) => s.certId));
+  const [course, setCourse] = useState<ExamScope>(cert ? `cert:${cert.id}` : 'networking');
   const [count, setCount] = useState(10);
   const [minutes, setMinutes] = useState(10);
   const [items, setItems] = useState<ExamItem[] | null>(null);
@@ -52,13 +69,8 @@ function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
         <div className="flex flex-wrap gap-2">
           <label className="space-y-0.5">
             <span className="block text-[12px] text-muted">Course</span>
-            <select className={sel} value={course} onChange={(e) => setCourse(e.target.value as CourseId | 'all')} data-testid="exam-course">
-              <option value="all">All courses</option>
-              {COURSES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
+            <select className={sel} value={course} onChange={(e) => setCourse(e.target.value as ExamScope)} data-testid="exam-course">
+              <ScopeOptions cert={cert} />
             </select>
           </label>
           <label className="space-y-0.5">
@@ -191,10 +203,11 @@ function TimedExam({ onStudy }: { onStudy: (topicId: string) => void }) {
 }
 
 function Flashcards() {
-  const [course, setCourse] = useState<CourseId>('networking');
+  const cert = certById(useUi((s) => s.certId));
+  const [course, setCourse] = useState<ExamScope>(cert ? `cert:${cert.id}` : 'networking');
   const [seed, setSeed] = useState(0);
   const cards = useMemo(() => {
-    const base = ALL_TOPICS.filter((t) => t.course === course).flatMap((t) => t.terms.map(([term, meaning]) => ({ term, meaning, topic: t.title })));
+    const base = scopeTopics(course).flatMap((t) => t.terms.map(([term, meaning]) => ({ term, meaning, topic: t.title })));
     return seed ? shuffle(base) : base;
   }, [course, seed]);
   const [i, setI] = useState(0);
@@ -216,7 +229,7 @@ function Flashcards() {
             className={sel}
             value={course}
             onChange={(e) => {
-              setCourse(e.target.value as CourseId);
+              setCourse(e.target.value as ExamScope);
               setI(0);
               setFlip(false);
               setKnown(new Set());
@@ -224,11 +237,7 @@ function Flashcards() {
             }}
             data-testid="flash-course"
           >
-            {COURSES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
+            <ScopeOptions cert={cert} />
           </select>
         </label>
         <Button size="sm" onClick={() => (setSeed(seed + 1), setI(0), setFlip(false))}>

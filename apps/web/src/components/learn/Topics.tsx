@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Button, cx } from '@/components/ui';
 import { loadProgress, updateProgress, type Progress } from '@/content/progress';
+import { certById, certTopics } from '@/content/certs';
+import { useUi } from '@/state/ui';
 import { ALL_TOPICS, COURSES, courseTopics, topicById, topicMatches, type CourseId, type TeachLevel, type Topic } from '@/content/topics';
 
 export const LEVELS: { key: TeachLevel; label: string; hint: string }[] = [
@@ -89,8 +91,8 @@ function TopicExam({ t, onScore }: { t: Topic; onScore: (score: number, total: n
   );
 }
 
-function TopicPage({ t, level, setLevel, onOpenLesson, onTopic, progress, onScore }: { t: Topic; level: TeachLevel; setLevel: (l: TeachLevel) => void; onOpenLesson: (id: string) => void; onTopic: (id: string) => void; progress: Progress | null; onScore: (s: number, n: number) => void }) {
-  const list = courseTopics(t.course);
+function TopicPage({ t, list: scoped, scopeLabel, level, setLevel, onOpenLesson, onTopic, progress, onScore }: { t: Topic; list?: Topic[]; scopeLabel?: string; level: TeachLevel; setLevel: (l: TeachLevel) => void; onOpenLesson: (id: string) => void; onTopic: (id: string) => void; progress: Progress | null; onScore: (s: number, n: number) => void }) {
+  const list = scoped && scoped.some((x) => x.id === t.id) ? scoped : courseTopics(t.course);
   const idx = list.findIndex((x) => x.id === t.id);
   const prev = list[idx - 1];
   const next = list[idx + 1];
@@ -100,6 +102,7 @@ function TopicPage({ t, level, setLevel, onOpenLesson, onTopic, progress, onScor
     <article className="max-w-[860px] space-y-4" data-testid={`topic-${t.id}`}>
       <div>
         <p className="text-[12px] text-muted">
+          {list === scoped && scopeLabel ? `${scopeLabel} · ` : ''}
           {COURSES.find((c) => c.id === t.course)?.title} · {t.unit} · topic {idx + 1} of {list.length}
         </p>
         <h2 className="text-[24px] font-semibold" data-testid="topic-title">
@@ -183,6 +186,10 @@ function TopicPage({ t, level, setLevel, onOpenLesson, onTopic, progress, onScor
 
 /** Learn by topic: pick a course, then a topic from the drop-down, and choose how it is taught. */
 export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: string; onOpenLesson: (id: string) => void }) {
+  const cert = certById(useUi((s) => s.certId));
+  const certList = useMemo(() => (cert ? certTopics(cert) : []), [cert]);
+  const [allCourses, setAllCourses] = useState(false);
+  const certMode = !!cert && !allCourses;
   const [course, setCourse] = useState<CourseId>(() => topicById(initialTopic ?? '')?.course ?? 'networking');
   const [topicId, setTopicId] = useState<string | null>(initialTopic && topicById(initialTopic) ? initialTopic : null);
   const [q, setQ] = useState('');
@@ -209,14 +216,29 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
     document.getElementById('topics-top')?.scrollIntoView({ block: 'start' });
   };
   const c = COURSES.find((x) => x.id === course)!;
-  const topics = courseTopics(course);
+  const topics = certMode ? certList : courseTopics(course);
+  // Cert mode groups topics by "course · unit" so the drop-down still reads like a syllabus.
+  const groups = certMode ? [...new Set(certList.map((x) => `${COURSES.find((k) => k.id === x.course)?.title.replace(/ \(.*\)$/, '')} · ${x.unit}`))] : c.units;
+  const groupOf = (x: Topic) => (certMode ? `${COURSES.find((k) => k.id === x.course)?.title.replace(/ \(.*\)$/, '')} · ${x.unit}` : x.unit);
   const hits = useMemo(() => (q.trim() ? ALL_TOPICS.filter((t) => topicMatches(t, q)).slice(0, 30) : []), [q]);
   const t = topicId ? topicById(topicId) : undefined;
   const doneCount = topics.filter((x) => progress?.topics?.[x.id]?.total !== undefined).length;
   return (
     <div className="space-y-3" data-testid="topics-view" id="topics-top">
       <div className="flex flex-wrap items-end gap-2">
-        <label className="space-y-0.5">
+        {cert && (
+          <div className="space-y-0.5">
+            <span className="block text-[12px] text-muted">Certification focus</span>
+            <div className="flex h-9 items-center gap-2 rounded-[5px] border border-action/50 bg-action/10 px-2 text-[13px]" data-testid="topics-cert">
+              <span className="font-medium">{cert.short}</span>
+              <span className="text-muted">{certList.length} topics</span>
+              <label className="ml-2 flex items-center gap-1 text-[12px] text-muted">
+                <input type="checkbox" checked={allCourses} onChange={(e) => setAllCourses(e.target.checked)} data-testid="topics-show-all" /> Show all courses
+              </label>
+            </div>
+          </div>
+        )}
+        <label className={cx('space-y-0.5', certMode && 'hidden')}>
           <span className="block text-[12px] text-muted">Course</span>
           <select
             className={cx(sel, 'w-64')}
@@ -239,10 +261,10 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
           <span className="block text-[12px] text-muted">Topic</span>
           <select className={cx(sel, 'w-72')} value={topicId ?? ''} onChange={(e) => (e.target.value ? open(e.target.value) : setTopicId(null))} data-testid="topic-select">
             <option value="">Choose a topic…</option>
-            {c.units.map((u) => (
+            {groups.map((u) => (
               <optgroup key={u} label={u}>
                 {topics
-                  .filter((x) => x.unit === u)
+                  .filter((x) => groupOf(x) === u)
                   .map((x) => (
                     <option key={x.id} value={x.id}>
                       {progress?.topics?.[x.id]?.total !== undefined ? '✓ ' : ''}
@@ -275,6 +297,8 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
       ) : t ? (
         <TopicPage
           t={t}
+          list={certMode ? certList : undefined}
+          scopeLabel={cert?.short}
           level={level}
           setLevel={setLevel}
           onOpenLesson={onOpenLesson}
@@ -289,18 +313,19 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
       ) : (
         <div className="space-y-3">
           <div>
-            <h2 className="text-[18px] font-semibold">{c.title}</h2>
-            <p className="max-w-3xl text-[13px] text-muted">{c.summary}</p>
+            <h2 className="text-[18px] font-semibold" data-testid="topics-heading">{certMode ? cert!.name : c.title}</h2>
+            <p className="max-w-3xl text-[13px] text-muted">{certMode ? cert!.summary : c.summary}</p>
+            {certMode && <p className="mt-1 text-[12px] text-muted">Exam domains: {cert!.domains.join(' · ')}</p>}
             <p className="text-[12px] text-muted" data-testid="course-progress">
               {doneCount} of {topics.length} topics checked
             </p>
           </div>
-          {c.units.map((u) => (
+          {groups.map((u) => (
             <section key={u}>
               <h3 className="mb-1 text-[13px] font-semibold">{u}</h3>
               <ul className="flex flex-wrap gap-1.5">
                 {topics
-                  .filter((x) => x.unit === u)
+                  .filter((x) => groupOf(x) === u)
                   .map((x) => {
                     const r = progress?.topics?.[x.id];
                     return (

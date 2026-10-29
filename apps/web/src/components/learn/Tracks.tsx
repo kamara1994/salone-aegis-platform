@@ -9,6 +9,8 @@ import { ADVANCED_TOPIC_COUNTS } from '@/content/advancedTopics';
 import { exportProgressFile, importProgressFile, installPack, lessonProgress, loadPacks, loadProgress, removePack, validatePack, type ContentPack, type Progress } from '@/content/progress';
 import type { TrackId } from '@/content/types';
 import { CHALLENGES } from '@/lab/challenges';
+import { certById } from '@/content/certs';
+import { useUi } from '@/state/ui';
 import { WORKBOOKS } from '@/lab/workbooks';
 
 /** Which guided labs belong to a track. */
@@ -37,7 +39,8 @@ function download(name: string, text: string) {
 }
 
 export function TracksView({ onLesson, onPractice }: { onLesson: (id: string) => void; onPractice: (track: string) => void }) {
-  const [sel, setSel] = useState<TrackId>('ccna');
+  const focus = certById(useUi((s) => s.certId));
+  const [sel, setSel] = useState<TrackId>(focus?.track ?? 'ccna');
   const [progress, setProgress] = useState<Progress | null>(null);
   useEffect(() => setProgress(loadProgress()), []);
   const t = TRACKS.find((x) => x.id === sel)!;

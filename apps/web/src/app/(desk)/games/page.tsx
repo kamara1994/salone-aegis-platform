@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Button, cx, Pane, Textarea } from '@/components/ui';
 import { allGames } from '@/content';
+import { certById } from '@/content/certs';
+import { useUi } from '@/state/ui';
 import { loadProgress, updateProgress, type GameResult } from '@/content/progress';
 import { IMPACT, MAX, scoreCase, URGENCY, type Category, type PlayState } from '@/content/scoring';
 import type { GameCase, GameTemplate } from '@/content/types';
@@ -320,11 +322,14 @@ export default function GamesPage() {
   const [tplId, setTplId] = useState(games[0]?.id);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [history, setHistory] = useState<GameResult[]>([]);
+  const cert = certById(useUi((s) => s.certId));
+  const picks = cert ? games.filter((g) => cert.games.includes(g.id)).sort((a, b) => cert.games.indexOf(a.id) - cert.games.indexOf(b.id)) : [];
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('template');
     if (t && games.some((g) => g.id === t)) setTplId(t);
+    else if (cert?.games[0] && games.some((g) => g.id === cert.games[0])) setTplId(cert.games[0]);
     setHistory(loadProgress().games);
-  }, [games]);
+  }, [games, cert]);
   const tpl = games.find((g) => g.id === tplId) ?? games[0];
   const c = tpl?.cases.find((x) => x.id === caseId);
   const best = (id: string) => {
@@ -354,12 +359,25 @@ export default function GamesPage() {
             }}
             data-testid="game-template"
           >
-            {games.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.title}
-                {g.imported ? ' (imported)' : ''}
-              </option>
-            ))}
+            {picks.length > 0 && (
+              <optgroup label={`Recommended for ${cert!.short}`}>
+                {picks.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <optgroup label={picks.length ? 'All roles' : 'Roles'}>
+              {games
+                .filter((g) => !picks.includes(g))
+                .map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                    {g.imported ? ' (imported)' : ''}
+                  </option>
+                ))}
+            </optgroup>
           </select>
           <p className="text-[12.5px] text-muted">{tpl.summary}</p>
           <h2 className="pt-1 text-[13px] font-semibold">Queue</h2>

@@ -4,6 +4,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { BookOpen, Bot, Check, Image as ImageIcon, Map as MapIcon, MessagesSquare, Timer, X } from 'lucide-react';
 import { ExamsView, type ExamsSub } from '@/components/learn/Exams';
 import { TopicsView } from '@/components/learn/Topics';
+import { certById } from '@/content/certs';
+import { useUi } from '@/state/ui';
 import { VisualsView } from '@/components/learn/Visuals';
 import { LessonLibrary, LessonReader } from '@/components/learn/Lessons';
 import { TracksView } from '@/components/learn/Tracks';
@@ -476,6 +478,8 @@ function LabDrills() {
 type LearnTab = 'images' | 'topics' | 'exams' | 'tracks';
 
 export default function LearnPage() {
+  const certId = useUi((s) => s.certId);
+  const cert = certById(certId);
   const [tab, setTab] = useState<LearnTab>('topics');
   const [examSub, setExamSub] = useState<ExamsSub | undefined>();
   const [lesson, setLesson] = useState<{ id: string; section?: string } | null>(null);
@@ -520,7 +524,9 @@ export default function LearnPage() {
     <div className="space-y-3 p-4" data-testid="learn-page">
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <h1 className="text-[18px] font-semibold">Learn</h1>
+          <h1 className="text-[18px] font-semibold">
+            Learn{cert && <span className="ml-2 rounded-full border border-action/50 bg-action/10 px-2 py-0.5 align-middle text-[12px] font-medium text-action" data-testid="learn-cert">{cert.short}</span>}
+          </h1>
           <p className="max-w-3xl text-[13px] text-muted">Pick a course and a topic, choose how you want it explained, test yourself, then practise it in the Lab. Progress stays on this computer.</p>
         </div>
         {progress.data && (
@@ -560,12 +566,13 @@ export default function LearnPage() {
             }}
           />
         ) : (
-          <TopicsView key={topic ?? 'none'} initialTopic={topic} onOpenLesson={(id) => openLesson(id)} />
+          <TopicsView key={`${topic ?? 'none'}-${certId}`} initialTopic={topic} onOpenLesson={(id) => openLesson(id)} />
         ))}
-      {tab === 'exams' && <ExamsView key={examSub ?? 'default'} initial={examSub} onStudy={openTopic} ai={<Practice key={practiceTrack ?? 'default'} initialTrack={practiceTrack} />} subnetting={<Subnetting />} interview={<Interview />} />}
+      {tab === 'exams' && <ExamsView key={`${examSub ?? 'default'}-${certId}`} initial={examSub} onStudy={openTopic} ai={<Practice key={`${practiceTrack ?? 'default'}-${certId}`} initialTrack={practiceTrack ?? (cert?.aiTrack as Track | undefined)} />} subnetting={<Subnetting />} interview={<Interview />} />}
       {tab === 'tracks' && (
         <div className="space-y-6">
           <TracksView
+            key={certId}
             onLesson={(id) => openLesson(id)}
             onPractice={(t) => {
               setPracticeTrack(t as Track);

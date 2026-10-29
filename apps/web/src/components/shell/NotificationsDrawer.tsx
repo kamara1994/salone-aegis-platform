@@ -13,7 +13,7 @@ import { useUi } from '@/state/ui';
 const SOURCE: Record<Notification['source'], string> = { scenario: 'Scenario', cisa_kev: 'CISA KEV', patch_tuesday: 'Patch Tuesday', monitor: 'Monitoring', client: 'Client', vendor_advisory: 'Vendor advisory' };
 
 export function NotificationsDrawer() {
-  const { notificationsOpen, setNotifications, clientId } = useUi();
+  const { notificationsOpen, setNotifications, clientId, setClient } = useUi();
   const q = useNotifications();
   const clients = useClients();
   const api = useApi();
@@ -34,6 +34,18 @@ export function NotificationsDrawer() {
         <header className="flex h-12 items-center justify-between border-b border-line px-4">
           <h2 className="font-semibold">Notifications</h2>
           <div className="flex items-center gap-2">
+            <label className="sr-only" htmlFor="client-switch">
+              Client
+            </label>
+            <select id="client-switch" value={clientId} onChange={(e) => setClient(e.target.value)} className="h-7 max-w-[150px] rounded-[5px] border border-line-strong bg-ink px-1.5 text-[12px]">
+              <option value="all">All clients</option>
+              {clients.data?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                  {c.status === 'onboarding' ? ' (onboarding)' : ''}
+                </option>
+              ))}
+            </select>
             <button className="text-[12.5px] text-muted hover:text-text" onClick={() => q.data?.items.filter((n) => !n.read).forEach((n) => ack.mutate(n.id))}>
               Mark all read
             </button>
