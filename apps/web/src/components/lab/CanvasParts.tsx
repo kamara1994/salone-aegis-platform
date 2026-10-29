@@ -58,9 +58,11 @@ const REAL_ASSET: Record<string, string> = {
   dec2750: '/lab/generated/devices/opnsense-dec2750.png',
   r650: '/lab/generated/devices/dell-poweredge-r650.png',
   optiplex: '/lab/generated/labeled/dell-optiplex-7010-annotated.png',
-  thinkpad: '/lab/generated/devices/lenovo-thinkpad-t14.png',
-  c9120: '/lab/generated/devices/cisco-catalyst-9120axi.png',
-  'axis-cam': '/lab/generated/devices/axis-m3106-ip-camera.png',
+  thinkpad: '/lab/generated/labeled/thinkpad-t14-annotated.png',
+  'legacy-pc': '/lab/generated/labeled/legacy-pc-annotated.png',
+  c9120: '/lab/generated/labeled/catalyst-9120axi-annotated.png',
+  'axis-cam': '/lab/generated/labeled/axis-m3106-annotated.png',
+  'iot-sensor': '/lab/generated/labeled/environmental-sensor-annotated.png',
 };
 
 function deviceSummary(d: Device, up: number, total: number) {
