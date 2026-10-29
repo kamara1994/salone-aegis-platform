@@ -52,11 +52,15 @@ export function primaryVlan(d: Device) {
 /** High-detail, model-specific visuals used by the hover preview. */
 const REAL_ASSET: Record<string, string> = {
   isr4331: '/lab/generated/labeled/cisco-isr-4331-annotated.png',
-  isr1941: '/lab/generated/devices/cisco-1941.png',
+  isr1941: '/lab/generated/labeled/cisco-1941-annotated.png',
   c2960x24: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
   c2960x24ps: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
-  dec2750: '/lab/generated/devices/opnsense-dec2750.png',
-  r650: '/lab/generated/devices/dell-poweredge-r650.png',
+  'c9300-24t': '/lab/generated/labeled/cisco-catalyst-9300-annotated.png',
+  dec2750: '/lab/generated/labeled/opnsense-dec2750-annotated.png',
+  r650: '/lab/generated/labeled/dell-poweredge-r650-annotated.png',
+  'proxmox-vm': '/lab/generated/labeled/proxmox-vm-annotated.png',
+  'aws-vpc': '/lab/generated/labeled/aws-vpc-annotated.png',
+  internet: '/lab/generated/labeled/internet-wan-annotated.png',
   optiplex: '/lab/generated/labeled/dell-optiplex-7010-annotated.png',
   thinkpad: '/lab/generated/labeled/thinkpad-t14-annotated.png',
   'legacy-pc': '/lab/generated/labeled/legacy-pc-annotated.png',
