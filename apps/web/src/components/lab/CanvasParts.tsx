@@ -57,6 +57,10 @@ const REAL_ASSET: Record<string, string> = {
   c2960x24ps: '/lab/generated/devices/cisco-catalyst-2960x.png',
   dec2750: '/lab/generated/devices/opnsense-dec2750.png',
   r650: '/lab/generated/devices/dell-poweredge-r650.png',
+  optiplex: '/lab/generated/devices/dell-optiplex-7010.png',
+  thinkpad: '/lab/generated/devices/lenovo-thinkpad-t14.png',
+  c9120: '/lab/generated/devices/cisco-catalyst-9120axi.png',
+  'axis-cam': '/lab/generated/devices/axis-m3106-ip-camera.png',
 };
 
 function deviceSummary(d: Device, up: number, total: number) {
