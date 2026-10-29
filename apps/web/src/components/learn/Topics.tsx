@@ -212,7 +212,7 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
     setCourse(t.course);
     setTopicId(id);
     setQ('');
-    window.history.replaceState(null, '', `/learn?topic=${id}`);
+    if (window.location.pathname.startsWith('/learn')) window.history.replaceState(null, '', `/learn?topic=${id}`);
     document.getElementById('topics-top')?.scrollIntoView({ block: 'start' });
   };
   const c = COURSES.find((x) => x.id === course)!;
@@ -246,7 +246,7 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
             onChange={(e) => {
               setCourse(e.target.value as CourseId);
               setTopicId(null);
-              window.history.replaceState(null, '', '/learn?tab=topics');
+              if (window.location.pathname.startsWith('/learn')) window.history.replaceState(null, '', '/learn?tab=topics');
             }}
             data-testid="topic-course"
           >

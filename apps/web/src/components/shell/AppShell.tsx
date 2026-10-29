@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         Skip to content
       </a>
       <TopBar />
-      <div className={dashboard ? 'flex min-h-0 flex-1 flex-col md:flex-row' : 'flex min-h-0 flex-1 flex-col-reverse md:flex-row'}>
+      <div className="flex min-h-0 flex-1 flex-col-reverse md:flex-row">
         {/* Inside a certification dashboard the left side becomes that dashboard's own menu. */}
         {dashboard ? <DashboardSide /> : <NavRail />}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">

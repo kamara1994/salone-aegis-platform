@@ -18,33 +18,38 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   const side = page.getByTestId('dashboard-side');
   await expect(side).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
-  await expect(page.getByTestId('dashboard-side-title')).toHaveText('Networking');
-  await expect(side).toContainText('Network+ · CCNA · CCNP');
+  await expect(page.getByTestId('dashboard-side-title')).toContainText('Networking');
+  await expect(page.getByTestId('dash-toolbar')).toContainText('Network+, CCNA, CCNP');
   await expect(page.getByTestId('dashboard-playground-empty')).toBeVisible();
-  // the side lists sections only (no topic syllabus); exams and flashcards live inside Learn
-  await expect(page.getByTestId('side-syllabus')).toHaveCount(0);
-  for (const s of ['learn', 'labs', 'games', 'projects', 'skills', 'progress', 'career', 'settings']) await expect(page.getByTestId(`side-${s}`)).toBeVisible();
+  // icon rail of sections; each section has a second toolbar and its own side panel
+  for (const x of ['learn', 'labs', 'games', 'projects', 'skills', 'progress', 'career', 'settings']) await expect(page.getByTestId(`side-${x}`)).toBeVisible();
   await page.getByTestId('side-learn').click();
-  await expect(page.getByTestId('playground-learn')).toBeVisible();
+  await expect(page.getByTestId('dash-toolbar-section')).toHaveText('Learn');
+  for (const x of ['topics', 'images', 'exam', 'flashcards', 'interview']) await expect(page.getByTestId(`side-part-${x}`)).toBeVisible();
+  await expect(page.getByTestId('topics-heading')).toBeVisible();
+  await page.getByTestId('side-part-exam').click();
   await expect(page.getByTestId('exam-course')).toHaveValue('cert:networking');
-  await page.getByTestId('learn-tab-flashcards').click();
+  await page.getByTestId('dash-tool-flashcards').click();
   await expect(page.getByTestId('playground-flashcards')).toBeVisible();
   await expect(page).toHaveURL(/item=learn%2Fflashcards|item=learn\/flashcards/);
   await expect(page.getByTestId('side-learn')).toHaveAttribute('aria-current', 'page');
+  // Labs opens the lab designer: its toolbar and the device library
   await page.getByTestId('side-labs').click();
-  await expect(page.getByTestId('playground-labs')).toContainText('VLANs and 802.1Q trunking');
+  await expect(page.getByTestId('lab-designer')).toBeVisible();
+  await expect(page.getByRole('toolbar', { name: 'Lab designer tools' })).toBeVisible();
   await page.getByTestId('side-games').click();
   await expect(page.getByTestId('playground-games')).toBeVisible();
+  await expect(page.getByTestId('side-part-all')).toBeVisible();
   await page.getByTestId('side-projects').click();
   await expect(page.getByTestId('playground-projects')).toBeVisible();
   await sw.selectOption('security');
   await expect(page).toHaveURL(/\/dashboard\/security$/);
-  await expect(page.getByTestId('dashboard-side-title')).toHaveText('Security fundamentals');
-  await expect(side).toContainText('Security+');
+  await expect(page.getByTestId('dashboard-side-title')).toContainText('Security fundamentals');
+  await expect(page.getByTestId('dash-toolbar')).toContainText('Security+');
 
   await sw.selectOption('pentest');
-  await expect(side).toContainText('eJPT');
-  await expect(side).toContainText('PJPT');
+  await expect(page.getByTestId('dash-toolbar')).toContainText('eJPT');
+  await expect(page.getByTestId('dash-toolbar')).toContainText('PJPT');
   await page.reload();
   await expect(sw).toHaveValue('pentest');
   await page.getByTestId('dashboard-back').click();

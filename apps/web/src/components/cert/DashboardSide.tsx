@@ -3,12 +3,11 @@
 import { ArrowLeft, Briefcase, FlaskConical, FolderKanban, Gamepad2, GraduationCap, LineChart, Settings, Target } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import { create } from 'zustand';
 import { cx } from '@/components/ui';
 import { certById, CERTS, dashboardById, VENDOR_ACCENT } from '@/content/certs';
 
-/** What the dashboard playground shows: null (empty), "learn", "learn/exam", "learn/flashcards", "labs", "games", "projects", "skills", "progress", "career", "settings". */
+/** What the dashboard shows: null (empty playground) or "<section>/<part>", e.g. "learn/exam", "labs", "games/<template>". */
 export const useDashItem = create<{ item: string | null; setItem: (item: string | null) => void }>((set) => ({
   item: null,
   setItem(item) {
@@ -35,49 +34,46 @@ export const SIDE_ITEMS = [
   { item: 'settings', label: 'Settings', icon: Settings },
 ] as const;
 
-/** Replaces the main left menu inside a dashboard: the sections of this certification area. */
+export type DashSection = (typeof SIDE_ITEMS)[number]['item'];
+
+export const sectionOf = (item: string | null) => (item ? (item.split('/')[0] as DashSection) : null);
+
+export function dashAccent(id: string) {
+  const dash = dashboardById(id);
+  const first = dash && CERTS.find((c) => c.id === dash.certs[0]);
+  return (first && VENDOR_ACCENT[first.vendor]) ?? 'var(--action)';
+}
+
+/** Replaces the main icon rail inside a dashboard: the sections of this certification area. */
 export function DashboardSide() {
-  const path = usePathname();
-  const id = path.split('/')[2];
+  const id = usePathname().split('/')[2];
   const dash = dashboardById(id);
   const focus = certById(id);
   const { item, setItem } = useDashItem();
-  const [mobileOpen, setMobileOpen] = useState(false);
   if (!dash || !focus) return null;
-  const members = dash.certs.map((c) => CERTS.find((k) => k.id === c)!).filter(Boolean);
-  const accent = VENDOR_ACCENT[members[0]?.vendor] ?? 'var(--action)';
-  const pick = (x: string) => {
-    setItem(x);
-    setMobileOpen(false);
-  };
-  const active = (x: string) => item === x || item?.startsWith(`${x}/`);
+  const accent = dashAccent(id);
+  const current = sectionOf(item);
+  const cls = (active: boolean) => cx('relative mx-0.5 flex min-w-[60px] flex-col items-center gap-0.5 rounded-[5px] py-1.5 text-center text-[11px] leading-tight md:mx-1.5 md:min-w-0', active ? 'bg-pane-2 text-text' : 'text-muted hover:bg-pane-2 hover:text-text');
   return (
-    <aside className="flex shrink-0 flex-col border-line bg-pane max-md:border-b md:w-[240px] md:border-r" aria-label={`${dash.title} menu`} data-testid="dashboard-side">
-      <div className="flex items-center gap-2 border-b border-line px-3 py-2" style={{ borderLeft: `3px solid ${accent}` }}>
-        <div className="min-w-0 flex-1">
-          <Link href="/" className="flex items-center gap-1 text-[11.5px] text-muted hover:text-text" data-testid="dashboard-back">
-            <ArrowLeft className="size-3.5" /> Main menu
-          </Link>
-          <button className="block text-left text-[15px] font-semibold hover:underline" onClick={() => pick('')} data-testid="dashboard-side-title">
-            {dash.title}
+    <nav aria-label={`${dash.title} menu`} data-testid="dashboard-side" className="flex shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-line bg-pane py-1 md:w-[68px] md:flex-col md:overflow-visible md:border-t-0 md:border-r md:py-2">
+      <Link href="/" title="Back to the main menu" className={cls(false)} data-testid="dashboard-back">
+        <ArrowLeft className="size-[18px]" aria-hidden />
+        Main
+      </Link>
+      <button onClick={() => setItem(null)} title={`${dash.title} home`} className="mx-0.5 mb-1 hidden rounded-[5px] border-b-2 px-1 py-1 text-center text-[10.5px] leading-tight font-semibold md:mx-1.5 md:block" style={{ borderColor: accent }} data-testid="dashboard-side-title">
+        <span className="sr-only">{dash.title}</span>
+        <span aria-hidden className="break-words">{dash.short}</span>
+      </button>
+      {SIDE_ITEMS.map((p) => {
+        const active = current === p.item;
+        return (
+          <button key={p.item} onClick={() => setItem(p.item)} aria-current={active ? 'page' : undefined} className={cls(active)} data-testid={`side-${p.item}`}>
+            {active && <span className="absolute top-0 right-2 left-2 h-0.5 rounded md:top-1.5 md:right-auto md:bottom-1.5 md:left-0 md:h-auto md:w-0.5" style={{ background: accent }} aria-hidden />}
+            <p.icon className="size-[18px]" style={{ color: active ? accent : undefined }} aria-hidden />
+            {p.label}
           </button>
-          <p className="truncate text-[11px] text-muted" title={members.map((m) => m.name).join(', ')}>
-            {members.map((m) => m.short).join(' · ')}
-          </p>
-        </div>
-        <button className="rounded border border-line px-2 py-1 text-[12px] md:hidden" onClick={() => setMobileOpen(!mobileOpen)} aria-expanded={mobileOpen}>
-          Menu
-        </button>
-      </div>
-      <nav className={cx('min-h-0 flex-1 space-y-0.5 overflow-auto p-2', !mobileOpen && 'max-md:hidden')} aria-label={`${dash.title} sections`}>
-        {SIDE_ITEMS.map((p) => (
-          <button key={p.item} onClick={() => pick(p.item)} aria-current={active(p.item) ? 'page' : undefined} className={cx('flex w-full items-center gap-2.5 rounded-[5px] px-2.5 py-2 text-left text-[13.5px]', active(p.item) ? 'bg-action/15 text-text' : 'text-muted hover:bg-pane-2 hover:text-text')} data-testid={`side-${p.item}`}>
-            <p.icon className="size-4" style={{ color: accent }} /> {p.label}
-            {p.item === 'labs' && <span className="ml-auto text-[11px] text-faint">{focus.labs.length}</span>}
-            {p.item === 'games' && <span className="ml-auto text-[11px] text-faint">{focus.games.length}</span>}
-          </button>
-        ))}
-      </nav>
-    </aside>
+        );
+      })}
+    </nav>
   );
 }
