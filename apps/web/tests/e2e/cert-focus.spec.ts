@@ -9,14 +9,15 @@ test.beforeEach(async ({ page }) => {
 test('each dashboard has its own screen; Network+ and CCNA share Networking', async ({ page }) => {
   await page.goto('/');
   const sw = page.getByTestId('cert-switch');
-  await expect(sw.locator('option')).toHaveCount(10);
-  await expect(sw.locator('option[value="networking"]')).toHaveText(/Networking: Network\+, CCNA/);
+  await expect(sw.locator('option')).toHaveCount(9);
+  await expect(sw.locator('option[value="networking"]')).toHaveText(/Networking: Network\+, CCNA, CCNP/);
 
   await sw.selectOption('networking');
   await expect(page).toHaveURL(/\/dashboard\/networking$/);
   await expect(page.getByTestId('dashboard-title')).toHaveText('Networking');
   await expect(page.getByTestId('dashboard-certs')).toContainText('Network+');
   await expect(page.getByTestId('dashboard-certs')).toContainText('CCNA');
+  await expect(page.getByTestId('dashboard-certs')).toContainText('CCNP');
   await expect(page.getByTestId('dashboard-section-labs')).toBeVisible();
 
   await sw.selectOption('security');

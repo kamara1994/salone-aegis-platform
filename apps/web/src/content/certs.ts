@@ -261,8 +261,7 @@ export interface Dashboard {
 
 export const DASHBOARDS: Dashboard[] = [
   { id: 'it-support', title: 'IT support', short: 'IT support', summary: 'Help desk and desktop support: hardware, operating systems, basic networking and troubleshooting.', certs: ['a-plus'] },
-  { id: 'networking', title: 'Networking', short: 'Networking', summary: 'How networks are built and fixed: cabling, addressing, switching, routing, services, wireless and network security.', certs: ['network-plus', 'ccna'] },
-  { id: 'advanced-networking', title: 'Advanced networking', short: 'Adv. networking', summary: 'Enterprise design: OSPF areas, BGP, VRFs, overlays, QoS, assurance and automation.', certs: ['ccnp'] },
+  { id: 'networking', title: 'Networking', short: 'Networking', summary: 'How networks are built, run and fixed, from cabling and addressing to switching, routing, services, wireless, security and enterprise design.', certs: ['network-plus', 'ccna', 'ccnp'] },
   { id: 'security', title: 'Security fundamentals', short: 'Security', summary: 'Core security: threats, controls, architecture, operations and governance.', certs: ['security-plus', 'isc2-cc', 'gsec'] },
   { id: 'soc', title: 'SOC and incident response', short: 'SOC', summary: 'Monitoring, triage, investigation and response in a security operations center.', certs: ['psaa', 'cysa-plus', 'cyberops', 'btl1', 'sc-200', 'gcih'] },
   { id: 'pentest', title: 'Penetration testing', short: 'Pentest', summary: 'Authorised offensive testing: recon, exploitation, Active Directory, web apps and reporting.', certs: ['ejpt', 'pjpt', 'pnpt', 'pentest-plus', 'ecppt', 'oscp'] },

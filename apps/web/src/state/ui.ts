@@ -106,6 +106,7 @@ export const useUi = create<UiState>((set, get) => ({
     document.documentElement.dataset.theme = theme;
     // certId holds a dashboard id; choices saved before dashboards existed were certification ids.
     let certId = read<string>('aegis.cert', 'all');
+    if (certId === 'advanced-networking') certId = 'networking'; // merged into Networking
     if (certId !== 'all' && !dashboardById(certId)) certId = dashboardOfCert(certId)?.id ?? 'all';
     set({ theme, clientId: read<string>('aegis.client', 'all'), certId });
   },

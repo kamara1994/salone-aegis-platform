@@ -39,6 +39,7 @@ describe('dashboards group certifications that cover the same ground', async () 
   it('Network+ and CCNA share the Networking dashboard; pentest certs share one', () => {
     expect(dashboardOfCert('network-plus')?.id).toBe('networking');
     expect(dashboardOfCert('ccna')?.id).toBe('networking');
+    expect(dashboardOfCert('ccnp')?.id).toBe('networking');
     for (const id of ['ejpt', 'pjpt', 'pnpt', 'pentest-plus', 'oscp']) expect(dashboardOfCert(id)?.id).toBe('pentest');
   });
   it('a dashboard scopes topics, labs and games from all of its certifications', () => {
