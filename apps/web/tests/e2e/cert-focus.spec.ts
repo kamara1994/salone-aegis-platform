@@ -21,17 +21,22 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await expect(page.getByTestId('dashboard-side-title')).toHaveText('Networking');
   await expect(side).toContainText('Network+ · CCNA · CCNP');
   await expect(page.getByTestId('dashboard-playground-empty')).toBeVisible();
-  await page.getByTestId('side-group-networking-switching').click();
-  await page.getByTestId('side-topic-vlans').click();
-  await expect(page.getByTestId('topic-title')).toHaveText('VLANs');
-  await expect(page).toHaveURL(/item=topic%3Avlans|item=topic:vlans/);
+  // the side lists sections only (no topic syllabus); exams and flashcards live inside Learn
+  await expect(page.getByTestId('side-syllabus')).toHaveCount(0);
+  for (const s of ['learn', 'labs', 'games', 'projects', 'skills', 'progress', 'career', 'settings']) await expect(page.getByTestId(`side-${s}`)).toBeVisible();
+  await page.getByTestId('side-learn').click();
+  await expect(page.getByTestId('playground-learn')).toBeVisible();
+  await expect(page.getByTestId('exam-course')).toHaveValue('cert:networking');
+  await page.getByTestId('learn-tab-flashcards').click();
+  await expect(page.getByTestId('playground-flashcards')).toBeVisible();
+  await expect(page).toHaveURL(/item=learn%2Fflashcards|item=learn\/flashcards/);
+  await expect(page.getByTestId('side-learn')).toHaveAttribute('aria-current', 'page');
   await page.getByTestId('side-labs').click();
   await expect(page.getByTestId('playground-labs')).toContainText('VLANs and 802.1Q trunking');
-  await page.getByTestId('side-exam').click();
-  await expect(page.getByTestId('exam-course')).toHaveValue('cert:networking');
-  await page.getByTestId('side-search').fill('ospf');
-  await expect(page.getByTestId('side-topic-ospf')).toBeVisible();
-
+  await page.getByTestId('side-games').click();
+  await expect(page.getByTestId('playground-games')).toBeVisible();
+  await page.getByTestId('side-projects').click();
+  await expect(page.getByTestId('playground-projects')).toBeVisible();
   await sw.selectOption('security');
   await expect(page).toHaveURL(/\/dashboard\/security$/);
   await expect(page.getByTestId('dashboard-side-title')).toHaveText('Security fundamentals');

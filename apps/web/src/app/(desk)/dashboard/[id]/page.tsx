@@ -3,36 +3,41 @@
 import { FlaskConical, Gamepad2, MousePointerClick } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { CertStrip } from '@/components/cert/CertStrip';
 import { useDashItem } from '@/components/cert/DashboardSide';
 import { Flashcards, TimedExam } from '@/components/learn/Exams';
-import { TopicPlayground } from '@/components/learn/Topics';
 import { EmptyState } from '@/components/ui';
 import { allGames } from '@/content';
-import { certById, certTopics, dashboardById } from '@/content/certs';
+import { certById, dashboardById } from '@/content/certs';
 import { WORKBOOKS } from '@/lab/workbooks';
 import { useUi } from '@/state/ui';
 
-/** A dashboard's playground. The left side (DashboardSide) lists what to cover; the middle stays clear
- *  until something is picked there. */
+/** A dashboard's playground. The left side (DashboardSide) lists the sections; the middle stays clear
+ *  until one is picked there. */
 export default function DashboardPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const dash = dashboardById(id);
   const focus = certById(id);
   const { item, setItem } = useDashItem();
-  const topics = useMemo(() => (focus ? certTopics(focus) : []), [focus]);
   // Opening a dashboard by URL makes it the current focus (once per visit, so switching away is not undone),
   // and restores the picked item from ?item=.
   useEffect(() => {
     if (dash && useUi.getState().certId !== dash.id) useUi.getState().setCert(dash.id);
     const it = new URLSearchParams(window.location.search).get('item');
-    useDashItem.setState({ item: it || null });
+    const moved: Record<string, string> = { exam: 'learn/exam', flashcards: 'learn/flashcards', scenarios: 'games' };
+    useDashItem.setState({ item: !it || it.startsWith('topic:') ? null : (moved[it] ?? it) });
   }, [dash]);
   if (!dash || !focus) return <EmptyState title="No such dashboard" body="Choose a certification area from the drop-down at the top." />;
 
-  const topicId = item?.startsWith('topic:') ? item.slice(6) : null;
+  const placeholder = (key: string, title: string) =>
+    item === key && (
+      <div className="p-4" data-testid={`playground-${key}`}>
+        <EmptyState title={title} body={`The ${dash.title} ${title.toLowerCase()} space is reserved and will be designed next.`} />
+      </div>
+    );
+  const learnTab = item === 'learn/flashcards' ? 'flashcards' : 'exam';
   return (
     <div className="h-full overflow-auto" data-testid={`dashboard-${dash.id}`}>
       <h1 className="sr-only" data-testid="dashboard-title">
@@ -46,19 +51,29 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-      {topicId && (
-        <div className="p-4">
-          <TopicPlayground key={topicId} topicId={topicId} list={topics} scopeLabel={dash.short} onTopic={(t) => setItem(`topic:${t}`)} onOpenLesson={(l) => router.push(`/learn?lesson=${l}`)} />
-        </div>
-      )}
-      {item === 'exam' && (
-        <div className="p-4" data-testid="playground-exam">
-          <TimedExam onStudy={(t) => setItem(`topic:${t}`)} />
-        </div>
-      )}
-      {item === 'flashcards' && (
-        <div className="p-4" data-testid="playground-flashcards">
-          <Flashcards />
+      {item?.startsWith('learn') && (
+        <div className="p-4" data-testid="playground-learn">
+          <div className="mb-3 flex gap-1 border-b border-line" role="tablist" aria-label="Learn">
+            {(
+              [
+                ['exam', 'Practice exam'],
+                ['flashcards', 'Flashcards'],
+              ] as const
+            ).map(([k, label]) => (
+              <button key={k} role="tab" aria-selected={learnTab === k} onClick={() => setItem(`learn/${k}`)} className={`-mb-px border-b-2 px-3 py-1.5 text-[13px] ${learnTab === k ? 'border-action text-text' : 'border-transparent text-muted hover:text-text'}`} data-testid={`learn-tab-${k}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {learnTab === 'exam' ? (
+            <div data-testid="playground-exam">
+              <TimedExam onStudy={(t) => router.push(`/learn?topic=${t}`)} />
+            </div>
+          ) : (
+            <div data-testid="playground-flashcards">
+              <Flashcards />
+            </div>
+          )}
         </div>
       )}
       {item === 'labs' && (
@@ -75,8 +90,8 @@ export default function DashboardPage() {
           ))}
         </ul>
       )}
-      {item === 'scenarios' && (
-        <ul className="grid gap-2 p-4 md:grid-cols-2" data-testid="playground-scenarios">
+      {item === 'games' && (
+        <ul className="grid gap-2 p-4 md:grid-cols-2" data-testid="playground-games">
           {allGames()
             .filter((g) => focus.games.includes(g.id))
             .map((g) => (
@@ -96,11 +111,10 @@ export default function DashboardPage() {
           <CertStrip />
         </div>
       )}
-      {item === 'career' && (
-        <div className="p-4" data-testid="playground-career">
-          <EmptyState title="Career" body={`The ${dash.title} career space is reserved and will be designed next.`} />
-        </div>
-      )}
+      {placeholder('projects', 'Projects')}
+      {placeholder('skills', 'Skills')}
+      {placeholder('career', 'Career')}
+      {placeholder('settings', 'Settings')}
     </div>
   );
 }
