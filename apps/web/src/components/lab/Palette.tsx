@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useState } from 'react';
 import { cx } from '@/components/ui';
 import { CABLE_INFO } from '@/lab/cables';
-import { CATALOG, KIND_LABEL } from '@/lab/catalog';
+import { CATALOG, KIND_LABEL, type DeviceModel } from '@/lab/catalog';
 import { useLab } from '@/lab/store';
 import type { CableType, DeviceKind } from '@/lab/types';
 import { CABLE_ASSET, CABLE_STYLE } from './CanvasParts';
@@ -128,6 +128,7 @@ export function Palette() {
 function DeviceLibrary() {
   const add = useLab((s) => s.addDevice);
   const rf = useReactFlow();
+  const [hover, setHover] = useState<{ model: DeviceModel; rect: DOMRect } | null>(null);
   const center = () => {
     const r = document.querySelector('[data-testid="lab-canvas"]')?.getBoundingClientRect();
     const k = (useLab.getState().doc?.devices.filter((d) => d.origin === 'design').length ?? 0) % 6;
@@ -153,28 +154,32 @@ function DeviceLibrary() {
                     const c = center();
                     add(m.key, c.x, c.y);
                   }}
-                  title={`${m.vendor} ${m.name}: ${m.description}`}
                   aria-label={`Add ${m.vendor} ${m.name} (${KIND_LABEL[m.kind]})`}
                   data-testid={`palette-${m.key}`}
-                  className="group relative flex w-full cursor-grab flex-col items-center rounded-[6px] border border-line bg-pane-2/40 px-1 py-1.5 text-center hover:border-action focus-visible:border-action active:cursor-grabbing"
+                  onMouseEnter={(e) => setHover({ model: m, rect: e.currentTarget.getBoundingClientRect() })}
+                  onMouseLeave={() => setHover(null)}
+                  className="relative flex w-full cursor-grab flex-col items-center rounded-[6px] border border-line bg-pane-2/40 px-1 py-1.5 text-center hover:border-action focus-visible:border-action active:cursor-grabbing"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {/* Keep the compact palette icon visible; the generated real-world asset appears only in the hover preview. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.image} alt="" className="pointer-events-none h-8 w-12 object-contain" draggable={false} />
                   <span className="mt-0.5 line-clamp-2 text-[10.5px] leading-tight">{m.name}</span>
-                  <span className="pointer-events-none absolute left-full top-0 z-40 ml-2 hidden w-64 rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl group-hover:block">
-                    <span className="mb-1 block h-28 overflow-hidden rounded bg-white/95"><DevicePicture model={m} className="h-full w-full object-contain" /></span>
-                    <b className="block text-[11px]">{m.vendor} {m.name}</b>
-                    <span className="mt-1 block text-muted">{m.description}</span>
-                    <span className="mt-1 block font-mono text-faint">Ports: {portSummary(m)}</span>
-                  </span>
                 </button>
               </li>
             ))}
           </ul>
         </section>
       ))}
+      {hover && typeof document !== 'undefined' && createPortal(
+        <div className="pointer-events-none fixed z-[2100] w-[min(340px,calc(100vw-16px))] rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl" style={{ left: window.innerWidth < 700 ? 8 : Math.min(hover.rect.right + 8, window.innerWidth - 356), top: window.innerWidth < 700 ? Math.min(hover.rect.bottom + 8, window.innerHeight - 270) : Math.min(hover.rect.top, window.innerHeight - 270) }} data-testid="palette-device-hover-card">
+          <div className="mb-1 h-48 overflow-hidden rounded bg-white/95"><DevicePicture model={hover.model} className="h-full w-full object-contain" /></div>
+          <b className="block text-[12px]">{hover.model.vendor} {hover.model.name}</b>
+          <span className="mt-1 block text-muted">{hover.model.description}</span>
+          <span className="mt-1 block font-mono text-faint">Ports: {portSummary(hover.model)}</span>
+        </div>,
+        document.body,
+      )}
     </nav>
   );
 }
