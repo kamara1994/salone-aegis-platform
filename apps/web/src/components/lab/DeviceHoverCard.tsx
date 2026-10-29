@@ -31,13 +31,32 @@ export function portSummary(m: DeviceModel): string {
   return [...groups.entries()].map(([k, n]) => `${n}× ${k}`).join(', ');
 }
 
-/** Licensed photo when one is in /public/lab/photos (see ATTRIBUTION.md), otherwise the illustration. */
+/** Model-specific visual assets generated for the lab. Falls back to the original SVG if an asset is unavailable. */
+const LAB_ASSET: Record<string, string> = {
+  isr4331: '/lab/generated/labeled/cisco-isr-4331-annotated.png',
+  isr1941: '/lab/generated/labeled/cisco-1941-annotated.png',
+  c2960x24: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
+  c2960x24ps: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
+  'c9300-24t': '/lab/generated/labeled/cisco-catalyst-9300-annotated.png',
+  dec2750: '/lab/generated/labeled/opnsense-dec2750-annotated.png',
+  r650: '/lab/generated/labeled/dell-poweredge-r650-annotated.png',
+  'proxmox-vm': '/lab/generated/labeled/proxmox-vm-annotated.png',
+  optiplex: '/lab/generated/labeled/dell-optiplex-7010-annotated.png',
+  'legacy-pc': '/lab/generated/labeled/legacy-pc-annotated.png',
+  thinkpad: '/lab/generated/labeled/thinkpad-t14-annotated.png',
+  c9120: '/lab/generated/labeled/catalyst-9120axi-annotated.png',
+  'aws-vpc': '/lab/generated/labeled/aws-vpc-annotated.png',
+  internet: '/lab/generated/labeled/internet-wan-annotated.png',
+  'axis-cam': '/lab/generated/labeled/axis-m3106-annotated.png',
+  'iot-sensor': '/lab/generated/labeled/environmental-sensor-annotated.png',
+};
+
 export function DevicePicture({ model, className }: { model: DeviceModel; className?: string }) {
   const [failed, setFailed] = useState(false);
-  const photo = `/lab/photos/${model.key}.webp`;
+  const asset = LAB_ASSET[model.key] ?? model.image;
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={failed ? model.image : photo} onError={() => setFailed(true)} alt={`${model.vendor} ${model.name}`} className={className} data-photo={failed ? 'illustration' : 'photo'} />
+    <img src={failed ? model.image : asset} onError={() => setFailed(true)} alt={`${model.vendor} ${model.name}`} className={className} data-photo={failed ? 'illustration' : 'generated-asset'} />
   );
 }
 
