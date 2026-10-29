@@ -30,3 +30,23 @@ describe('certification focus catalogue', () => {
     expect(items.every((q) => ids.has(q.topic.id))).toBe(true);
   });
 });
+
+describe('dashboards group certifications that cover the same ground', async () => {
+  const { DASHBOARDS, certById, certTopics: topicsOf, dashboardOfCert } = await import('@/content/certs');
+  it('every certification is on exactly one dashboard', () => {
+    for (const c of CERTS) expect(DASHBOARDS.filter((d) => d.certs.includes(c.id)).length, c.id).toBe(1);
+  });
+  it('Network+ and CCNA share the Networking dashboard; pentest certs share one', () => {
+    expect(dashboardOfCert('network-plus')?.id).toBe('networking');
+    expect(dashboardOfCert('ccna')?.id).toBe('networking');
+    for (const id of ['ejpt', 'pjpt', 'pnpt', 'pentest-plus', 'oscp']) expect(dashboardOfCert(id)?.id).toBe('pentest');
+  });
+  it('a dashboard scopes topics, labs and games from all of its certifications', () => {
+    const net = certById('networking')!;
+    const ccna = certById('ccna')!;
+    const ids = new Set(topicsOf(net).map((t) => t.id));
+    for (const t of topicsOf(ccna)) expect(ids.has(t.id)).toBe(true);
+    for (const l of ccna.labs) expect(net.labs).toContain(l);
+    expect(buildExam('cert:networking', 10).length).toBe(10);
+  });
+});

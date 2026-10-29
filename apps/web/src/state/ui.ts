@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { dashboardById, dashboardOfCert } from '@/content/certs';
 
 export type Theme = 'dark' | 'light';
 
@@ -103,7 +104,10 @@ export const useUi = create<UiState>((set, get) => ({
   hydrate() {
     const theme = read<Theme>('aegis.theme', 'dark');
     document.documentElement.dataset.theme = theme;
-    set({ theme, clientId: read<string>('aegis.client', 'all'), certId: read<string>('aegis.cert', 'all') });
+    // certId holds a dashboard id; choices saved before dashboards existed were certification ids.
+    let certId = read<string>('aegis.cert', 'all');
+    if (certId !== 'all' && !dashboardById(certId)) certId = dashboardOfCert(certId)?.id ?? 'all';
+    set({ theme, clientId: read<string>('aegis.client', 'all'), certId });
   },
 }));
 

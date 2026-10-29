@@ -223,7 +223,17 @@ export const CERTS: Cert[] = [
 ];
 
 export const CERT_VENDORS = [...new Set(CERTS.map((c) => c.vendor))];
-export const certById = (id: string | null | undefined) => CERTS.find((c) => c.id === id);
+/** The focus for an id: a dashboard (combined certifications) or a single certification. */
+const focusCache = new Map<string, Cert>();
+export function certById(id: string | null | undefined): Cert | undefined {
+  const dash = DASHBOARDS.find((x) => x.id === id);
+  if (dash) {
+    // Cached so React sees a stable object (a fresh one each render would loop effects that depend on it).
+    if (!focusCache.has(dash.id)) focusCache.set(dash.id, dashboardFocus(dash));
+    return focusCache.get(dash.id);
+  }
+  return CERTS.find((c) => c.id === id);
+}
 
 /** Every topic that belongs to a certification, in course order without duplicates. */
 export function certTopics(c: Cert): Topic[] {
@@ -236,3 +246,69 @@ export function certTopics(c: Cert): Topic[] {
   }
   return out;
 }
+
+// ---------------- dashboards ----------------
+// Certifications that cover the same ground share one dashboard (Network+ and CCNA are both
+// "Networking"). The top-bar drop-down picks a dashboard; each has its own screen at /dashboard/<id>.
+
+export interface Dashboard {
+  id: string;
+  title: string;
+  short: string;
+  summary: string;
+  certs: string[];
+}
+
+export const DASHBOARDS: Dashboard[] = [
+  { id: 'it-support', title: 'IT support', short: 'IT support', summary: 'Help desk and desktop support: hardware, operating systems, basic networking and troubleshooting.', certs: ['a-plus'] },
+  { id: 'networking', title: 'Networking', short: 'Networking', summary: 'How networks are built and fixed: cabling, addressing, switching, routing, services, wireless and network security.', certs: ['network-plus', 'ccna'] },
+  { id: 'advanced-networking', title: 'Advanced networking', short: 'Adv. networking', summary: 'Enterprise design: OSPF areas, BGP, VRFs, overlays, QoS, assurance and automation.', certs: ['ccnp'] },
+  { id: 'security', title: 'Security fundamentals', short: 'Security', summary: 'Core security: threats, controls, architecture, operations and governance.', certs: ['security-plus', 'isc2-cc', 'gsec'] },
+  { id: 'soc', title: 'SOC and incident response', short: 'SOC', summary: 'Monitoring, triage, investigation and response in a security operations center.', certs: ['psaa', 'cysa-plus', 'cyberops', 'btl1', 'sc-200', 'gcih'] },
+  { id: 'pentest', title: 'Penetration testing', short: 'Pentest', summary: 'Authorised offensive testing: recon, exploitation, Active Directory, web apps and reporting.', certs: ['ejpt', 'pjpt', 'pnpt', 'pentest-plus', 'ecppt', 'oscp'] },
+  { id: 'cloud', title: 'Cloud security', short: 'Cloud', summary: 'Securing cloud platforms: identity, networks, data, logging, detection and response.', certs: ['aws-security', 'cloud-plus'] },
+  { id: 'linux', title: 'Linux', short: 'Linux', summary: 'Linux administration, security, scripting and troubleshooting.', certs: ['linux-plus'] },
+  { id: 'leadership', title: 'Security leadership and architecture', short: 'Leadership', summary: 'Senior security: risk, architecture, engineering and running a security program.', certs: ['cissp', 'securityx'] },
+];
+
+export const dashboardById = (id: string | null | undefined) => DASHBOARDS.find((x) => x.id === id);
+/** The dashboard a certification belongs to (old saved choices were certification ids). */
+export const dashboardOfCert = (certId: string) => DASHBOARDS.find((x) => x.certs.includes(certId));
+
+/** A dashboard behaves like one combined certification for scoping topics, exams, labs and games. */
+export function dashboardFocus(dash: Dashboard): Cert {
+  const members = dash.certs.map((id) => CERTS.find((c) => c.id === id)!).filter(Boolean);
+  const uniq = <T,>(xs: T[]) => [...new Set(xs)];
+  const domains: string[] = [];
+  for (const m of members) for (const dm of m.domains) if (!domains.some((x) => x.toLowerCase() === dm.toLowerCase())) domains.push(dm);
+  return {
+    id: dash.id,
+    name: dash.title,
+    short: dash.short,
+    vendor: uniq(members.map((m) => m.vendor)).join(', '),
+    level: members[0]?.level ?? 'Entry',
+    format: uniq(members.map((m) => m.format)).join(' · '),
+    summary: dash.summary,
+    domains,
+    scope: members.flatMap((m) => m.scope),
+    extraTopics: uniq(members.flatMap((m) => m.extraTopics ?? [])),
+    track: members.find((m) => m.track)?.track,
+    labs: uniq(members.flatMap((m) => m.labs)),
+    games: uniq(members.flatMap((m) => m.games)),
+    aiTrack: members.find((m) => m.aiTrack)?.aiTrack,
+  };
+}
+
+/** Accent colour per vendor so each dashboard is recognisable at a glance. */
+export const VENDOR_ACCENT: Record<string, string> = {
+  CompTIA: '#e5484d',
+  Cisco: '#1ba0d7',
+  'TCM Security': '#8b5cf6',
+  INE: '#f97316',
+  OffSec: '#e11d48',
+  ISC2: '#16a34a',
+  AWS: '#f59e0b',
+  Microsoft: '#3b82f6',
+  'Security Blue Team': '#2563eb',
+  GIAC: '#0ea5e9',
+};

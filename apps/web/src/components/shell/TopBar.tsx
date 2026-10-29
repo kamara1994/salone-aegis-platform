@@ -5,7 +5,8 @@ import { Bell, Command, LogOut, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from '@/api/auth';
 import { useNotifications, useSettings, useTickets } from '@/api/hooks';
-import { certById, CERTS, CERT_VENDORS } from '@/content/certs';
+import { CERTS, dashboardById, DASHBOARDS } from '@/content/certs';
+import { useRouter } from 'next/navigation';
 import { useApi, useRuntime } from '@/components/providers';
 import { Badge, cx, fmtDuration, IconButton, Kbd, SlaClock, useNow } from '@/components/ui';
 import { useLive, useUi } from '@/state/ui';
@@ -36,19 +37,10 @@ function MostUrgent() {
   );
 }
 
-/** "Security+", "eJPT: Junior Penetration Tester", "PSAA: Practical SOC Analyst Associate" */
-function certLabel(c: { short: string; name: string; label?: string }) {
-  if (c.label) return c.label;
-  const rest = c.name
-    .replace(/^(CompTIA|Cisco|TCM|INE eLearnSecurity|INE|OffSec|ISC2|AWS Certified|Microsoft|GIAC|Security Blue Team)\s*/, '')
-    .replace(/\s*\([^)]*\)\s*$/, '')
-    .trim();
-  return !rest || rest === c.short || rest.replace(/\s+/g, '') === c.short.replace(/\s+/g, '') ? c.short : `${c.short}: ${rest}`;
-}
-
 export function TopBar() {
   const { theme, setTheme, certId, setCert, setPalette, setNotifications } = useUi();
-  const cert = certById(certId);
+  const dash = dashboardById(certId);
+  const router = useRouter();
   const { api } = useRuntime();
   const notes = useNotifications();
   const connection = useLive((s) => s.connection);
@@ -76,25 +68,25 @@ export function TopBar() {
         <span className="hidden text-[12.5px] text-muted sm:inline">Operator cockpit</span>
       </Link>
       <label className="sr-only" htmlFor="cert-switch">
-        Certification focus
+        Dashboard
       </label>
       <select
         id="cert-switch"
         value={certId}
-        onChange={(e) => setCert(e.target.value)}
-        title={cert ? `${cert.name}: ${cert.summary}` : 'Choose a certification to focus the whole platform on it'}
-        className="h-8 max-w-[44vw] min-w-0 rounded-[5px] border border-line-strong bg-ink px-2 text-[13px] sm:max-w-[300px]"
+        onChange={(e) => {
+          const id = e.target.value;
+          setCert(id);
+          router.push(id === 'all' ? '/' : `/dashboard/${id}`);
+        }}
+        title={dash ? `${dash.title}: ${dash.summary}` : 'Choose a certification area to open its dashboard'}
+        className="h-8 max-w-[44vw] min-w-0 rounded-[5px] border border-line-strong bg-ink px-2 text-[13px] sm:max-w-[340px]"
         data-testid="cert-switch"
       >
-        <option value="all">All certifications</option>
-        {CERT_VENDORS.map((v) => (
-          <optgroup key={v} label={v}>
-            {CERTS.filter((c) => c.vendor === v).map((c) => (
-              <option key={c.id} value={c.id}>
-                {certLabel(c)}
-              </option>
-            ))}
-          </optgroup>
+        <option value="all">All certifications (operator cockpit)</option>
+        {DASHBOARDS.map((x) => (
+          <option key={x.id} value={x.id}>
+            {x.title}: {x.certs.map((c) => CERTS.find((k) => k.id === c)?.short).join(', ')}
+          </option>
         ))}
       </select>
       <MostUrgent />
