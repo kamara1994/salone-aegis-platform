@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Badge, Button, cx } from '@/components/ui';
 import { allGames, BUILTIN_LESSONS, TRACKS, trackGames, trackLessons } from '@/content';
+import { ADVANCED_TOPIC_COUNTS } from '@/content/advancedTopics';
 import { exportProgressFile, importProgressFile, installPack, lessonProgress, loadPacks, loadProgress, removePack, validatePack, type ContentPack, type Progress } from '@/content/progress';
 import type { TrackId } from '@/content/types';
 import { CHALLENGES } from '@/lab/challenges';
@@ -46,7 +47,10 @@ export function TracksView({ onLesson, onPractice }: { onLesson: (id: string) =>
         {TRACKS.map((x) => (
           <li key={x.id}>
             <button className={cx('w-full rounded-[6px] border px-3 py-2 text-left text-[13.5px]', sel === x.id ? 'border-action bg-action/10' : 'border-line hover:border-line-strong')} onClick={() => setSel(x.id)} data-testid={`track-${x.id}`}>
-              {x.title}
+              <span className="flex items-center justify-between gap-2">
+                <span>{x.title}</span>
+                <span className="text-[11px] text-muted">{ADVANCED_TOPIC_COUNTS[x.id]} topics</span>
+              </span>
             </button>
           </li>
         ))}
@@ -55,6 +59,7 @@ export function TracksView({ onLesson, onPractice }: { onLesson: (id: string) =>
         <div>
           <h2 className="text-[18px] font-semibold">{t.title}</h2>
           <p className="text-[13px] text-muted">{t.summary}</p>
+          <p className="mt-1 text-[12px] text-action">{ADVANCED_TOPIC_COUNTS[sel]} advanced textbook topics plus guided labs and scenarios</p>
           <div className="mt-2 flex items-center gap-2 text-[12px]">
             <span className="h-2 w-60 overflow-hidden rounded bg-pane-2">
               <span className="block h-full bg-healthy" style={{ width: `${total ? Math.round((done / total) * 100) : 0}%` }} />

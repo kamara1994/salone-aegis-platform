@@ -3,10 +3,11 @@ import { GAME_TEMPLATES } from './games';
 import { arpLesson, cableTraceLesson, closeTicketLesson, escalationLesson, macLesson, outageLesson, priorityLesson, ticketLesson } from './lessons/helpdesk';
 import { evidenceLesson, firewallLogLesson, huntLesson, siemLesson, vlanDiagramsLesson } from './lessons/soc';
 import { vlanLesson } from './lessons/vlans';
+import { ADVANCED_TOPIC_LESSONS } from './advancedTopics';
 import { loadPacks } from './progress';
 import type { GameTemplate, Lesson, TrackDef, TrackId } from './types';
 
-export const BUILTIN_LESSONS: Lesson[] = [vlanLesson, vlanDiagramsLesson, ticketLesson, priorityLesson, macLesson, arpLesson, cableTraceLesson, huntLesson, siemLesson, firewallLogLesson, escalationLesson, evidenceLesson, outageLesson, closeTicketLesson];
+export const BUILTIN_LESSONS: Lesson[] = [vlanLesson, vlanDiagramsLesson, ticketLesson, priorityLesson, macLesson, arpLesson, cableTraceLesson, huntLesson, siemLesson, firewallLogLesson, escalationLesson, evidenceLesson, outageLesson, closeTicketLesson, ...ADVANCED_TOPIC_LESSONS];
 
 export function allLessons(): Lesson[] {
   const imported = loadPacks().flatMap((p) => (p.lessons ?? []).map((l) => ({ ...l, imported: true })));
