@@ -1,5 +1,6 @@
 'use client';
 
+import { loadPacks } from '@/content/progress';
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
@@ -13,6 +14,7 @@ import { NewCableDialog } from '@/components/lab/Pickers';
 import { SimPanel } from '@/components/lab/SimPanel';
 import { Toolbar } from '@/components/lab/Toolbar';
 import { ToolsPanel, type ToolKey } from '@/components/lab/ToolsPanel';
+import { startWorkbookById } from '@/components/lab/WorkbooksTab';
 import { Button, cx, ErrorState, IconButton, Loading, relTime } from '@/components/ui';
 import { prepareChallenge } from '@/lab/challenges';
 import { buildDoc } from '@/lab/inventory';
@@ -105,9 +107,25 @@ function Designer({ lab }: { lab: MockLab | null }) {
     else if (!st.selection.devices.length && !st.selection.cables.length) st.closeInspector();
   }, [selKey, s.tool]);
 
-  // /lab?challenge=<id> (from the Learn page) starts that troubleshooting drill.
+  // /lab?workbook=<id> and /lab?challenge=<id> (from the Learn page) start a guided lab or a drill.
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get('challenge');
+    const params = new URLSearchParams(window.location.search);
+    const wb = params.get('workbook');
+    if (wb) {
+      window.history.replaceState(null, '', window.location.pathname);
+      if (useLab.getState().doc?.workbook?.id !== wb) startWorkbookById(wb);
+      setTools('labs');
+      return;
+    }
+    const pack = params.get('pack');
+    if (pack) {
+      window.history.replaceState(null, '', window.location.pathname);
+      const lab = loadPacks().find((p) => p.name === pack)?.labs?.[Number(params.get('lab') ?? 0)];
+      const d = lab?.doc as LabDoc | undefined;
+      if (d && d.version === 1 && Array.isArray(d.devices) && Array.isArray(d.cables)) useLab.getState().importDoc(d);
+      return;
+    }
+    const id = params.get('challenge');
     if (!id) return;
     window.history.replaceState(null, '', window.location.pathname);
     const st = useLab.getState();
@@ -157,7 +175,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
       <Toolbar paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
           if (tools) setTools(null);
           else {
-            setTools('audit');
+            setTools(useLab.getState().doc?.workbook ? 'labs' : 'audit');
             setSimOpenRaw(false);
             if (s.tool === 'simulate') s.setTool('select');
           }

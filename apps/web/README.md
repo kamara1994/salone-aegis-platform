@@ -112,6 +112,17 @@ An editable network canvas built on the live topology.
   challenges that hide one realistic fault and reveal it afterwards; an any-to-any reachability matrix;
   Wireshark-style capture per cable with layer decode, hex dump and a real `.pcap` download; export of the lab
   JSON, port inventory CSV, all running configs and a bill of materials, and JSON import.
+- **Switching and routing labs**: port security (sticky, maximum, shutdown/restrict/protect, err-disabled and
+  recovery), BPDU guard and root guard, DTP and VTP (including the VTP bomb), DHCP snooping against rogue
+  servers, dynamic ARP inspection, layer 3 switching (`ip routing`, SVIs, routed ports), IOS standard and
+  extended ACLs (numbered and named, in/out, match counters), static NAT, VRRP and GLBP, EIGRP, and local SPAN
+  into the capture tool. All of it is typed in the Design CLI or set in the Services and Physical tabs, and the
+  simulator enforces it with the exact reason on every packet.
+- **Guided labs** (Tools → Labs, or Learn → Lab drills): 17 CCNA and CCNP workbooks (basic switch and SSH,
+  VLANs and trunking, router-on-a-stick, layer 3 switching, STP, EtherChannel, port security, DHCP and relay,
+  DHCP snooping and DAI, static routing, OSPF single/multi-area, ACLs, NAT, HSRP, EIGRP, VTP/DTP, STP guards).
+  Each builds its own topology (your design is saved as a layout first) and grades every task live from the
+  configuration, control plane and real packet simulation, with hints.
 - **Notes** on the canvas (text, box, oval; resizable, coloured; double-click to edit, Delete to remove).
 - **Library tabs**: Devices and Cables. The Cables tab works like Packet Tracer's Connections: pick a cable
   (Automatic, straight-through, crossover, trunk, access, fibre, console, serial, WAN, virtual/wireless), then
@@ -143,12 +154,45 @@ EVE-NG, GNS3 and containerlab: `docs/LAB-GAP-ANALYSIS.md`.
 
 ## Learn (`/learn`)
 
-Separate from the lab. AI-generated practice for CCNA, CCNP, Security+ and AWS Security (quiz, timed exam,
-flashcards), AI mock interviews (network, SOC, help desk, cloud security) with per-answer feedback, optional
-questions about your own lab design, and progress by objective. The questions and grading come from the back
-end's model through `/learn/*` (client in `src/learn/api.ts`); the key never reaches the browser. In mock mode,
-or when the back end has no model or no Learn endpoints yet, the page says exactly that. Subnetting drills
-(generated and checked by arithmetic) and lab troubleshooting drills (open `/lab?challenge=<id>`) work offline.
+Separate from the lab. Everything except the AI tabs works offline, and progress stays in this browser
+(`localStorage`); there are no accounts.
+
+- **Lessons**: an interactive textbook. Next/Back, arrow keys, section list, progress, search across every
+  section, bookmarks and notes, beginner/advanced level, and three modes: *watch* (answers and command output
+  shown), *guided* (interactive, hints available) and *independent* (no hints). Blocks include diagrams,
+  reveals, "what happens next" predictions, quizzes, command examples, a command trainer (it checks what you
+  type; it is clearly labelled as not a live device) and "Open this in the Lab" buttons that start the matching
+  guided lab or troubleshooting drill. Built-in lessons: VLANs from zero to troubleshooting (16 parts), writing a
+  ticket, impact and urgency, finding a MAC on Cisco/Windows/Linux, reading an ARP table, tracing a cable,
+  hunting suspicious traffic, triaging a SIEM alert, reading firewall logs, writing an escalation note,
+  collecting evidence, documenting an outage, closing a ticket, and subnet basics.
+  Deep link: `/learn?lesson=vlans&section=trunk`.
+- **Tracks**: CCNA, CCNP, Security+, eJPT, SOC analyst, cloud security, Linux, Windows/AD, automation, incident
+  response and help desk. Each lists its lessons, guided labs, games, drills and the AI exam/flashcards, with
+  progress. Export/import progress as JSON.
+- **Content packs**: lessons, games and lab layouts as plain JSON (`format: "aegis-content-pack"`). Packs are
+  validated (shape, 2 MB limit) and never run code. Download the template from Tracks to start one. Pack labs
+  open with `/lab?pack=<name>&lab=<index>`.
+- **Practice / Mock interview**: AI-generated questions, exams, flashcards and interviews through the back end's
+  `/learn/*` endpoints (client in `src/learn/api.ts`); the key never reaches the browser. In mock mode, or when
+  the back end has no model yet, the page says exactly that.
+- **Subnetting** drills (generated and checked by arithmetic) and **Lab drills** (guided workbooks and
+  troubleshooting challenges).
+
+Content lives in `src/content/` (types, lessons, games, tracks, progress and packs), separate from the
+components in `src/components/learn/`.
+
+## Games (`/games`)
+
+A ticket-queue triage game. Pick a role (help desk, NOC outage, SOC alert, phishing, ransomware, firewall,
+cloud breach, wireless, Active Directory, cable repair, DNS, VPN, pentest, disaster recovery, change window,
+customer escalation), take a ticket, set urgency and impact, ask the caller questions, open evidence (terminal
+output, logs, device panels, SIEM, mail gateway), choose the root cause, the fix and whether to escalate, then
+write the resolution note. Scoring (100 points): urgency, impact, useful questions (wasted questions cost
+points), key evidence, diagnosis, fix, escalation, documentation keywords, communication and time. Hints come
+from the scenario's mentor **only when you ask**, and each costs 3 points. The result explains every answer and
+links to the matching Lab drill. Scenarios are fictional and say so; nothing touches a live system.
+Scoring is in `src/content/scoring.ts`.
 
 ## Code map
 
@@ -167,6 +211,9 @@ src/
     replay/       incident replay player
     charts/       ECharts line chart themed to the desk
     providers.tsx runtime, React Query, event-to-cache bridge
+    learn/        lesson library and reader, rich blocks, diagrams, tracks, packs
+  content/        lessons, game scenarios, tracks, scoring, local progress and content packs (data, not UI)
+  lab/            lab designer model, store, control plane, CLI, workbooks, find, SVG export
   mock/           the simulated lab: topology and state, shells (PowerShell, IOS, OPNsense, Linux),
                   scenario behaviours, client personas, interviewer, engine (scheduler, SLA, flows, SOC, evidence)
   state/ui.ts     UI and live state (zustand)

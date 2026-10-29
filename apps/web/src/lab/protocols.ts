@@ -5,12 +5,12 @@
 // replaces the document on every change, so the cache never goes stale.
 import { MODEL_BY_KEY, modelOf } from './catalog';
 import { intToIp, inCidr, ipToInt, parseCidr, sameSubnet } from './net';
-import { ifaceUp, l2Walk, l3Ifaces, netStr, NO_CTX, ownerOfIp, simulatePacket, type L2Ctx } from './simulate';
+import { ifaceUp, isRouter, l2Walk, l3Ifaces, netStr, NO_CTX, ownerOfIp, simulatePacket, type L2Ctx } from './simulate';
 import type { Cable, Device, Iface, LabDoc, Route } from './types';
 import { cableOnPort, cableStatus, deviceById, otherEnd } from './validate';
 
 export interface StpPort {
-  role: 'root' | 'designated' | 'alternate' | 'edge' | 'disabled';
+  role: 'root' | 'designated' | 'alternate' | 'edge' | 'disabled' | 'root-inconsistent';
   state: 'forwarding' | 'blocking' | 'disabled';
   cost: number;
 }
@@ -49,6 +49,7 @@ export interface OspfNeighbor {
 }
 export interface HsrpGroup {
   key: string;
+  proto: 'hsrp' | 'vrrp' | 'glbp';
   group: number;
   vip: string;
   active?: { device: string; iface: string; priority: number };
@@ -56,9 +57,19 @@ export interface HsrpGroup {
   members: { device: string; iface: string; priority: number; up: boolean }[];
   issues: string[];
 }
+export interface EigrpNeighbor {
+  device: string;
+  iface: string;
+  peer: string;
+  peerIface: string;
+  peerIp: string;
+  as: number;
+  up: boolean;
+  reason?: string;
+}
 export interface CpIssue {
   severity: 'critical' | 'warning' | 'info';
-  topic: 'stp' | 'etherchannel' | 'ospf' | 'hsrp' | 'poe' | 'dhcp' | 'wireless';
+  topic: 'stp' | 'etherchannel' | 'ospf' | 'eigrp' | 'hsrp' | 'poe' | 'dhcp' | 'wireless' | 'security';
   message: string;
   devices: string[];
   fix?: string;
@@ -71,6 +82,7 @@ export interface ControlPlane {
   ospf: OspfNeighbor[];
   routes: Record<string, Route[]>;
   hsrp: HsrpGroup[];
+  eigrp: EigrpNeighbor[];
   storms: string[][];
   issues: CpIssue[];
 }
@@ -173,7 +185,7 @@ interface LogicalLink {
   cost: number;
 }
 
-function computeStp(doc: LabDoc, channels: Channel[], blocked: Set<string>): { bridges: Record<string, StpBridge>; storms: string[][]; issues: CpIssue[] } {
+function computeStp(doc: LabDoc, channels: Channel[], blocked: Set<string>, skip: Set<string> = new Set()): { bridges: Record<string, StpBridge>; storms: string[][]; issues: CpIssue[] } {
   const issues: CpIssue[] = [];
   const switches = doc.devices.filter((d) => d.kind === 'switch' && d.power !== 'stopped');
   const isSw = new Set(switches.map((s) => s.id));
@@ -209,6 +221,7 @@ function computeStp(doc: LabDoc, channels: Channel[], blocked: Set<string>): { b
     if (!isSw.has(c.a.device) || !isSw.has(c.b.device) || !linkUp(doc, c)) continue;
     if (bundled.has(`${c.a.device}/${c.a.port}`) || bundled.has(`${c.b.device}/${c.b.port}`)) continue;
     if (blocked.has(`${c.a.device}/${c.a.port}`) || blocked.has(`${c.b.device}/${c.b.port}`)) continue;
+    if (skip.has(`${c.a.device}/${c.a.port}`) || skip.has(`${c.b.device}/${c.b.port}`)) continue;
     const ia = deviceById(doc, c.a.device)!.interfaces.find((i) => i.name === c.a.port)!;
     links.push({ a: c.a.device, b: c.b.device, aPorts: [c.a.port], bPorts: [c.b.port], cost: stpCost(portSpeed(ia)) });
   }
@@ -282,10 +295,26 @@ function computeStp(doc: LabDoc, channels: Channel[], blocked: Set<string>): { b
         }
       }
   }
+  // Root guard: a port that would become the root port (superior BPDU) goes root-inconsistent instead.
+  const guarded = switches.flatMap((sw) => {
+    const rp = bridges[sw.id].rootPort;
+    const i = rp ? sw.interfaces.find((x) => x.name === rp) : undefined;
+    return i?.rootGuard && !skip.has(`${sw.id}/${rp}`) ? [`${sw.id}/${rp}`] : [];
+  });
+  if (guarded.length) {
+    const again = computeStp(doc, channels, blocked, new Set([...skip, ...guarded]));
+    for (const k of guarded) {
+      const [dev, port] = [k.slice(0, k.indexOf('/')), k.slice(k.indexOf('/') + 1)];
+      again.bridges[dev].ports[port] = { role: 'root-inconsistent', state: 'blocking', cost: 0 };
+      blocked.add(k);
+      again.issues.push({ severity: 'warning', topic: 'stp', message: `Root guard on ${deviceById(doc, dev)?.name} ${port} received a superior BPDU and put the port in root-inconsistent (blocking) state: a switch on that side is trying to become root.`, devices: [dev], fix: 'Lower the priority on the intended root bridge, or remove the switch that claims root.' });
+    }
+    return again;
+  }
   // Edge ports and EtherChannel secondaries
   for (const s of switches) {
     for (const i of s.interfaces) {
-      if (bridges[s.id].ports[i.name] || i.type === 'console' || /^vlan/i.test(i.name)) continue;
+      if (bridges[s.id].ports[i.name] || i.type === 'console' || /^vlan/i.test(i.name) || i.mode === 'routed') continue;
       const c = cableOnPort(doc, s.id, i.name);
       if (!c) continue;
       bridges[s.id].ports[i.name] = { role: i.shutdown ? 'disabled' : 'edge', state: i.shutdown ? 'disabled' : 'forwarding', cost: stpCost(portSpeed(i)) };
@@ -323,34 +352,41 @@ function computeStp(doc: LabDoc, channels: Channel[], blocked: Set<string>): { b
 
 // ---------------- HSRP ----------------
 
-function computeHsrp(doc: LabDoc): { groups: HsrpGroup[]; vipOwners: L2Ctx['vipOwners']; issues: CpIssue[] } {
+function computeHsrp(doc: LabDoc): { groups: HsrpGroup[]; vipOwners: L2Ctx['vipOwners']; glbp: NonNullable<L2Ctx['glbp']>; issues: CpIssue[] } {
   const groups = new Map<string, HsrpGroup>();
   for (const d of doc.devices)
     for (const i of d.interfaces) {
       if (!i.hsrp) continue;
-      const key = `${i.hsrp.group}|${i.hsrp.vip}`;
-      const g = groups.get(key) ?? { key, group: i.hsrp.group, vip: i.hsrp.vip, members: [], issues: [] };
+      const proto = i.hsrp.proto ?? 'hsrp';
+      const key = `${proto}|${i.hsrp.group}|${i.hsrp.vip}`;
+      const g = groups.get(key) ?? { key, proto, group: i.hsrp.group, vip: i.hsrp.vip, members: [], issues: [] };
       const up = d.power !== 'stopped' && ifaceUp(d, i) && !!i.ip && sameSubnet(i.ip, i.hsrp.vip, i.prefix ?? 24);
       if (i.ip && !sameSubnet(i.ip, i.hsrp.vip, i.prefix ?? 24)) g.issues.push(`${d.name} ${i.name}: virtual IP ${i.hsrp.vip} is not in the interface subnet ${netStr(i.ip, i.prefix ?? 24)}`);
       g.members.push({ device: d.id, iface: i.name, priority: i.hsrp.priority, up });
       groups.set(key, g);
     }
   const vipOwners: L2Ctx['vipOwners'] = new Map();
+  const glbp: NonNullable<L2Ctx['glbp']> = new Map();
   const issues: CpIssue[] = [];
   const ip = (m: { device: string; iface: string }) => ipToInt(deviceById(doc, m.device)!.interfaces.find((x) => x.name === m.iface)!.ip ?? '0.0.0.0') ?? 0;
   for (const g of groups.values()) {
-    const live = g.members.filter((m) => m.up).sort((a, b) => b.priority - a.priority || ip(b) - ip(a));
+    // VRRP: the router that owns the virtual IP as an interface address has priority 255.
+    const prio = (m: HsrpGroup['members'][number]) => (g.proto === 'vrrp' && deviceById(doc, m.device)?.interfaces.find((x) => x.name === m.iface)?.ip === g.vip ? 255 : m.priority);
+    const live = g.members.filter((m) => m.up).sort((a, b) => prio(b) - prio(a) || ip(b) - ip(a));
     g.active = live[0];
     g.standby = live[1];
+    const P = g.proto.toUpperCase();
+    const role = g.proto === 'vrrp' ? ['master', 'backup'] : g.proto === 'glbp' ? ['AVG', 'standby AVG'] : ['active', 'standby'];
     if (g.active) vipOwners.set(g.vip, { device: g.active.device, iface: g.active.iface });
+    if (g.proto === 'glbp' && live.length) glbp.set(g.vip, live.slice(0, 4).map((m) => ({ device: m.device, iface: m.iface })));
     const names = g.members.map((m) => deviceById(doc, m.device)?.name).join(', ');
-    if (!g.active) issues.push({ severity: 'critical', topic: 'hsrp', message: `HSRP group ${g.group} (${g.vip}): no active router (${names} all down). Hosts using ${g.vip} as gateway are cut off.`, devices: g.members.map((m) => m.device) });
-    else if (!g.standby) issues.push({ severity: 'warning', topic: 'hsrp', message: `HSRP group ${g.group} (${g.vip}): only ${deviceById(doc, g.active.device)?.name} is up, so there is no standby router.`, devices: g.members.map((m) => m.device), fix: 'Add or repair the second router in the group.' });
-    for (const s of g.issues) issues.push({ severity: 'warning', topic: 'hsrp', message: `HSRP group ${g.group}: ${s}.`, devices: g.members.map((m) => m.device) });
+    if (!g.active) issues.push({ severity: 'critical', topic: 'hsrp', message: `${P} group ${g.group} (${g.vip}): no ${role[0]} router (${names} all down). Hosts using ${g.vip} as gateway are cut off.`, devices: g.members.map((m) => m.device) });
+    else if (!g.standby) issues.push({ severity: 'warning', topic: 'hsrp', message: `${P} group ${g.group} (${g.vip}): only ${deviceById(doc, g.active.device)?.name} is up, so there is no ${role[1]} router.`, devices: g.members.map((m) => m.device), fix: 'Add or repair the second router in the group.' });
+    for (const s of g.issues) issues.push({ severity: 'warning', topic: 'hsrp', message: `${P} group ${g.group}: ${s}.`, devices: g.members.map((m) => m.device) });
     // Same group number with different VIPs on the same subnet
-    for (const o of groups.values()) if (o !== g && o.group === g.group && o.key > g.key && sameSubnet(o.vip, g.vip, 24)) issues.push({ severity: 'warning', topic: 'hsrp', message: `HSRP group ${g.group} has two different virtual IPs (${g.vip}, ${o.vip}) on one subnet; each router thinks it is active.`, devices: [...g.members, ...o.members].map((m) => m.device), fix: 'Use the same virtual IP on every member.' });
+    for (const o of groups.values()) if (o !== g && o.proto === g.proto && o.group === g.group && o.key > g.key && sameSubnet(o.vip, g.vip, 24)) issues.push({ severity: 'warning', topic: 'hsrp', message: `HSRP group ${g.group} has two different virtual IPs (${g.vip}, ${o.vip}) on one subnet; each router thinks it is active.`, devices: [...g.members, ...o.members].map((m) => m.device), fix: 'Use the same virtual IP on every member.' });
   }
-  return { groups: [...groups.values()], vipOwners, issues };
+  return { groups: [...groups.values()], vipOwners, glbp, issues };
 }
 
 // ---------------- OSPF ----------------
@@ -366,7 +402,7 @@ const ospfCost = (i: Iface) => i.ospf?.cost ?? Math.max(1, Math.floor(100 / port
 
 function computeOspf(doc: LabDoc, ctx: L2Ctx): { neighbors: OspfNeighbor[]; routes: Record<string, Route[]>; rids: Record<string, string>; issues: CpIssue[] } {
   const issues: CpIssue[] = [];
-  const routers = doc.devices.filter((d) => modelOf(d).forwarding === 'l3' && d.kind !== 'cloud' && d.power !== 'stopped' && d.interfaces.some((i) => i.ospf && i.ip));
+  const routers = doc.devices.filter((d) => isRouter(d) && d.kind !== 'cloud' && d.power !== 'stopped' && d.interfaces.some((i) => i.ospf && i.ip));
   const rids: Record<string, string> = {};
   for (const r of routers) rids[r.id] = routerId(r);
   const neighbors: OspfNeighbor[] = [];
@@ -438,12 +474,79 @@ function computeOspf(doc: LabDoc, ctx: L2Ctx): { neighbors: OspfNeighbor[]; rout
   return { neighbors, routes, rids, issues };
 }
 
+// ---------------- EIGRP ----------------
+
+const eigrpBwKbps = (i: Iface) => (/^loopback/i.test(i.name) ? 8_000_000 : i.type === 'serial' ? 1544 : portSpeed(i) * 1000);
+const eigrpDelay = (i: Iface) => i.eigrp?.delay ?? (/^loopback/i.test(i.name) ? 5000 : i.type === 'serial' ? 20000 : portSpeed(i) >= 1000 ? 10 : portSpeed(i) >= 100 ? 100 : 1000);
+export const eigrpMetric = (minBw: number, delayUs: number) => Math.round(256 * (Math.floor(10_000_000 / minBw) + Math.floor(delayUs / 10)));
+
+function computeEigrp(doc: LabDoc, ctx: L2Ctx): { neighbors: EigrpNeighbor[]; routes: Record<string, Route[]>; issues: CpIssue[] } {
+  const issues: CpIssue[] = [];
+  const routers = doc.devices.filter((d) => isRouter(d) && d.power !== 'stopped' && d.interfaces.some((i) => i.eigrp && i.ip));
+  const ifs = routers.flatMap((r) => r.interfaces.filter((i) => i.eigrp && i.ip && i.prefix !== undefined && ifaceUp(r, i)).map((i) => ({ r, i })));
+  const neighbors: EigrpNeighbor[] = [];
+  for (const x of ifs) {
+    if (x.i.eigrp!.passive || /^loopback/i.test(x.i.name)) continue;
+    for (const y of ifs) {
+      if (y.r.id === x.r.id || /^loopback/i.test(y.i.name)) continue;
+      if (!sameSubnet(x.i.ip!, y.i.ip!, Math.min(x.i.prefix!, y.i.prefix!))) continue;
+      const l2 = l2Walk(doc, x.r, x.i, y.i.ip!, ctx);
+      let up = true;
+      let reason: string | undefined;
+      if (!l2.ok) [up, reason] = [false, `no hellos from ${y.r.name}: ${l2.reason}`];
+      else if (y.i.eigrp!.passive) [up, reason] = [false, `${y.r.name} ${y.i.name} is passive`];
+      else if (x.i.eigrp!.as !== y.i.eigrp!.as) [up, reason] = [false, `autonomous system mismatch: AS ${x.i.eigrp!.as} vs AS ${y.i.eigrp!.as}; hellos are ignored`];
+      else if (x.i.prefix !== y.i.prefix) [up, reason] = [false, `${y.i.ip} is not on a common subnet with ${x.i.ip}/${x.i.prefix} (mask mismatch /${x.i.prefix} vs /${y.i.prefix})`];
+      neighbors.push({ device: x.r.id, iface: x.i.name, peer: y.r.id, peerIface: y.i.name, peerIp: y.i.ip!, as: x.i.eigrp!.as, up, reason });
+    }
+  }
+  for (const n of neighbors.filter((x) => !x.up && x.device < x.peer)) issues.push({ severity: 'warning', topic: 'eigrp', message: `EIGRP ${deviceById(doc, n.device)?.name} ${n.iface} ↔ ${deviceById(doc, n.peer)?.name} ${n.peerIface}: no adjacency, ${n.reason}.`, devices: [n.device, n.peer] });
+  const adjUp = neighbors.filter((n) => n.up && neighbors.some((m) => m.device === n.peer && m.peer === n.device && m.up));
+  const routes: Record<string, Route[]> = {};
+  for (const r of routers) {
+    // best (minBw, delay) to every router, label-setting on the composite metric
+    type Lbl = { bw: number; delay: number; via?: EigrpNeighbor };
+    const lbl: Record<string, Lbl> = { [r.id]: { bw: Infinity, delay: 0 } };
+    const done = new Set<string>();
+    for (;;) {
+      const cur = Object.keys(lbl).filter((k) => !done.has(k)).sort((a, b) => eigrpMetric(lbl[a].bw, lbl[a].delay) - eigrpMetric(lbl[b].bw, lbl[b].delay))[0];
+      if (!cur) break;
+      done.add(cur);
+      const cd = deviceById(doc, cur)!;
+      for (const n of adjUp.filter((x) => x.device === cur)) {
+        // metric toward the neighbour uses the outgoing interface of the router that is closer to us,
+        // so routes into `n.peer` use the peer's receiving interface for its own networks below
+        const out = cd.interfaces.find((i) => i.name === n.iface)!;
+        const c: Lbl = { bw: Math.min(lbl[cur].bw, eigrpBwKbps(out)), delay: lbl[cur].delay + eigrpDelay(out), via: cur === r.id ? n : lbl[cur].via };
+        const old = lbl[n.peer];
+        if (!old || eigrpMetric(c.bw, c.delay) < eigrpMetric(old.bw, old.delay)) if (!done.has(n.peer)) lbl[n.peer] = c;
+      }
+    }
+    const asOf = new Set(r.interfaces.filter((i) => i.eigrp).map((i) => i.eigrp!.as));
+    const connected = new Set(l3Ifaces(r).map((i) => netStr(i.ip!, i.prefix!)));
+    const best = new Map<string, Route>();
+    for (const [id, l] of Object.entries(lbl)) {
+      if (id === r.id || !l.via) continue;
+      const peer = deviceById(doc, id)!;
+      for (const i of peer.interfaces.filter((x) => x.eigrp && x.ip && x.prefix !== undefined && ifaceUp(peer, x) && asOf.has(x.eigrp.as))) {
+        const prefix = netStr(i.ip!, i.prefix!);
+        if (connected.has(prefix)) continue;
+        const metric = eigrpMetric(Math.min(l.bw, eigrpBwKbps(i)), l.delay + eigrpDelay(i));
+        const cur = best.get(prefix);
+        if (!cur || metric < (cur.metric ?? Infinity)) best.set(prefix, { prefix, via: l.via.peerIp, iface: l.via.iface, kind: 'eigrp', metric, ad: 90, code: 'D', description: `learned from ${peer.name} (AS ${i.eigrp!.as})` });
+      }
+    }
+    routes[r.id] = [...best.values()];
+  }
+  return { neighbors, routes, issues };
+}
+
 /** The routing table a device uses: connected, static and learned routes, best AD per prefix. */
 export function effectiveRoutes(d: Device, learned: Route[] = []): Route[] {
   const out: Route[] = [];
   for (const i of l3Ifaces(d)) if (ifaceUp(d, i)) out.push({ prefix: netStr(i.ip!, i.prefix!), iface: i.name, kind: 'connected', ad: 0, metric: 0, code: 'C' });
   for (const r of d.routes) if (r.kind !== 'connected') out.push({ ...r, ad: r.ad ?? 1, metric: r.metric ?? 0, code: r.code ?? (r.prefix === '0.0.0.0/0' ? 'S*' : 'S') });
-  for (const r of learned) if (!out.some((o) => o.prefix === r.prefix && (o.ad ?? 0) <= (r.ad ?? 110))) out.push(r);
+  for (const r of [...learned].sort((a, b) => (a.ad ?? 110) - (b.ad ?? 110))) if (!out.some((o) => o.prefix === r.prefix && (o.ad ?? 0) <= (r.ad ?? 110))) out.push(r);
   return out.sort((a, b) => (ipToInt(a.prefix.split('/')[0]) ?? 0) - (ipToInt(b.prefix.split('/')[0]) ?? 0) || Number(a.prefix.split('/')[1]) - Number(b.prefix.split('/')[1]));
 }
 
@@ -452,20 +555,27 @@ export function effectiveRoutes(d: Device, learned: Route[] = []): Route[] {
 export function controlPlane(doc: LabDoc): ControlPlane {
   const hit = cache.get(doc);
   if (hit) return hit;
-  if (COMPUTING.has(doc)) return { stp: {}, channels: [], l2: NO_CTX, routerIds: {}, ospf: [], routes: {}, hsrp: [], storms: [], issues: [] };
+  if (COMPUTING.has(doc)) return { stp: {}, channels: [], l2: NO_CTX, routerIds: {}, ospf: [], routes: {}, hsrp: [], eigrp: [], storms: [], issues: [] };
   COMPUTING.add(doc);
   try {
     const channels = computeChannels(doc);
     const blocked = new Set<string>();
     const stp = computeStp(doc, channels, blocked);
     const hsrp = computeHsrp(doc);
-    const l2: L2Ctx = { blocked, vipOwners: hsrp.vipOwners };
+    // Static NAT: the router answers ARP for inside global addresses on its outside interface.
+    for (const d of doc.devices)
+      for (const n of d.staticNat ?? []) {
+        const out = d.interfaces.find((i) => i.nat === 'outside' && i.ip && i.prefix !== undefined && sameSubnet(i.ip, n.outside, i.prefix));
+        if (out && !hsrp.vipOwners.has(n.outside)) hsrp.vipOwners.set(n.outside, { device: d.id, iface: out.name });
+      }
+    const l2: L2Ctx = { blocked, vipOwners: hsrp.vipOwners, glbp: hsrp.glbp };
     const ospf = computeOspf(doc, l2);
+    const eigrp = computeEigrp(doc, l2);
     const routes: Record<string, Route[]> = {};
-    for (const d of doc.devices) if (modelOf(d).forwarding !== 'host' || d.routes.length) routes[d.id] = effectiveRoutes(d, ospf.routes[d.id]);
+    for (const d of doc.devices) if (isRouter(d) || d.routes.length) routes[d.id] = effectiveRoutes(d, [...(ospf.routes[d.id] ?? []), ...(eigrp.routes[d.id] ?? [])]);
     for (const ch of channels.filter((c) => !c.ok && !stp.issues.some((i) => i.topic === 'etherchannel' && i.devices[0] === c.device)))
       stp.issues.push({ severity: 'warning', topic: 'etherchannel', message: `${deviceById(doc, ch.device)?.name} Po${ch.group}: ${ch.reason}.`, devices: [ch.device] });
-    const cp: ControlPlane = { stp: stp.bridges, channels, l2, routerIds: ospf.rids, ospf: ospf.neighbors, routes, hsrp: hsrp.groups, storms: stp.storms, issues: [...stp.issues, ...hsrp.issues, ...ospf.issues] };
+    const cp: ControlPlane = { stp: stp.bridges, channels, l2, routerIds: ospf.rids, ospf: ospf.neighbors, routes, hsrp: hsrp.groups, eigrp: eigrp.neighbors, storms: stp.storms, issues: [...stp.issues, ...hsrp.issues, ...ospf.issues, ...eigrp.issues] };
     cache.set(doc, cp);
     return cp;
   } finally {
@@ -564,18 +674,42 @@ export function dhcpLease(doc: LabDoc, deviceId: string, ifaceName: string): Dhc
   const r = l2Walk(doc, d, probe, null, cp.l2, true);
   if (!r.reached.length) return { ok: false, reason: `DHCPDISCOVER reached nobody: ${r.reason ?? 'no link or no other device in the broadcast domain'}.`, fix: 'Check the cable, the switch port and its VLAN.' };
   const self = { device: d.id, iface: i.name };
-  // 1. A server on the same segment
+  // DHCP snooping: an OFFER entering a snooping switch on an untrusted port is dropped there.
+  const snoopDrop = (srvDev: Device, srvIf: Iface): string | null => {
+    const back = l2Walk(doc, srvDev, srvIf, null, cp.l2, true);
+    const first = new Map<string, { port: string; vlan: number }>();
+    for (const h of back.switchHits) if (!first.has(h.device)) first.set(h.device, { port: h.port, vlan: h.vlan });
+    for (const [swId, hit] of first) {
+      const sw = deviceById(doc, swId)!;
+      if (!sw.dhcpSnooping?.enabled || !sw.dhcpSnooping.vlans.includes(hit.vlan)) continue;
+      const port = sw.interfaces.find((x) => x.name === hit.port);
+      if (!port?.dhcpTrust) return `DHCP snooping on ${sw.name} dropped the DHCPOFFER from ${srvDev.name}: it arrived on untrusted port ${hit.port} (VLAN ${hit.vlan})`;
+    }
+    return null;
+  };
+  const dropped: string[] = [];
+  // 1. A server on the same segment (the closest one answers first, which is how a rogue server wins)
   for (const x of r.reached) {
     if (x.device.power === 'stopped' || !x.iface.ip) continue;
     const pool = x.device.dhcpPools?.find((p) => inCidr(x.iface.ip!, p.network));
     if (!pool) continue;
+    const why = snoopDrop(x.device, x.iface);
+    if (why) {
+      dropped.push(why);
+      continue;
+    }
     const lease = leaseFrom(doc, pool, i.mac || d.id, self);
     if (!lease) return { ok: false, reason: `DHCP pool ${pool.name} on ${x.device.name} is exhausted.`, fix: 'Widen the pool range or shorten leases.' };
     return { ok: true, ...lease, gateway: pool.gateway, dns: pool.dns, server: `${x.device.name} (${x.iface.ip})` };
   }
   // 2. A relay on the segment
-  const relays = r.reached.filter((x) => x.iface.helper && x.iface.ip);
+  const relays = r.reached.filter((x) => x.iface.helper && x.iface.ip).filter((x) => {
+    const why = snoopDrop(x.device, x.iface);
+    if (why) dropped.push(why.replace('DHCPOFFER from', 'relayed DHCPOFFER from'));
+    return !why;
+  });
   if (!relays.length) {
+    if (dropped.length) return { ok: false, reason: `${dropped[0]}.`, fix: 'Trust the port that faces the real DHCP server or relay (ip dhcp snooping trust); leave access ports untrusted so rogue servers stay blocked.' };
     const vlans = [...new Set(r.reached.map((x) => x.vlan).filter((v) => v !== undefined))];
     return { ok: false, reason: `DHCPDISCOVER got no offer: there is no DHCP server or relay (ip helper-address) in this broadcast domain${vlans.length ? ` (VLAN ${vlans.join(', ')})` : ''}.`, fix: 'Configure ip helper-address on the VLAN gateway, or add a DHCP pool on a local server.' };
   }

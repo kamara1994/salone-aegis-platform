@@ -167,7 +167,7 @@ test('device finder jumps to a device by IP', async ({ page }) => {
 });
 
 test('learn page: honest AI state in mock mode, subnetting drill works offline, lab drill opens the lab', async ({ page }) => {
-  await page.goto('/learn');
+  await page.goto('/learn?tab=practice');
   await page.getByTestId('learn-generate').click();
   await expect(page.getByTestId('learn-ai-unavailable')).toContainText('AI not connected');
   await page.getByRole('tab', { name: /Subnetting/ }).click();
@@ -178,6 +178,43 @@ test('learn page: honest AI state in mock mode, subnetting drill works offline, 
   await expect(page.getByTestId('subnet-verdict')).toBeVisible();
   await expect(page.getByTestId('subnet-stats')).toContainText('/1 right');
   await page.getByRole('tab', { name: /Lab drills/ }).click();
+  await expect(page.getByTestId('learn-workbooks')).toContainText('Port security');
   await page.getByTestId('drill-shut-uplink').click();
   await expect(page.getByTestId('challenge-active')).toContainText('Ticket');
+});
+
+test('guided lab: start a CCNA workbook, solve a task in the CLI, watch it turn green', async ({ page }) => {
+  await page.getByTestId('tool-tools').click();
+  const tools = page.getByTestId('tools-panel');
+  await tools.getByRole('tab', { name: /^Labs/ }).click();
+  await tools.getByTestId('workbook-basic-switch').click();
+  await expect(tools.getByTestId('workbook-active')).toContainText('Basic switch configuration and SSH');
+  await expect(tools.getByTestId('task-host')).toHaveAttribute('data-ok', 'false');
+  await device(page, 'Switch').click({ position: { x: 64, y: 30 } });
+  await page.getByTestId('tab-terminal').click();
+  await typeCli(page, ['enable', 'conf t', 'hostname HQ-SW1', 'end']);
+  await expect(tools.getByTestId('task-host')).toHaveAttribute('data-ok', 'true');
+  await expect(tools.getByTestId('workbook-score')).toHaveText('20%');
+  await tools.getByTestId('workbook-exit').click();
+  await expect(tools.getByTestId('workbook-catalog')).toBeVisible();
+});
+
+test('port security from the Physical tab err-disables the port and Recover brings it back', async ({ page }) => {
+  await page.goto('/lab?workbook=port-security');
+  await expect(page.getByTestId('workbook-active')).toBeVisible();
+  await device(page, 'SW-RECEPTION').click({ position: { x: 64, y: 30 } });
+  await page.getByTestId('tab-physical').click();
+  await page.getByTestId('phys-port-Gi0/1').click();
+  const ed = page.getByTestId('phys-port-security');
+  await ed.getByLabel('Port security').check();
+  await ed.getByLabel('Sticky').check();
+  await expect(page.getByTestId('task-learned')).toHaveAttribute('data-ok', 'true');
+  // set a wrong static MAC through the CLI to force a violation
+  await page.getByTestId('tab-terminal').click();
+  await typeCli(page, ['enable', 'conf t', 'int g0/1', 'no switchport port-security mac-address sticky', 'switchport port-security mac-address 0011.2233.4455', 'end']);
+  await page.getByTestId('tab-physical').click();
+  await page.getByTestId('phys-port-Gi0/1').click();
+  await expect(page.getByTestId('phys-port-Gi0/1')).toHaveAttribute('data-led', 'err');
+  await expect(page.getByTestId('cable-err-disabled')).toBeVisible();
+  await expect(page.getByTestId('task-violate')).toHaveAttribute('data-ok', 'true');
 });

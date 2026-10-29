@@ -9,14 +9,15 @@ import type { Device, Iface, LabDoc } from '@/lab/types';
 import { cableOnPort, cablesOnPort, cableStatus, CABLE_LABEL, deviceById, otherEnd } from '@/lab/validate';
 import { portSummary } from './DeviceHoverCard';
 
-type Led = 'up' | 'degraded' | 'blocking' | 'down' | 'off' | 'admin';
-const LED_COLOR: Record<Led, string> = { up: '#2fb36a', degraded: '#e5a23a', blocking: '#e5a23a', down: '#e5484d', off: '#3a4a5c', admin: '#6b7c8f' };
-const LED_TEXT: Record<Led, string> = { up: 'link up', degraded: 'link up with problems', blocking: 'STP blocking', down: 'cable in, no link', off: 'nothing plugged in', admin: 'shut down' };
+type Led = 'up' | 'degraded' | 'blocking' | 'down' | 'off' | 'admin' | 'err';
+const LED_COLOR: Record<Led, string> = { up: '#2fb36a', degraded: '#e5a23a', blocking: '#e5a23a', down: '#e5484d', off: '#3a4a5c', admin: '#6b7c8f', err: '#ff7a1a' };
+const LED_TEXT: Record<Led, string> = { up: 'link up', degraded: 'link up with problems', blocking: 'STP blocking', down: 'cable in, no link', off: 'nothing plugged in', admin: 'shut down', err: 'err-disabled' };
 
 const PHYSICAL = (i: Iface) => !i.parent && !i.bridge && i.type !== 'virtual' && !/^(vlan|loopback|tunnel|port-channel)/i.test(i.name);
 
 function ledOf(doc: LabDoc, d: Device, i: Iface, blocked: boolean): Led {
   if (i.shutdown) return 'admin';
+  if (i.errDisabled) return 'err';
   const cs = i.type === 'wireless' ? cablesOnPort(doc, d.id, i.name) : [cableOnPort(doc, d.id, i.name)].filter(Boolean);
   if (!cs.length) return 'off';
   if (d.power === 'stopped') return 'off';
@@ -122,7 +123,7 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
         </svg>
       </div>
       <div className="flex flex-wrap gap-2 text-[11px] text-muted">
-        {(['up', 'degraded', 'blocking', 'down', 'off', 'admin'] as Led[]).map((l) => (
+        {(['up', 'degraded', 'blocking', 'err', 'down', 'off', 'admin'] as Led[]).map((l) => (
           <span key={l} className="flex items-center gap-1">
             <span className="size-2 rounded-full" style={{ background: LED_COLOR[l] }} /> {LED_TEXT[l]}
           </span>
@@ -178,13 +179,72 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
             <Button size="sm" onClick={() => st.updateIface(d.id, sp.name, { shutdown: !sp.shutdown })}>
               {sp.shutdown ? 'No shutdown' : 'Shutdown'}
             </Button>
+            {sp.errDisabled && (
+              <Button
+                size="sm"
+                variant="primary"
+                data-testid="phys-recover"
+                onClick={() => {
+                  st.updateIface(d.id, sp.name, { shutdown: true });
+                  st.updateIface(d.id, sp.name, { shutdown: false });
+                }}
+              >
+                Recover (shutdown / no shutdown)
+              </Button>
+            )}
           </div>
+          {sp.errDisabled && <p className="rounded bg-[#ff7a1a]/10 p-2 text-[#ff9a4a]">Err-disabled: {sp.errDisabled}.</p>}
+          {d.kind === 'switch' && sp.mode !== 'routed' && <PortSecurityEditor d={d} i={sp} />}
           {st.pendingEnd?.device === d.id && st.pendingEnd.port === sp.name && <p className="text-action">Now click the device at the other end on the canvas.</p>}
         </section>
       ) : (
         <p className="text-muted">Click a port to see what is plugged in, plug a cable in, or shut it down.</p>
       )}
       <p className={cx('text-[11px] text-muted', m.autoMdix ? '' : 'text-degraded')}>{m.autoMdix ? 'Copper ports have auto-MDIX: straight or crossover both work.' : 'No auto-MDIX: use the correct straight or crossover cable.'}</p>
+    </div>
+  );
+}
+
+function PortSecurityEditor({ d, i }: { d: Device; i: Iface }) {
+  const st = useLab();
+  const ps = i.portSecurity ?? { enabled: false, max: 1, sticky: false, violation: 'shutdown' as const, macs: [] };
+  const set = (p: Partial<Iface>) => st.updateIface(d.id, i.name, p);
+  const dynamic = !!i.dtp;
+  return (
+    <div className="space-y-1.5 rounded border border-line p-2 text-[12px]" data-testid="phys-port-security">
+      <p className="font-semibold">Port protection</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-1.5" title={dynamic ? 'Port security needs a static access or trunk port' : undefined}>
+          <input type="checkbox" disabled={dynamic} checked={ps.enabled} onChange={(e) => set({ portSecurity: { ...ps, enabled: e.target.checked } })} aria-label="Port security" /> Port security
+        </label>
+        <label className="flex items-center gap-1">
+          max
+          <input type="number" min={1} max={64} className="w-12 rounded border border-line bg-ink px-1" disabled={!ps.enabled} value={ps.max} onChange={(e) => set({ portSecurity: { ...ps, max: Math.max(1, Number(e.target.value) || 1) } })} aria-label="Maximum MAC addresses" />
+        </label>
+        <select className="h-7 rounded border border-line bg-ink px-1" disabled={!ps.enabled} value={ps.violation} onChange={(e) => set({ portSecurity: { ...ps, violation: e.target.value as typeof ps.violation } })} aria-label="Violation mode">
+          <option value="shutdown">shutdown</option>
+          <option value="restrict">restrict</option>
+          <option value="protect">protect</option>
+        </select>
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" disabled={!ps.enabled} checked={ps.sticky} onChange={(e) => set({ portSecurity: { ...ps, sticky: e.target.checked, macs: e.target.checked ? ps.macs : [] } })} aria-label="Sticky" /> sticky
+        </label>
+      </div>
+      {ps.enabled && <p className="font-mono text-[11px] text-muted">Secure MACs: {ps.macs.length ? ps.macs.join(', ') : 'none yet (learned dynamically)'}</p>}
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" checked={!!i.portfast} onChange={(e) => set({ portfast: e.target.checked })} /> PortFast
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" checked={!!i.bpduGuard} onChange={(e) => set({ bpduGuard: e.target.checked || undefined })} /> BPDU guard
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" checked={!!i.rootGuard} onChange={(e) => set({ rootGuard: e.target.checked || undefined })} /> Root guard
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input type="checkbox" checked={!!i.dhcpTrust} onChange={(e) => set({ dhcpTrust: e.target.checked || undefined })} /> DHCP snooping / DAI trust
+        </label>
+      </div>
     </div>
   );
 }

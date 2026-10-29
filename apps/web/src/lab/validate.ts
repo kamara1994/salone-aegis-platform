@@ -187,6 +187,7 @@ function vlanChecks(doc: LabDoc, A: Device, a: Iface, B: Device, b: Iface): Cabl
     [A, a, B, b],
     [B, b, A, a],
   ];
+  if ((isSw(A) && a.mode === 'routed') || (isSw(B) && b.mode === 'routed')) return issues; // routed port on a layer 3 switch
   if (isSw(A) && isSw(B)) {
     const ma = a.mode ?? 'access';
     const mb = b.mode ?? 'access';
@@ -230,6 +231,7 @@ export function cableStatus(doc: LabDoc, c: Cable): CableStatus {
   for (const [d, i] of [[A.device, A.iface], [B.device, B.iface]] as const) {
     if (d.power === 'stopped') issues.push({ code: 'powered_off', severity: 'down', message: `${d.name} is powered off.`, fix: `Power on ${d.name}.` });
     if (i.shutdown) issues.push({ code: 'shutdown', severity: 'down', message: `${d.name} ${i.name} is administratively down (shutdown).`, fix: `no shutdown on ${i.name}.` });
+    else if (i.errDisabled) issues.push({ code: 'err_disabled', severity: 'down', message: `${d.name} ${i.name} is err-disabled: ${i.errDisabled}.`, fix: `Remove the cause, then shutdown and no shutdown on ${i.name} (or configure errdisable recovery).` });
   }
   const lim = lengthLimit(c, A.iface);
   if (c.lengthM && lim && c.lengthM > lim.max) issues.push({ code: 'too_long', severity: 'down', message: `${lim.label} is limited to ${lim.max >= 1000 ? `${lim.max / 1000} km` : `${lim.max} m`}; this run is ${c.lengthM >= 1000 ? `${c.lengthM / 1000} km` : `${c.lengthM} m`}. The signal is too weak for a stable link.`, fix: lim.fix });

@@ -1,16 +1,19 @@
 'use client';
 
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Bot, Calculator, Check, FlaskConical, MessagesSquare, X } from 'lucide-react';
+import { BookOpen, Bot, Calculator, Check, FlaskConical, Map as MapIcon, MessagesSquare, X } from 'lucide-react';
+import { LessonLibrary, LessonReader } from '@/components/learn/Lessons';
+import { TracksView } from '@/components/learn/Tracks';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Button, cx, Field, Input, Pane, Tabs, Textarea } from '@/components/ui';
 import { CHALLENGES } from '@/lab/challenges';
+import { WORKBOOKS } from '@/lab/workbooks';
 import type { LabDoc } from '@/lab/types';
 import { LearnError, learnApi, TRACKS, type AnswerResult, type InterviewSession, type Question, type QuizMode, type Track } from '@/learn/api';
 import { checkDrill, makeDrill, type Drill, type DrillKind } from '@/learn/subnet';
 
-type Tab = 'practice' | 'interview' | 'subnetting' | 'labs';
+type Tab = 'lessons' | 'tracks' | 'practice' | 'interview' | 'subnetting' | 'labs';
 const sel = 'h-9 rounded-[5px] border border-line-strong bg-ink px-2 text-[13px]';
 
 function readJson<T>(key: string): T | null {
@@ -113,8 +116,8 @@ function QuestionCard({ q, n, total, mode, onDone }: { q: Question; n: number; t
   );
 }
 
-function Practice() {
-  const [track, setTrack] = useState<Track>('ccna');
+function Practice({ initialTrack }: { initialTrack?: Track }) {
+  const [track, setTrack] = useState<Track>(initialTrack ?? 'ccna');
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState(3);
   const [count, setCount] = useState(10);
@@ -424,6 +427,28 @@ function Subnetting() {
 
 function LabDrills() {
   return (
+    <div className="space-y-3">
+    <Pane title="Guided CCNA and CCNP labs">
+      <div className="p-3">
+        <p className="mb-2 text-[13px] text-muted">Each lab builds its own topology in the lab designer and grades every task from the live network: configuration, control plane and real packets.</p>
+        <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3" data-testid="learn-workbooks">
+          {WORKBOOKS.map((w) => (
+            <li key={w.id} className="flex flex-col gap-1 rounded-[6px] border border-line p-2.5 text-[13px]">
+              <div className="flex items-center gap-2">
+                <Badge tone={w.level === 'CCNP' ? 'warn' : 'neutral'}>{w.level}</Badge>
+                <span className="font-medium">{w.title}</span>
+              </div>
+              <p className="text-[12px] text-muted">
+                {w.topic} · {w.tasks.length} tasks · about {w.minutes} min
+              </p>
+              <Link href={`/lab?workbook=${w.id}`} className="mt-auto self-start text-action hover:underline" data-testid={`open-workbook-${w.id}`}>
+                Open lab
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Pane>
     <Pane title="Hands-on troubleshooting in the lab">
       <div className="p-3">
         <p className="mb-2 text-[13px] text-muted">Each drill hides one real fault in your lab design. Find it with the CLI, simulation and capture, fix it, then reveal what was changed. Graded by whether the network works, not by a guess.</p>
@@ -442,11 +467,29 @@ function LabDrills() {
         </ul>
       </div>
     </Pane>
+    </div>
   );
 }
 
 export default function LearnPage() {
-  const [tab, setTab] = useState<Tab>('practice');
+  const [tab, setTab] = useState<Tab>('lessons');
+  const [lesson, setLesson] = useState<{ id: string; section?: string } | null>(null);
+  const [practiceTrack, setPracticeTrack] = useState<Track | undefined>();
+  // Deep links: /learn?lesson=vlans&section=trunk, /learn?tab=subnetting
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const l = p.get('lesson');
+    const t = p.get('tab') as Tab | null;
+    if (l) {
+      setTab('lessons');
+      setLesson({ id: l, section: p.get('section') ?? undefined });
+    } else if (t) setTab(t);
+  }, []);
+  const openLesson = (id: string, section?: string) => {
+    setTab('lessons');
+    setLesson({ id, section });
+    window.history.replaceState(null, '', `/learn?lesson=${id}${section ? `&section=${section}` : ''}`);
+  };
   const progress = useQuery({ queryKey: ['learn-progress'], queryFn: learnApi.progress, retry: false });
   const weak = useMemo(() => progress.data?.tracks.flatMap((t) => t.weak_objectives.map((o) => `${TRACKS.find((x) => x.key === t.track)?.label ?? t.track}: ${o}`)).slice(0, 6) ?? [], [progress.data]);
   return (
@@ -454,7 +497,7 @@ export default function LearnPage() {
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <h1 className="text-[18px] font-semibold">Learn</h1>
-          <p className="max-w-3xl text-[13px] text-muted">AI-generated certification practice and mock interviews, unlimited subnetting drills, and troubleshooting drills in your own lab.</p>
+          <p className="max-w-3xl text-[13px] text-muted">Interactive lessons, certification tracks, AI practice and mock interviews, subnetting drills, and guided labs. Progress stays on this computer.</p>
         </div>
         {progress.data && (
           <div className="ml-auto flex flex-wrap gap-2 text-[12px]" data-testid="learn-progress">
@@ -471,13 +514,17 @@ export default function LearnPage() {
         value={tab}
         onChange={setTab}
         tabs={[
+          { key: 'lessons', label: <span className="flex items-center gap-1.5"><BookOpen className="size-4" /> Lessons</span> },
+          { key: 'tracks', label: <span className="flex items-center gap-1.5"><MapIcon className="size-4" /> Tracks</span> },
           { key: 'practice', label: <span className="flex items-center gap-1.5"><Bot className="size-4" /> Practice</span> },
           { key: 'interview', label: <span className="flex items-center gap-1.5"><MessagesSquare className="size-4" /> Interview</span> },
           { key: 'subnetting', label: <span className="flex items-center gap-1.5"><Calculator className="size-4" /> Subnetting</span> },
           { key: 'labs', label: <span className="flex items-center gap-1.5"><FlaskConical className="size-4" /> Lab drills</span> },
         ]}
       />
-      {tab === 'practice' && <Practice />}
+      {tab === 'lessons' && (lesson ? <LessonReader key={`${lesson.id}-${lesson.section ?? ''}`} lessonId={lesson.id} initialSection={lesson.section} onClose={() => { setLesson(null); window.history.replaceState(null, '', '/learn'); }} /> : <LessonLibrary onOpen={openLesson} />)}
+      {tab === 'tracks' && <TracksView onLesson={(id) => openLesson(id)} onPractice={(t) => { setPracticeTrack(t as Track); setTab('practice'); }} />}
+      {tab === 'practice' && <Practice key={practiceTrack ?? 'default'} initialTrack={practiceTrack} />}
       {tab === 'interview' && <Interview />}
       {tab === 'subnetting' && <Subnetting />}
       {tab === 'labs' && <LabDrills />}

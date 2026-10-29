@@ -1,5 +1,6 @@
 'use client';
 
+import { labToSvg } from '@/lab/svgExport';
 import { Download, Play, Plus, Trash, Upload, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { Badge, Button, cx, IconButton, Input, Tabs } from '@/components/ui';
@@ -7,15 +8,16 @@ import { auditDoc, auditScore, type Finding } from '@/lab/audit';
 import { billOfMaterials, CHALLENGES, checkGoals, download, inventoryCsv, prepareChallenge, reachMatrix, type GoalResult } from '@/lab/challenges';
 import { runningConfig } from '@/lab/config';
 import { modelOf } from '@/lab/catalog';
-import { dissect, framesFor, hexDump, toPcap } from '@/lab/pcap';
+import { dissect, framesFor, hexDump, spanCables, toPcap } from '@/lab/pcap';
 import { usePlayer } from '@/lab/player';
 import { primaryIp } from '@/lab/simulate';
 import { useLab } from '@/lab/store';
 import type { Goal, LabDoc } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
 import { DECISION_COLOR } from './PacketLayer';
+import { WorkbooksTab } from './WorkbooksTab';
 
-export type ToolKey = 'audit' | 'goals' | 'challenge' | 'matrix' | 'capture' | 'export';
+export type ToolKey = 'labs' | 'audit' | 'goals' | 'challenge' | 'matrix' | 'capture' | 'export';
 
 const sel = 'h-8 rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]';
 const SEV_TONE = { critical: 'bad', warning: 'warn', info: 'neutral' } as const;
@@ -270,7 +272,8 @@ function CaptureTab({ doc }: { doc: LabDoc }) {
   const [cable, setCable] = useState<string>('all');
   const [filter, setFilter] = useState('');
   const [pick, setPick] = useState<number | null>(null);
-  const target = cable === 'selected' ? selCable : cable === 'all' ? undefined : cable;
+  const spans = doc.devices.flatMap((d) => (d.span ?? []).filter((x) => x.sources.length).map((x) => ({ key: `span:${d.id}:${x.session}`, label: `SPAN ${d.name} session ${x.session}: ${x.sources.join(', ')} → ${x.dest || 'no destination'}`, cables: spanCables(doc, d.id, x.session) })));
+  const target = cable === 'selected' ? selCable : cable === 'all' ? undefined : cable.startsWith('span:') ? spans.find((x) => x.key === cable)?.cables ?? [] : cable;
   const frames = useMemo(() => framesFor(doc, st.traces, target), [doc, st.traces, target]);
   const shown = frames.filter((f) => !filter || `${f.protocol} ${f.src} ${f.dst} ${f.info}`.toLowerCase().includes(filter.toLowerCase()));
   const f = shown.find((x) => x.no === pick);
@@ -283,6 +286,11 @@ function CaptureTab({ doc }: { doc: LabDoc }) {
       <div className="flex flex-wrap items-center gap-2">
         <select className={cx(sel, 'max-w-[300px]')} value={cable} onChange={(e) => setCable(e.target.value)} aria-label="Capture point">
           <option value="all">Every link</option>
+          {spans.map((x) => (
+            <option key={x.key} value={x.key}>
+              {x.label}
+            </option>
+          ))}
           {selCable && <option value="selected">Selected cable: {label(selCable)}</option>}
           {doc.cables.map((c) => (
             <option key={c.id} value={c.id}>
@@ -368,6 +376,9 @@ function ExportTab({ doc }: { doc: LabDoc }) {
         <Button size="sm" className="w-full" onClick={() => download(`aegis-configs-${stamp}.txt`, doc.devices.filter((d) => ['router', 'switch', 'firewall'].includes(d.kind)).map((d) => `! ===== ${d.name} =====\n${runningConfig(d)}`).join('\n\n'), 'text/plain')}>
           <Download className="size-3.5" /> All running configs (.txt)
         </Button>
+        <Button size="sm" className="w-full" onClick={() => download(`aegis-diagram-${stamp}.svg`, labToSvg(doc, st.layoutName ?? 'Lab diagram'), 'image/svg+xml')} data-testid="export-svg">
+          <Download className="size-3.5" /> Diagram (.svg)
+        </Button>
         <Button size="sm" className="w-full" onClick={() => file.current?.click()} data-testid="import-json">
           <Upload className="size-3.5" /> Import lab file
         </Button>
@@ -425,6 +436,7 @@ export function ToolsPanel({ tab, setTab, onClose }: { tab: ToolKey; setTab: (t:
           value={tab}
           onChange={setTab}
           tabs={[
+            { key: 'labs', label: doc.workbook ? 'Lab •' : 'Labs' },
             { key: 'audit', label: 'Audit' },
             { key: 'goals', label: 'Goals' },
             { key: 'challenge', label: doc.challenge && !doc.challenge.revealed ? 'Challenge •' : 'Challenge' },
@@ -439,6 +451,7 @@ export function ToolsPanel({ tab, setTab, onClose }: { tab: ToolKey; setTab: (t:
         </IconButton>
       </header>
       <div className="min-h-0 flex-1 overflow-hidden p-3">
+        {tab === 'labs' && <WorkbooksTab doc={doc} />}
         {tab === 'audit' && <AuditTab doc={doc} />}
         {tab === 'goals' && <GoalsTab doc={doc} />}
         {tab === 'challenge' && <ChallengeTab doc={doc} />}

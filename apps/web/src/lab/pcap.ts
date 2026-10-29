@@ -106,7 +106,8 @@ function describe(h: Hop, trace: PacketTrace): { protocol: string; info: string 
  * Frames seen on the wire. With `cableId`, only frames that crossed that cable (a span port on
  * one link); otherwise every frame that crossed any cable.
  */
-export function framesFor(doc: LabDoc, traces: PacketTrace[], cableId?: string): Frame[] {
+export function framesFor(doc: LabDoc, traces: PacketTrace[], cableId?: string | string[]): Frame[] {
+  const only = cableId === undefined ? null : new Set(Array.isArray(cableId) ? cableId : [cableId]);
   const name = (id: string) => doc.devices.find((d) => d.id === id)?.name ?? id;
   const out: Frame[] = [];
   const ordered = [...traces].sort((a, b) => a.at.localeCompare(b.at));
@@ -116,7 +117,7 @@ export function framesFor(doc: LabDoc, traces: PacketTrace[], cableId?: string):
       // ARP is exchanged on the first link of the segment the packet is about to cross.
       const wire = h.cableId ?? (h.decision === 'arp' ? tr.hops.slice(k + 1).find((x) => x.cableId)?.cableId : undefined);
       if (!wire) return;
-      if (cableId && wire !== cableId) return;
+      if (only && !only.has(wire)) return;
       const prev = tr.hops[k - 1];
       const d = describe(h, tr);
       const bytes = encodeFrame(h, out.length + 1);
@@ -188,4 +189,12 @@ export function dissect(f: Frame): { layer: string; fields: [string, string][] }
   else if (proto === 6) out.push({ layer: 'Transmission Control Protocol', fields: [['Source port', String((b[o] << 8) | b[o + 1])], ['Destination port', String((b[o + 2] << 8) | b[o + 3])], ['Flags', '0x002 (SYN)'], ['Window', '64240']] });
   else out.push({ layer: 'User Datagram Protocol', fields: [['Source port', String((b[o] << 8) | b[o + 1])], ['Destination port', String((b[o + 2] << 8) | b[o + 3])], ['Length', String((b[o + 4] << 8) | b[o + 5])]] });
   return out;
+}
+
+/** Cables a SPAN session mirrors: every cable on one of its source ports. */
+export function spanCables(doc: LabDoc, deviceId: string, session: number): string[] {
+  const d = doc.devices.find((x) => x.id === deviceId);
+  const sp = d?.span?.find((x) => x.session === session);
+  if (!sp) return [];
+  return doc.cables.filter((c) => sp.sources.some((p) => (c.a.device === deviceId && c.a.port === p) || (c.b.device === deviceId && c.b.port === p))).map((c) => c.id);
 }

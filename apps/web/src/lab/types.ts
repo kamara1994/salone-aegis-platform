@@ -47,7 +47,7 @@ export interface Iface {
   /** OSPF on this interface */
   ospf?: { area: number; cost?: number; passive?: boolean; hello?: number; dead?: number };
   /** First-hop redundancy (HSRP) */
-  hsrp?: { group: number; vip: string; priority: number; preempt: boolean };
+  hsrp?: { group: number; vip: string; priority: number; preempt: boolean; proto?: 'hsrp' | 'vrrp' | 'glbp' };
   /** NAT role */
   nat?: 'inside' | 'outside';
   /** DHCP relay target (ip helper-address) */
@@ -57,6 +57,41 @@ export interface Iface {
   channelMode?: 'active' | 'passive' | 'on' | 'desirable' | 'auto';
   /** Spanning-tree portfast (edge port) */
   portfast?: boolean;
+  /** STP protection */
+  bpduGuard?: boolean;
+  rootGuard?: boolean;
+  /** Port security (access ports) */
+  portSecurity?: { enabled: boolean; max: number; sticky: boolean; violation: 'shutdown' | 'restrict' | 'protect'; macs: string[] };
+  /** Why the port is err-disabled (port security, BPDU guard); cleared by shutdown / no shutdown */
+  errDisabled?: string;
+  /** DHCP snooping trusted port (also trusted for dynamic ARP inspection) */
+  dhcpTrust?: boolean;
+  /** DTP: dynamic auto / desirable. The operational mode is negotiated into `mode`. */
+  dtp?: 'auto' | 'desirable';
+  /** Turn off DTP (switchport nonegotiate) */
+  nonegotiate?: boolean;
+  /** IOS ACLs applied to this interface */
+  aclIn?: string;
+  aclOut?: string;
+  /** EIGRP on this interface (enabled by a network statement) */
+  eigrp?: { as: number; passive?: boolean; delay?: number };
+}
+
+export interface AclEntry {
+  seq: number;
+  action: 'permit' | 'deny';
+  /** standard ACLs match the source only */
+  proto: 'ip' | 'icmp' | 'tcp' | 'udp';
+  src: string; // 'any' | 'host 1.2.3.4' | '10.0.0.0 0.0.0.255'
+  dst: string;
+  port?: { op: 'eq' | 'lt' | 'gt' | 'range'; a: number; b?: number };
+  remark?: string;
+}
+
+export interface Acl {
+  name: string;
+  type: 'standard' | 'extended';
+  entries: AclEntry[];
 }
 
 export interface DhcpPool {
@@ -79,7 +114,7 @@ export interface Route {
   prefix: string; // 10.20.0.0/16 or 0.0.0.0/0
   via?: string; // next-hop IP
   iface?: string; // egress interface name
-  kind: 'connected' | 'static' | 'default' | 'ospf';
+  kind: 'connected' | 'static' | 'default' | 'ospf' | 'eigrp';
   description?: string;
   /** Learned routes: metric, administrative distance and IOS route code (C, S, S*, O, O IA, O*E2) */
   metric?: number;
@@ -130,7 +165,22 @@ export interface Device {
   tags?: string[];
   notes?: string;
   /** Spanning tree (switches) */
-  stp?: { enabled: boolean; priority: number };
+  stp?: { enabled: boolean; priority: number; mode?: 'pvst' | 'rapid-pvst' | 'mst'; bpduGuardDefault?: boolean };
+  /** Layer 3 switch: route between SVIs and routed ports */
+  ipRouting?: boolean;
+  /** VLAN Trunking Protocol */
+  vtp?: { mode: 'server' | 'client' | 'transparent' | 'off'; domain: string; revision: number; password?: string; version?: 1 | 2 | 3 };
+  /** DHCP snooping and dynamic ARP inspection, per VLAN */
+  dhcpSnooping?: { enabled: boolean; vlans: number[] };
+  dai?: { vlans: number[] };
+  /** SPAN sessions */
+  span?: { session: number; sources: string[]; dest: string }[];
+  /** IOS access lists */
+  acls?: Acl[];
+  /** Static NAT (inside local <-> inside global) */
+  staticNat?: { inside: string; outside: string }[];
+  /** EIGRP process */
+  eigrpProcess?: { as: number; routerId?: string };
   /** OSPF process */
   ospfProcess?: { routerId?: string; defaultOriginate?: boolean };
   /** PAT: translate inside traffic to the address of this outside interface */
@@ -175,7 +225,10 @@ export interface Cable {
 
 export interface Annotation {
   id: string;
-  kind: 'text' | 'rect' | 'ellipse';
+  /** text = sticky note, label = bare text, rect/ellipse = zones, arrow = pointer across the box */
+  kind: 'text' | 'label' | 'rect' | 'ellipse' | 'arrow';
+  /** arrow direction in degrees (0 = pointing right) */
+  rotate?: number;
   x: number;
   y: number;
   w: number;
@@ -242,6 +295,8 @@ export interface LabDoc {
   goals?: Goal[];
   /** Active troubleshooting challenge (the fault is hidden until revealed) */
   challenge?: { id: string; title: string; brief: string; startedAt: string; revealed: boolean; fault: string };
+  /** Active guided lab workbook */
+  workbook?: { id: string; startedAt: string };
   /** Where the inventory part came from, for honesty labels. */
   source: 'simulated-lab' | 'live-topology' | 'blank';
   generatedAt: string;
@@ -268,7 +323,8 @@ export type IssueCode =
   | 'too_long'
   | 'stp_blocking'
   | 'channel_mismatch'
-  | 'poe';
+  | 'poe'
+  | 'err_disabled';
 
 export interface CableIssue {
   code: IssueCode;
