@@ -443,7 +443,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
     <div
       ref={wrap}
       className="relative h-full w-full bg-ink"
-      style={s.background === 'grid' ? undefined : { backgroundImage: `linear-gradient(rgba(4, 16, 30, 0.76), rgba(4, 16, 30, 0.76)), url(${BACKGROUND_IMAGE[s.background]})`, backgroundPosition: 'center', backgroundSize: 'cover' }}
+      style={s.background === 'grid' ? undefined : { backgroundImage: `linear-gradient(rgba(4, 16, 30, 0.76), rgba(4, 16, 30, 0.76)), url(${s.background === 'custom' ? s.customBackground : BACKGROUND_IMAGE[s.background]})`, backgroundPosition: 'center', backgroundSize: 'cover' }}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('application/aegis-model') || e.dataTransfer.types.includes('application/aegis-cable')) {
           e.preventDefault();

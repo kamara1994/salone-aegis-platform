@@ -2,7 +2,7 @@
 
 import { useReactFlow } from '@xyflow/react';
 import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Image as ImageIcon, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote, Search } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useLab, type LabBackground } from '@/lab/store';
 import { cx, ConfirmDialog } from '@/components/ui';
 import { CableTypeSelect, ContextMenu, type MenuItem } from './Pickers';
@@ -40,6 +40,8 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[]; title: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [backgroundError, setBackgroundError] = useState('');
+  const backgroundInput = useRef<HTMLInputElement>(null);
   const n = s.selection.devices.length;
   const alignItems: MenuItem[] = [
     { label: 'Align left edges', onSelect: () => s.align('left') },
@@ -101,7 +103,46 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
                   {s.background === b.key && <span className="ml-auto text-[10px] text-action">Selected</span>}
                 </button>
               ))}
+              {s.customBackground && (
+                <button type="button" role="menuitemradio" aria-checked={s.background === 'custom'} className={cx('flex w-full items-center gap-2 rounded-[5px] p-1 text-left hover:bg-pane-2', s.background === 'custom' && 'bg-action/15 ring-1 ring-action/50')} onClick={() => { s.setBackground('custom'); setBackgroundOpen(false); }}>
+                  <span className="size-10 shrink-0 rounded border border-line bg-cover bg-center" style={{ backgroundImage: `url(${s.customBackground})` }} aria-hidden />
+                  <span className="min-w-0"><span className="block text-[12px] font-medium">My image</span><span className="block truncate text-[10px] text-muted">From this computer</span></span>
+                  {s.background === 'custom' && <span className="ml-auto text-[10px] text-action">Selected</span>}
+                </button>
+              )}
             </div>
+            <input
+              ref={backgroundInput}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                if (!file.type.startsWith('image/')) return setBackgroundError('Choose an image file.');
+                if (file.size > 4 * 1024 * 1024) return setBackgroundError('Images must be 4 MB or smaller.');
+                const reader = new FileReader();
+                reader.onload = () => {
+                  if (typeof reader.result === 'string') {
+                    s.setCustomBackground(reader.result);
+                    setBackgroundError('');
+                    setBackgroundOpen(false);
+                  }
+                };
+                reader.onerror = () => setBackgroundError('This image could not be read.');
+                reader.readAsDataURL(file);
+              }}
+            />
+            <button type="button" className="mt-2 flex w-full items-center justify-center rounded border border-dashed border-line-strong px-2 py-1.5 text-[11px] text-muted hover:border-action hover:text-text" onClick={() => backgroundInput.current?.click()}>
+              Choose image from this computer
+            </button>
+            {s.customBackground && (
+              <button type="button" className="mt-1 w-full rounded px-2 py-1 text-[10px] text-muted hover:bg-pane-2 hover:text-text" onClick={() => { s.setCustomBackground(null); setBackgroundError(''); }}>
+                Remove custom image
+              </button>
+            )}
+            {backgroundError && <p className="mt-1 px-1 text-[10px] text-down" role="alert">{backgroundError}</p>}
             <p className="mt-2 px-1 text-[10px] text-faint">Saved for this lab on this browser. A dark overlay keeps ports and cables readable.</p>
           </div>
         )}

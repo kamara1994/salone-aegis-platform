@@ -12,7 +12,7 @@ import { cableStatus, checkConnection, deviceById } from './validate';
 import type { Annotation, Cable, CableEnd, CableIssue, CableType, Device, FirewallRule, Goal, Iface, LabDoc, LabSite, Rack, Route, Subnet, Vlan } from './types';
 
 export type Tool = 'select' | 'cable' | 'simulate';
-export type LabBackground = 'grid' | 'blueprint' | 'datacenter' | 'soc' | 'global';
+export type LabBackground = 'grid' | 'blueprint' | 'datacenter' | 'soc' | 'global' | 'custom';
 export interface Selection {
   devices: string[];
   cables: string[];
@@ -82,10 +82,12 @@ interface LabState {
   portLabels: boolean;
   labelMode: 'full' | 'compact';
   background: LabBackground;
+  customBackground: string | null;
   simSrc: string;
   simDst: string;
   setView(v: Partial<Pick<LabState, 'portLabels' | 'labelMode' | 'simSrc' | 'simDst'>>): void;
   setBackground(v: LabBackground): void;
+  setCustomBackground(v: string | null): void;
 
   init(scope: string, fresh: LabDoc, baseline: LabDoc): void;
   commit(label: string, fn: (d: LabDoc) => void, log?: Omit<LogEntry, 'at'>[]): void;
@@ -206,6 +208,7 @@ export const useLab = create<LabState>((set, get) => ({
   portLabels: true,
   labelMode: 'full',
   background: 'grid',
+  customBackground: null,
   simSrc: '',
   simDst: '',
   setView(v) {
@@ -214,6 +217,15 @@ export const useLab = create<LabState>((set, get) => ({
   setBackground(background) {
     set({ background });
     if (typeof window !== 'undefined') storageSet(keys(get().scope).background, background);
+  },
+  setCustomBackground(customBackground) {
+    set({ customBackground, background: customBackground ? 'custom' : 'grid' });
+    if (typeof window !== 'undefined') {
+      const key = `${keys(get().scope).background}:custom`;
+      if (customBackground) storageSet(key, customBackground);
+      else window.localStorage.removeItem(key);
+      storageSet(keys(get().scope).background, customBackground ? 'custom' : 'grid');
+    }
   },
 
   init(scope, fresh, baseline) {
@@ -227,6 +239,7 @@ export const useLab = create<LabState>((set, get) => ({
       doc: usable ? draft!.doc : clone(fresh),
       layoutName: usable ? draft!.layoutName ?? null : null,
       background: storageGet<LabBackground>(keys(scope).background) ?? 'grid',
+      customBackground: storageGet<string>(`${keys(scope).background}:custom`),
       restoredAt: usable ? draft!.savedAt : null,
       past: [],
       future: [],
