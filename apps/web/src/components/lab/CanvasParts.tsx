@@ -49,6 +49,16 @@ export function primaryVlan(d: Device) {
   return d.interfaces.find((i) => i.ip && i.vlan !== undefined)?.vlan ?? d.interfaces.find((i) => i.vlan !== undefined && !i.parent && d.kind !== 'switch')?.vlan;
 }
 
+/** High-detail, model-specific visuals used by the hover preview. */
+const REAL_ASSET: Record<string, string> = {
+  isr4331: '/lab/generated/devices/cisco-isr-4331.png',
+  isr1941: '/lab/generated/devices/cisco-1941.png',
+  c2960x24: '/lab/generated/devices/cisco-catalyst-2960x.png',
+  c2960x24ps: '/lab/generated/devices/cisco-catalyst-2960x.png',
+  dec2750: '/lab/generated/devices/opnsense-dec2750.png',
+  r650: '/lab/generated/devices/dell-poweredge-r650.png',
+};
+
 function deviceSummary(d: Device, up: number, total: number) {
   const m = modelOf(d);
   const lines = [
@@ -101,6 +111,23 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
         <img src={m.image} alt="" draggable={false} className={cx('pointer-events-none h-[46px] w-[70px] select-none object-contain', off && 'grayscale opacity-60')} />
         <span className={cx('absolute top-0.5 -left-1.5 size-2.5 rounded-full border border-pane', off ? 'bg-down' : d.power === 'running' ? 'bg-healthy' : 'bg-faint')} title={`Power ${d.power}`} aria-hidden />
         <span className={cx('absolute top-0.5 -right-1.5 size-2.5 rounded-full border border-pane', health === 'healthy' ? 'bg-healthy' : health === 'degraded' ? 'bg-degraded' : health === 'down' ? 'bg-down' : 'bg-faint')} title={`Health ${health}`} aria-hidden />
+      </div>
+      <div className="pointer-events-none invisible absolute left-full top-0 z-50 ml-3 w-[290px] rounded-lg border border-line-strong bg-pane p-2 text-left opacity-0 shadow-xl transition-opacity duration-100 group-hover:visible group-hover:opacity-100">
+        <div className="mb-1 text-[11px] font-semibold text-text">Real-world view · {m.name}</div>
+        <div className="mb-2 flex h-[128px] items-center justify-center overflow-hidden rounded border border-line bg-pane-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={REAL_ASSET[m.key] ?? m.image} alt={`${m.vendor} ${m.name}`} className="h-full w-full object-contain" />
+        </div>
+        <div className="mb-1 grid grid-cols-2 gap-x-2 text-[10px] text-muted">
+          <span>Power: <b className="text-text">{d.power}</b></span>
+          <span>Health: <b className="text-text">{health}</b></span>
+          <span>Links: <b className="text-text">{conn}</b></span>
+          <span>Ports: <b className="text-text">{d.interfaces.length}</b></span>
+        </div>
+        <div className="max-h-[118px] overflow-hidden rounded bg-pane-2 px-1.5 py-1 font-mono text-[9px] leading-4 text-text/90">
+          {d.interfaces.slice(0, 10).map((i) => <div key={i.name} className="flex justify-between gap-2"><span>{i.name}</span><span className={i.shutdown ? 'text-down' : i.type === 'console' || i.type === 'terminal' ? 'text-muted' : 'text-healthy'}>{i.shutdown ? 'shutdown' : i.ip ?? i.type}</span></div>)}
+          {d.interfaces.length > 10 && <div className="text-muted">+{d.interfaces.length - 10} more interfaces</div>}
+        </div>
       </div>
       <div className="w-full truncate text-[12px] leading-tight font-semibold">{d.name}</div>
       <div className="w-full truncate text-[10px] leading-tight text-muted">{m.vendor} {m.name}</div>
