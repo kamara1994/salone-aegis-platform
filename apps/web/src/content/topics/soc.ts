@@ -74,7 +74,7 @@ export const SOC: Topic[] = [
      q('Why map detections to ATT&CK?', ['To see which techniques you cannot detect', 'To speed up Wi-Fi', 'To issue certificates'], 0, 'It reveals coverage gaps.'),
      q('Password spraying maps to…', ['T1110 Brute Force', 'T1486 Data Encrypted for Impact', 'T1566 Phishing'], 0, 'Spraying is a brute-force sub-technique.')]),
 
-  d('threat-hunting', 'Threat hunting',
+  d('soc-hunting', 'Hunting',
     'Threat hunting is searching for hidden attackers before any alarm goes off, like checking a house for termites instead of waiting for the floor to collapse.',
     'Start with a hypothesis ("attackers use scheduled tasks for persistence"), choose data (EDR, Sysmon, Windows events), search and stack (rare values across hosts), investigate outliers, document findings, and turn useful hunts into detections.',
     'Hunt from intel (new campaign techniques), from crown jewels (who accesses the payroll database?), or from baselines (unusual parent-child processes, rare outbound destinations, beaconing intervals). Least-frequency analysis surfaces anomalies quickly. Every hunt should leave something behind: a detection, a fixed gap, or documented normal.',

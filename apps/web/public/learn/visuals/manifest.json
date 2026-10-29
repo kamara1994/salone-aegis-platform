@@ -5,9 +5,9 @@
     {
       "id": "security-onion-alert-timeline",
       "path": "/learn/visuals/security-onion/alert-timeline.png",
-      "topic": "Security Onion",
+      "topic": "Hunting",
       "title": "Start with severity, source host, timestamp, and timeline",
-      "lesson": "security-onion-first-look",
+      "lesson": "soc-hunting",
       "caption": "Use the alert severity, source host, timestamp, and investigation timeline to define the first scope of a hunt."
     },
     {
@@ -21,17 +21,17 @@
     {
       "id": "dns-tunneling-packet-analysis",
       "path": "/learn/visuals/network-forensics/dns-tunneling.png",
-      "topic": "Network forensics",
+      "topic": "Hunting",
       "title": "Spot suspicious DNS and TCP evidence",
-      "lesson": "dns-tunneling-investigation",
+      "lesson": "soc-hunting",
       "caption": "Inspect the DNS query, source and destination IPs, response code, and TCP flags to connect the packet evidence."
     },
     {
       "id": "zeek-suricata-evidence",
       "path": "/learn/visuals/security-onion/zeek-suricata-evidence.png",
-      "topic": "Security Onion",
+      "topic": "Hunting",
       "title": "Correlate Zeek and Suricata evidence",
-      "lesson": "zeek-suricata-correlation",
+      "lesson": "soc-hunting",
       "caption": "Validate an alert by comparing the detection rule, source, destination, protocol, and supporting evidence timeline."
     },
     {

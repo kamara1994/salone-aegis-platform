@@ -302,7 +302,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
-              {part === 'images' && <VisualsView onTopic={studyTopic} />}
+              {part === 'images' && <VisualsView onTopic={studyTopic} scope={topics} />}
               {part === 'exam' && (
                 <div data-testid="playground-exam">
                   <TimedExam key={`${scope ?? 'all'}-${mode}`} scope={scope} onStudy={studyTopic} initialCount={EXAM_PRESET[mode][0]} initialMinutes={EXAM_PRESET[mode][1]} />
