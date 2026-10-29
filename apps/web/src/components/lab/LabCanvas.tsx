@@ -16,6 +16,12 @@ import { ContextMenu, ErrorBanner, linkTestSummary, PortPicker, type MenuItem } 
 
 const nodeTypes = { device: DeviceNode, site: SiteFrame, group: GroupFrame, note: NoteNode };
 const edgeTypes = { cable: CableEdge };
+const BACKGROUND_IMAGE: Record<string, string> = {
+  blueprint: '/lab/backgrounds/blueprint-grid.png',
+  datacenter: '/lab/backgrounds/data-center.png',
+  soc: '/lab/backgrounds/soc-command-center.png',
+  global: '/lab/backgrounds/global-network.png',
+};
 
 type Picker = { deviceId: string; stage: 'first' | 'second' | 'reconnect'; from?: CableEnd; thenDevice?: string; cableId?: string; end?: 'a' | 'b' };
 type Menu = { x: number; y: number; title?: string; items: MenuItem[] };
@@ -436,7 +442,8 @@ function Inner({ actions }: { actions: CanvasActions }) {
   return (
     <div
       ref={wrap}
-      className="relative h-full w-full"
+      className="relative h-full w-full bg-ink"
+      style={s.background === 'grid' ? undefined : { backgroundImage: `linear-gradient(rgba(4, 16, 30, 0.76), rgba(4, 16, 30, 0.76)), url(${BACKGROUND_IMAGE[s.background]})`, backgroundPosition: 'center', backgroundSize: 'cover' }}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes('application/aegis-model') || e.dataTransfer.types.includes('application/aegis-cable')) {
           e.preventDefault();

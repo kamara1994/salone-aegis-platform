@@ -1,9 +1,9 @@
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
-import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote, Search } from 'lucide-react';
+import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Image as ImageIcon, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote, Search } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { useLab } from '@/lab/store';
+import { useLab, type LabBackground } from '@/lab/store';
 import { cx, ConfirmDialog } from '@/components/ui';
 import { CableTypeSelect, ContextMenu, type MenuItem } from './Pickers';
 
@@ -26,11 +26,20 @@ function TB({ label, onClick, active, disabled, children, testid, kbd }: { label
 
 const Sep = () => <span className="mx-0.5 h-5 w-px bg-line" aria-hidden />;
 
+const BACKGROUNDS: Array<{ key: LabBackground; name: string; detail: string; image?: string }> = [
+  { key: 'grid', name: 'Network grid', detail: 'Clean technical default' },
+  { key: 'blueprint', name: 'Blueprint', detail: 'Engineering planning view', image: '/lab/backgrounds/blueprint-grid.png' },
+  { key: 'datacenter', name: 'Data center', detail: 'Realistic server-room scene', image: '/lab/backgrounds/data-center.png' },
+  { key: 'soc', name: 'SOC command', detail: 'Security operations atmosphere', image: '/lab/backgrounds/soc-command-center.png' },
+  { key: 'global', name: 'Global network', detail: 'Cloud and WAN topology', image: '/lab/backgrounds/global-network.png' },
+];
+
 export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, onShortcuts, onNewCable, toolsOpen, onTools }: { paletteOpen: boolean; setPaletteOpen: (v: boolean) => void; onLayouts: () => void; onStructure: () => void; onShortcuts: () => void; onNewCable: () => void; toolsOpen: boolean; onTools: () => void }) {
   const s = useLab();
   const rf = useReactFlow();
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[]; title: string } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
   const n = s.selection.devices.length;
   const alignItems: MenuItem[] = [
     { label: 'Align left edges', onSelect: () => s.align('left') },
@@ -65,6 +74,38 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
       <TB label="Audit, goals, troubleshooting, capture and export" active={toolsOpen} onClick={onTools} testid="tool-tools">
         <Wrench className="size-4" /> <span className="hidden lg:inline">Tools</span>
       </TB>
+      <div className="relative">
+        <TB label="Choose canvas background" active={backgroundOpen} onClick={() => setBackgroundOpen((v) => !v)} testid="tool-background">
+          <ImageIcon className="size-4" /> <span className="hidden xl:inline">Background</span>
+        </TB>
+        {backgroundOpen && (
+          <div className="absolute left-0 top-9 z-[1200] w-64 rounded-[7px] border border-line-strong bg-pane p-2 shadow-xl" role="menu" aria-label="Canvas backgrounds">
+            <p className="px-1 pb-1 text-[11px] font-semibold text-muted">Canvas background</p>
+            <div className="space-y-1">
+              {BACKGROUNDS.map((b) => (
+                <button
+                  key={b.key}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={s.background === b.key}
+                  className={cx('flex w-full items-center gap-2 rounded-[5px] p-1 text-left hover:bg-pane-2', s.background === b.key && 'bg-action/15 ring-1 ring-action/50')}
+                  onClick={() => {
+                    s.setBackground(b.key);
+                    setBackgroundOpen(false);
+                  }}
+                >
+                  <span className="size-10 shrink-0 overflow-hidden rounded border border-line bg-ink" style={b.image ? { backgroundImage: `url(${b.image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} aria-hidden>
+                    {!b.image && <span className="block size-full opacity-70" style={{ backgroundImage: 'radial-gradient(var(--line) 1px, transparent 1px)', backgroundSize: '7px 7px' }} />}
+                  </span>
+                  <span className="min-w-0"><span className="block text-[12px] font-medium">{b.name}</span><span className="block truncate text-[10px] text-muted">{b.detail}</span></span>
+                  {s.background === b.key && <span className="ml-auto text-[10px] text-action">Selected</span>}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 px-1 text-[10px] text-faint">Saved for this lab on this browser. A dark overlay keeps ports and cables readable.</p>
+          </div>
+        )}
+      </div>
       <TB
         label="Add a note"
         testid="tool-note"

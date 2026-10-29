@@ -12,6 +12,7 @@ import { cableStatus, checkConnection, deviceById } from './validate';
 import type { Annotation, Cable, CableEnd, CableIssue, CableType, Device, FirewallRule, Goal, Iface, LabDoc, LabSite, Rack, Route, Subnet, Vlan } from './types';
 
 export type Tool = 'select' | 'cable' | 'simulate';
+export type LabBackground = 'grid' | 'blueprint' | 'datacenter' | 'soc' | 'global';
 export interface Selection {
   devices: string[];
   cables: string[];
@@ -51,7 +52,7 @@ function storageSet(key: string, value: unknown) {
   }
 }
 
-const keys = (scope: string) => ({ draft: `aegis.lab.draft.v1:${scope}`, layouts: `aegis.lab.layouts.v1:${scope}`, current: `aegis.lab.current.v1:${scope}` });
+const keys = (scope: string) => ({ draft: `aegis.lab.draft.v1:${scope}`, layouts: `aegis.lab.layouts.v1:${scope}`, current: `aegis.lab.current.v1:${scope}`, background: `aegis.lab.background.v1:${scope}` });
 
 interface LabState {
   scope: string;
@@ -80,9 +81,11 @@ interface LabState {
   lastError: { title: string; issues: CableIssue[]; tone?: 'error' | 'warn' | 'ok' } | null;
   portLabels: boolean;
   labelMode: 'full' | 'compact';
+  background: LabBackground;
   simSrc: string;
   simDst: string;
   setView(v: Partial<Pick<LabState, 'portLabels' | 'labelMode' | 'simSrc' | 'simDst'>>): void;
+  setBackground(v: LabBackground): void;
 
   init(scope: string, fresh: LabDoc, baseline: LabDoc): void;
   commit(label: string, fn: (d: LabDoc) => void, log?: Omit<LogEntry, 'at'>[]): void;
@@ -202,10 +205,15 @@ export const useLab = create<LabState>((set, get) => ({
   lastError: null,
   portLabels: true,
   labelMode: 'full',
+  background: 'grid',
   simSrc: '',
   simDst: '',
   setView(v) {
     set(v);
+  },
+  setBackground(background) {
+    set({ background });
+    if (typeof window !== 'undefined') storageSet(keys(get().scope).background, background);
   },
 
   init(scope, fresh, baseline) {
@@ -218,6 +226,7 @@ export const useLab = create<LabState>((set, get) => ({
       baseline,
       doc: usable ? draft!.doc : clone(fresh),
       layoutName: usable ? draft!.layoutName ?? null : null,
+      background: storageGet<LabBackground>(keys(scope).background) ?? 'grid',
       restoredAt: usable ? draft!.savedAt : null,
       past: [],
       future: [],
