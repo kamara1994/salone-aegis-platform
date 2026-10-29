@@ -51,13 +51,13 @@ export function primaryVlan(d: Device) {
 
 /** High-detail, model-specific visuals used by the hover preview. */
 const REAL_ASSET: Record<string, string> = {
-  isr4331: '/lab/generated/devices/cisco-isr-4331.png',
+  isr4331: '/lab/generated/labeled/cisco-isr-4331-annotated.png',
   isr1941: '/lab/generated/devices/cisco-1941.png',
-  c2960x24: '/lab/generated/devices/cisco-catalyst-2960x.png',
-  c2960x24ps: '/lab/generated/devices/cisco-catalyst-2960x.png',
+  c2960x24: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
+  c2960x24ps: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
   dec2750: '/lab/generated/devices/opnsense-dec2750.png',
   r650: '/lab/generated/devices/dell-poweredge-r650.png',
-  optiplex: '/lab/generated/devices/dell-optiplex-7010.png',
+  optiplex: '/lab/generated/labeled/dell-optiplex-7010-annotated.png',
   thinkpad: '/lab/generated/devices/lenovo-thinkpad-t14.png',
   c9120: '/lab/generated/devices/cisco-catalyst-9120axi.png',
   'axis-cam': '/lab/generated/devices/axis-m3106-ip-camera.png',
