@@ -7,8 +7,9 @@
 import { modelOf } from './catalog';
 import { inCidr, ipToInt, isIp, isPrivate, maskOf, sameSubnet } from './net';
 import { controlPlane, type ControlPlane } from './protocols';
+import { portSecurityState } from './l2features';
 import { cableOnPort, cablesOnPort, cableStatus, deviceById, otherEnd } from './validate';
-import type { Cable, Device, FirewallRule, Iface, LabDoc, Route } from './types';
+import type { Acl, AclEntry, Cable, Device, FirewallRule, Iface, LabDoc, Route } from './types';
 
 export type PacketStatus = 'delivered' | 'blocked' | 'dropped' | 'malformed' | 'delayed';
 export type Proto = 'icmp' | 'tcp' | 'udp';
@@ -77,6 +78,15 @@ const SERVICE: Record<number, string> = { 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 5
 export const serviceName = (p?: number) => (p ? (SERVICE[p] ? `${SERVICE[p]} (${p})` : String(p)) : '');
 
 let counter = 0;
+
+/** Routes packets: a router or firewall, or a layer 3 switch with `ip routing`. */
+export function isRouter(d: Device): boolean {
+  const f = modelOf(d).forwarding;
+  return f === 'l3' || (d.kind === 'switch' && !!d.ipRouting);
+}
+
+/** A routed (no switchport) port on a layer 3 switch. */
+export const isRoutedSwitchPort = (d: Device, i: Iface) => d.kind === 'switch' && i.mode === 'routed' && !/^vlan/i.test(i.name);
 
 export function l3Ifaces(d: Device): Iface[] {
   return d.interfaces.filter((i) => isIp(i.ip) && i.prefix !== undefined);
@@ -167,6 +177,48 @@ export function evaluateFirewall(doc: LabDoc, d: Device, inAlias: string, pdu: P
   return { action: d.firewall.length || d.kind === 'firewall' ? 'block' : 'pass', implicit: true };
 }
 
+// ---------------- IOS access lists ----------------
+
+function matchAclAddr(spec: string, ip: string): boolean {
+  const t = spec.trim().toLowerCase().split(/\s+/);
+  if (t[0] === 'any') return true;
+  if (t[0] === 'host') return t[1] === ip;
+  const net = ipToInt(t[0]);
+  const wild = t[1] ? ipToInt(t[1]) : 0;
+  const x = ipToInt(ip);
+  if (net === null || wild === null || x === null) return false;
+  return ((x | wild) >>> 0) === ((net | wild) >>> 0);
+}
+
+export function aclEntryText(a: Acl, e: AclEntry): string {
+  if (a.type === 'standard') return `${e.seq} ${e.action} ${e.src === 'any' ? 'any' : e.src.startsWith('host') ? e.src : e.src}`;
+  const port = e.port ? ` ${e.port.op} ${e.port.a}${e.port.b ? ` ${e.port.b}` : ''}` : '';
+  return `${e.seq} ${e.action} ${e.proto} ${e.src} ${e.dst}${port}`;
+}
+
+/** First match wins; an ACL that is applied but not defined permits everything (IOS behaviour). */
+export function evaluateAcl(d: Device, name: string, pdu: Pdu): { action: 'permit' | 'deny'; entry?: AclEntry; acl?: Acl; implicit: boolean; missing?: boolean } {
+  const acl = d.acls?.find((a) => a.name === name);
+  if (!acl) return { action: 'permit', implicit: true, missing: true };
+  for (const e of acl.entries) {
+    if (e.remark) continue;
+    if (acl.type === 'standard') {
+      if (matchAclAddr(e.src, pdu.srcIp)) return { action: e.action, entry: e, acl, implicit: false };
+      continue;
+    }
+    if (e.proto !== 'ip' && e.proto !== pdu.proto) continue;
+    if (!matchAclAddr(e.src, pdu.srcIp) || !matchAclAddr(e.dst, pdu.dstIp)) continue;
+    if (e.port) {
+      const p = pdu.dport;
+      if (p === undefined) continue;
+      const ok = e.port.op === 'eq' ? p === e.port.a : e.port.op === 'lt' ? p < e.port.a : e.port.op === 'gt' ? p > e.port.a : p >= e.port.a && p <= (e.port.b ?? e.port.a);
+      if (!ok) continue;
+    }
+    return { action: e.action, entry: e, acl, implicit: false };
+  }
+  return { action: 'deny', acl, implicit: true };
+}
+
 // ---------------- layer 2 ----------------
 
 /** Control-plane facts layer 2 forwarding depends on. */
@@ -175,6 +227,8 @@ export interface L2Ctx {
   blocked: Set<string>;
   /** HSRP virtual IP -> the interface of the active router */
   vipOwners: Map<string, { device: string; iface: string }>;
+  /** GLBP virtual IP -> all active forwarders (hosts are spread across them) */
+  glbp?: Map<string, { device: string; iface: string }[]>;
 }
 export const NO_CTX: L2Ctx = { blocked: new Set(), vipOwners: new Map() };
 
@@ -224,7 +278,10 @@ export function l2Walk(doc: LabDoc, from: Device, egress: Iface, nextHop: string
   type State = { device: Device; port: Iface; tag?: number; trail: L2Step[]; cable?: Cable };
   const queue: State[] = [];
   const seen = new Set<string>();
-  const owns = (dev: Device, i: Iface) => nextHop !== null && (i.ip === nextHop || (ctx.vipOwners.get(nextHop)?.device === dev.id && ctx.vipOwners.get(nextHop)?.iface === i.name));
+  const srcMac = (egress.mac || '').toLowerCase();
+  const fwds = nextHop !== null ? ctx.glbp?.get(nextHop) : undefined;
+  const vipOwner = nextHop === null ? undefined : fwds?.length ? fwds[hash(from.id) % fwds.length] : ctx.vipOwners.get(nextHop);
+  const owns = (dev: Device, i: Iface) => nextHop !== null && (i.ip === nextHop || (vipOwner?.device === dev.id && vipOwner?.iface === i.name));
 
   /** A switch floods the frame out of every forwarding port that carries `vlan`. Returns an SVI that owns the next hop, if any. */
   const flood = (sw: Device, vlan: number, except: string | undefined, trail: L2Step[], cable?: Cable): Iface | undefined => {
@@ -233,7 +290,7 @@ export function l2Walk(doc: LabDoc, from: Device, egress: Iface, nextHop: string
     if (svi) return svi;
     if (collect) for (const i of sw.interfaces.filter((x) => isSvi(sw, x) && x.vlan === vlan && x.ip && !x.shutdown)) res.reached.push({ device: sw, iface: i, vlan });
     for (const out of sw.interfaces) {
-      if (out.name === except || out.type === 'console' || out.parent || isSvi(sw, out)) continue;
+      if (out.name === except || out.type === 'console' || out.parent || isSvi(sw, out) || isRoutedSwitchPort(sw, out)) continue;
       const cables = out.type === 'wireless' ? cablesOnPort(doc, sw.id, out.name) : [cableOnPort(doc, sw.id, out.name)].filter(Boolean) as Cable[];
       if (!cables.length) continue;
       if (ctx.blocked.has(`${sw.id}/${out.name}`)) continue;
@@ -296,7 +353,7 @@ export function l2Walk(doc: LabDoc, from: Device, egress: Iface, nextHop: string
       continue;
     }
     if (ctx.blocked.has(`${peer.id}/${peerPort.name}`)) continue; // a blocking port discards what it receives
-    if (modelOf(peer).forwarding === 'l2') {
+    if (modelOf(peer).forwarding === 'l2' && !isRoutedSwitchPort(peer, peerPort)) {
       const isAp = peer.kind === 'ap';
       const acc = isAp ? { vlan: s.tag ?? 1 } : vlanAccepts(peerPort, s.tag);
       if (acc.drop) {
@@ -304,6 +361,19 @@ export function l2Walk(doc: LabDoc, from: Device, egress: Iface, nextHop: string
         continue;
       }
       const vlan = acc.vlan!;
+      // Port security (restrict / protect) drops frames from MACs that are not secure on this port.
+      if (s.trail.length === 0 && peerPort.portSecurity?.enabled && srcMac) {
+        const ps = portSecurityState(doc, peer, peerPort);
+        if (ps && !ps.allowed.has(srcMac)) {
+          blockers.push({ reason: `port security on ${peer.name} ${peerPort.name} (${peerPort.portSecurity.violation}) dropped the frame: ${srcMac} is not a secure MAC address there`, fix: `Clear the secure MACs (clear port-security sticky interface ${peerPort.name}) or raise the maximum.` });
+          continue;
+        }
+      }
+      // Dynamic ARP inspection: ARP from an untrusted port needs a DHCP snooping binding.
+      if (!collect && s.trail.length === 0 && peer.dhcpSnooping?.enabled && peer.dai?.vlans.includes(vlan) && !peerPort.dhcpTrust && !(egress.dhcp && egress.ip)) {
+        blockers.push({ reason: `dynamic ARP inspection on ${peer.name} dropped the ARP from ${from.name} (${egress.ip ?? 'no IP'}) on untrusted port ${peerPort.name}: there is no DHCP snooping binding for it (static address)`, fix: `Trust ${peerPort.name} (ip arp inspection trust) if it faces a router or switch, or add an ARP ACL for static hosts.` });
+        continue;
+      }
       if (!isAp && vlan !== 1 && !peer.vlans[vlan]) {
         blockers.push({ reason: `${peer.name} has no VLAN ${vlan} in its VLAN database, so ${peerPort.name} drops the frame`, fix: `Create VLAN ${vlan} on ${peer.name}.` });
         continue;
@@ -496,6 +566,7 @@ export function simulatePacket(doc: LabDoc, req: PacketRequest, cpIn?: ControlPl
   push({ device: src.id, outIface: srcIf.name, layer: 'L3', decision: 'send', info: `${src.name} builds ${what} from ${srcIf.ip} (${srcIf.name}).` }, 0);
 
   let cur: Device = src;
+  let curDst = dstIp;
   let arrival: Iface | undefined;
   let delayed: string | undefined;
   let extraLatency = 0;
@@ -504,7 +575,7 @@ export function simulatePacket(doc: LabDoc, req: PacketRequest, cpIn?: ControlPl
     let egress: Iface;
     let nextHop: string;
     let routeText: string;
-    if (cur.id === src.id && modelOf(src).forwarding === 'host') {
+    if (cur.id === src.id && !isRouter(src)) {
       egress = srcIf;
       if (sameSubnet(srcIf.ip!, dstIp, srcIf.prefix!)) {
         nextHop = dstIp;
@@ -518,17 +589,34 @@ export function simulatePacket(doc: LabDoc, req: PacketRequest, cpIn?: ControlPl
         routeText = `default route via ${srcIf.gateway}${ctx.vipOwners.has(srcIf.gateway) ? ' (HSRP virtual gateway)' : ''}`;
       }
     } else {
-      const hit = routeLookup(cur, dstIp, cp.routes[cur.id] ?? cur.routes);
+      const hit = routeLookup(cur, curDst, cp.routes[cur.id] ?? cur.routes);
       if ('error' in hit) {
         push({ device: cur.id, layer: 'L3', decision: 'drop', info: `${hit.error}. Packet discarded.` });
-        return fail('dropped', `${hit.error}: the routing table has no matching or default route.`, `Add a route on ${cur.name} for ${dstIp} (static or OSPF), or a default route.`);
+        return fail('dropped', `${hit.error}: the routing table has no matching or default route.`, `Add a route on ${cur.name} for ${curDst} (static, OSPF or EIGRP), or a default route.`);
       }
       egress = hit.egress;
       nextHop = hit.nextHop;
       routeText = hit.text;
     }
+    // ---- outbound IOS ACL ----
+    if (cur.id !== src.id && egress.aclOut) {
+      const v = evaluateAcl(cur, egress.aclOut, pdu);
+      const line = v.entry && v.acl ? aclEntryText(v.acl, v.entry) : v.missing ? `ACL ${egress.aclOut} is not defined (permits everything)` : 'implicit deny any';
+      const acl = { rule: v.entry?.seq ?? 0, action: v.action === 'permit' ? ('pass' as const) : ('block' as const), descr: `${egress.aclOut}: ${line}`, iface: `${egress.name} out`, implicit: v.implicit };
+      if (v.action === 'deny') {
+        push({ device: cur.id, outIface: egress.name, layer: 'L3', decision: 'block', acl, info: `ACL ${egress.aclOut} outbound on ${egress.name}: ${line} denies it.` });
+        return fail('blocked', `Denied by access list ${egress.aclOut} outbound on ${cur.name} ${egress.name}: ${line}.`, v.implicit ? `Every ACL ends with an implicit deny: add a permit for this traffic in ${egress.aclOut}.` : `Change or reorder ${egress.aclOut} if this traffic should pass.`);
+      }
+    }
+    // ---- static NAT for an inside host on the way out ----
+    const outStatic = cur.id !== src.id && arrival?.nat === 'inside' && egress.nat === 'outside' ? cur.staticNat?.find((n) => n.inside === pdu.srcIp) : undefined;
+    if (outStatic) {
+      trace.nat = { device: cur.id, inside: pdu.srcIp, outside: outStatic.outside, proto: req.proto };
+      push({ device: cur.id, outIface: egress.name, layer: 'L3', decision: 'nat', info: `Static NAT on ${cur.name}: inside local ${pdu.srcIp} translated to inside global ${outStatic.outside}.` });
+      pdu.srcIp = outStatic.outside;
+    }
     // ---- PAT on the way out ----
-    if (cur.id !== src.id && cur.natOverload?.outside === egress.name && arrival?.nat === 'inside' && egress.ip) {
+    else if (cur.id !== src.id && cur.natOverload?.outside === egress.name && arrival?.nat === 'inside' && egress.ip) {
       const before = `${pdu.srcIp}${pdu.sport ? `:${pdu.sport}` : ''}`;
       const newPort = 1024 + (hash(`${pdu.srcIp}/${pdu.sport ?? index}`) % 60000);
       pdu.srcIp = egress.ip;
@@ -578,7 +666,7 @@ export function simulatePacket(doc: LabDoc, req: PacketRequest, cpIn?: ControlPl
     arrival = target.iface;
 
     // ---- arrived at a layer 3 device ----
-    if (target.device.interfaces.some((i) => i.ip === dstIp)) {
+    if (target.device.interfaces.some((i) => i.ip === curDst)) {
       const svc = req.proto === 'icmp' ? null : req.port;
       const listens = target.device.kind === 'cloud' || svc === null || target.device.listening.includes(svc!);
       if (target.device.firewall.length && target.device.kind !== 'firewall') {
@@ -600,9 +688,28 @@ export function simulatePacket(doc: LabDoc, req: PacketRequest, cpIn?: ControlPl
       trace.reason = req.proto === 'icmp' ? `Reply from ${dstIp}: time ${trace.latencyMs} ms, TTL ${pdu.ttl}.` : `${target.device.name} accepted the connection on ${serviceName(svc!)} (round trip ${trace.latencyMs} ms).`;
       return trace;
     }
-    if (modelOf(target.device).forwarding !== 'l3') {
-      push({ device: target.device.id, cableId: trace.cables.at(-1), inIface: target.iface.name, layer: 'L3', decision: 'drop', info: `${target.device.name} is not a router and does not own ${dstIp}.` });
-      return fail('dropped', `${target.device.name} answered ARP for ${nextHop} but is not a router, so it drops traffic for ${dstIp}.`, 'Point the gateway at a router or firewall interface.');
+    if (!isRouter(target.device)) {
+      const sw = target.device.kind === 'switch';
+      push({ device: target.device.id, cableId: trace.cables.at(-1), inIface: target.iface.name, layer: 'L3', decision: 'drop', info: sw ? `${target.device.name} owns ${nextHop} but ip routing is off, so it does not route to ${dstIp}.` : `${target.device.name} is not a router and does not own ${dstIp}.` });
+      return fail('dropped', sw ? `${target.device.name} answered ARP for ${nextHop}, but it is a switch without ip routing, so it drops traffic for ${dstIp}.` : `${target.device.name} answered ARP for ${nextHop} but is not a router, so it drops traffic for ${dstIp}.`, sw ? `Enable ip routing on ${target.device.name} (layer 3 switch), or point the gateway at a router.` : 'Point the gateway at a router or firewall interface.');
+    }
+    // Inbound IOS ACL
+    if (target.iface.aclIn) {
+      const v = evaluateAcl(target.device, target.iface.aclIn, pdu);
+      const line = v.entry && v.acl ? aclEntryText(v.acl, v.entry) : v.missing ? `ACL ${target.iface.aclIn} is not defined (permits everything)` : 'implicit deny any';
+      const acl = { rule: v.entry?.seq ?? 0, action: v.action === 'permit' ? ('pass' as const) : ('block' as const), descr: `${target.iface.aclIn}: ${line}`, iface: `${target.iface.name} in`, implicit: v.implicit };
+      if (v.action === 'deny') {
+        push({ device: target.device.id, cableId: trace.cables.at(-1), inIface: target.iface.name, layer: 'L3', decision: 'block', acl, info: `ACL ${target.iface.aclIn} inbound on ${target.iface.name}: ${line} denies it.` });
+        return fail('blocked', `Denied by access list ${target.iface.aclIn} inbound on ${target.device.name} ${target.iface.name}: ${line}.`, v.implicit ? `Every ACL ends with an implicit deny: add a permit for this traffic above it in ${target.iface.aclIn}.` : `Change or reorder ${target.iface.aclIn} if this traffic should pass.`);
+      }
+    }
+    // Static NAT: traffic to an inside global address is translated to the inside local host.
+    const snat = target.iface.nat === 'outside' ? target.device.staticNat?.find((n) => n.outside === curDst) : undefined;
+    if (snat) {
+      push({ device: target.device.id, cableId: trace.cables.at(-1), inIface: target.iface.name, layer: 'L3', decision: 'nat', info: `Static NAT on ${target.device.name}: inside global ${snat.outside} translated to inside local ${snat.inside}.` });
+      trace.nat = { device: target.device.id, inside: snat.inside, outside: snat.outside, proto: req.proto };
+      curDst = snat.inside;
+      pdu.dstIp = snat.inside;
     }
     // Firewall / router ACL on the ingress interface
     const alias = target.iface.alias ?? target.iface.name;

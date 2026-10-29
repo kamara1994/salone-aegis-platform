@@ -112,6 +112,17 @@ An editable network canvas built on the live topology.
   challenges that hide one realistic fault and reveal it afterwards; an any-to-any reachability matrix;
   Wireshark-style capture per cable with layer decode, hex dump and a real `.pcap` download; export of the lab
   JSON, port inventory CSV, all running configs and a bill of materials, and JSON import.
+- **Switching and routing labs**: port security (sticky, maximum, shutdown/restrict/protect, err-disabled and
+  recovery), BPDU guard and root guard, DTP and VTP (including the VTP bomb), DHCP snooping against rogue
+  servers, dynamic ARP inspection, layer 3 switching (`ip routing`, SVIs, routed ports), IOS standard and
+  extended ACLs (numbered and named, in/out, match counters), static NAT, VRRP and GLBP, EIGRP, and local SPAN
+  into the capture tool. All of it is typed in the Design CLI or set in the Services and Physical tabs, and the
+  simulator enforces it with the exact reason on every packet.
+- **Guided labs** (Tools → Labs, or Learn → Lab drills): 17 CCNA and CCNP workbooks (basic switch and SSH,
+  VLANs and trunking, router-on-a-stick, layer 3 switching, STP, EtherChannel, port security, DHCP and relay,
+  DHCP snooping and DAI, static routing, OSPF single/multi-area, ACLs, NAT, HSRP, EIGRP, VTP/DTP, STP guards).
+  Each builds its own topology (your design is saved as a layout first) and grades every task live from the
+  configuration, control plane and real packet simulation, with hints.
 - **Notes** on the canvas (text, box, oval; resizable, coloured; double-click to edit, Delete to remove).
 - **Library tabs**: Devices and Cables. The Cables tab works like Packet Tracer's Connections: pick a cable
   (Automatic, straight-through, crossover, trunk, access, fibre, console, serial, WAN, virtual/wireless), then

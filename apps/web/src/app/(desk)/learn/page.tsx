@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Button, cx, Field, Input, Pane, Tabs, Textarea } from '@/components/ui';
 import { CHALLENGES } from '@/lab/challenges';
+import { WORKBOOKS } from '@/lab/workbooks';
 import type { LabDoc } from '@/lab/types';
 import { LearnError, learnApi, TRACKS, type AnswerResult, type InterviewSession, type Question, type QuizMode, type Track } from '@/learn/api';
 import { checkDrill, makeDrill, type Drill, type DrillKind } from '@/learn/subnet';
@@ -424,6 +425,28 @@ function Subnetting() {
 
 function LabDrills() {
   return (
+    <div className="space-y-3">
+    <Pane title="Guided CCNA and CCNP labs">
+      <div className="p-3">
+        <p className="mb-2 text-[13px] text-muted">Each lab builds its own topology in the lab designer and grades every task from the live network: configuration, control plane and real packets.</p>
+        <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3" data-testid="learn-workbooks">
+          {WORKBOOKS.map((w) => (
+            <li key={w.id} className="flex flex-col gap-1 rounded-[6px] border border-line p-2.5 text-[13px]">
+              <div className="flex items-center gap-2">
+                <Badge tone={w.level === 'CCNP' ? 'warn' : 'neutral'}>{w.level}</Badge>
+                <span className="font-medium">{w.title}</span>
+              </div>
+              <p className="text-[12px] text-muted">
+                {w.topic} · {w.tasks.length} tasks · about {w.minutes} min
+              </p>
+              <Link href={`/lab?workbook=${w.id}`} className="mt-auto self-start text-action hover:underline" data-testid={`open-workbook-${w.id}`}>
+                Open lab
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Pane>
     <Pane title="Hands-on troubleshooting in the lab">
       <div className="p-3">
         <p className="mb-2 text-[13px] text-muted">Each drill hides one real fault in your lab design. Find it with the CLI, simulation and capture, fix it, then reveal what was changed. Graded by whether the network works, not by a guess.</p>
@@ -442,6 +465,7 @@ function LabDrills() {
         </ul>
       </div>
     </Pane>
+    </div>
   );
 }
 

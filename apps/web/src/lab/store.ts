@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { DEFAULT_MODEL, ifaceFromTemplate, KIND_LABEL, MODEL_BY_KEY } from './catalog';
 import { DEVICE_H, DEVICE_W } from './inventory';
 import { diffDocs } from './diff';
+import { applySwitchFeatures } from './l2features';
 import { applyPoe, checkAssociation, dhcpLease, type DhcpResult } from './protocols';
 import type { PacketTrace } from './simulate';
 import { cableStatus, checkConnection, deviceById } from './validate';
@@ -147,6 +148,8 @@ interface LabState {
   revealChallenge(): void;
   endChallenge(): void;
   importDoc(doc: LabDoc): void;
+  startWorkbook(doc: LabDoc, id: string, title: string): void;
+  endWorkbook(): void;
 
   saveLayout(name: string): boolean;
   loadLayout(name: string): boolean;
@@ -256,8 +259,10 @@ export const useLab = create<LabState>((set, get) => ({
     const next = clone(before);
     fn(next);
     applyPoe(next);
+    const auto = applySwitchFeatures(before, next).map((l) => ({ deviceId: l.device, level: /ERR_DISABLE|VIOLATION|BPDUGUARD|removed/.test(l.text) ? ('warn' as const) : ('info' as const), text: l.text }));
+    const all = [...(log ?? []), ...auto];
     const at = new Date().toISOString();
-    set({ doc: next, past: [...s.past.slice(-HISTORY + 1), before], future: [], log: log?.length ? [...s.log, ...log.map((l) => ({ ...l, at }))].slice(-400) : s.log });
+    set({ doc: next, past: [...s.past.slice(-HISTORY + 1), before], future: [], log: all.length ? [...s.log, ...all.map((l) => ({ ...l, at }))].slice(-400) : s.log });
     autosave({ ...get() });
     void label;
   },
@@ -528,6 +533,8 @@ export const useLab = create<LabState>((set, get) => ({
         const f = dev?.interfaces.find((y) => y.name === name);
         if (!dev || !f) return;
         Object.assign(f, patch, { inferred: false });
+        // shutdown clears err-disable; no shutdown lets the switch re-check the cause
+        if (patch.shutdown === true) f.errDisabled = undefined;
         // keep connected routes in step with interface addresses
         dev.routes = dev.routes.filter((r) => r.kind !== 'connected' || r.iface !== name);
         if (f.ip && f.prefix !== undefined) {
@@ -744,6 +751,21 @@ export const useLab = create<LabState>((set, get) => ({
   endChallenge() {
     get().commit('End challenge', (d) => {
       d.challenge = undefined;
+    });
+  },
+  startWorkbook(doc, id, title) {
+    const s = get();
+    if (s.doc && !s.doc.workbook) get().saveLayout(`Before lab: ${title}`.slice(0, 60));
+    get().commit(`Lab: ${title}`, (d) => {
+      const fresh = clone(doc);
+      for (const k of Object.keys(d) as (keyof LabDoc)[]) if (k !== 'source' && k !== 'version') delete (d as Partial<LabDoc>)[k];
+      Object.assign(d, fresh, { source: d.source, version: 1, workbook: { id, startedAt: new Date().toISOString() } });
+    });
+    set({ selection: { devices: [], cables: [] }, traces: [], activeTrace: null, log: [] });
+  },
+  endWorkbook() {
+    get().commit('End lab', (d) => {
+      d.workbook = undefined;
     });
   },
   importDoc(doc) {

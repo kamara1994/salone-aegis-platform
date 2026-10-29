@@ -363,7 +363,7 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
         )}
         {(err || status.state === 'down' || flow?.denied || selected || status.state === 'degraded') && (
           <div className="nodrag nopan pointer-events-none absolute rounded border border-line bg-pane px-1 py-px font-mono text-[9.5px]" style={{ transform: `translate(-50%, -140%) translate(${mid.x}px, ${mid.y}px)` }}>
-            {err ? <span className="text-down">⚠ invalid</span> : status.state === 'down' ? <span className="text-down">link down</span> : status.state === 'degraded' ? <span className="text-degraded">⚠ {status.issues.find((i) => i.severity === 'degraded')?.code.replace(/_/g, ' ')}</span> : status.state === 'disabled' ? <span className="text-muted">disabled</span> : <span className="text-muted">{CABLE_LABEL[cable.type]}</span>}
+            {err ? <span className="text-down">⚠ invalid</span> : status.state === 'down' ? <span className="text-down" data-testid={status.issues.some((i) => i.code === 'err_disabled') ? 'cable-err-disabled' : undefined}>{status.issues.some((i) => i.code === 'err_disabled') ? 'err-disabled' : 'link down'}</span> : status.state === 'degraded' ? <span className="text-degraded">⚠ {status.issues.find((i) => i.severity === 'degraded')?.code.replace(/_/g, ' ')}</span> : status.state === 'disabled' ? <span className="text-muted">disabled</span> : <span className="text-muted">{CABLE_LABEL[cable.type]}</span>}
             {flow && flow.bytes_per_s > 0 && <span className="text-muted"> · {fmtBytes(flow.bytes_per_s)}</span>}
             {flow?.denied ? <span className="text-down"> · {flow.denied} blocked</span> : null}
           </div>

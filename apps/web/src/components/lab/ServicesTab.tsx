@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import { Badge, Button, cx, Input } from '@/components/ui';
+import { MODEL_BY_KEY as MODELS } from '@/lab/catalog';
 import { MODEL_BY_KEY, modelOf } from '@/lab/catalog';
 import { isIp } from '@/lab/net';
 import { controlPlane, poeUsage } from '@/lab/protocols';
-import { l3Ifaces } from '@/lab/simulate';
+import { aclEntryText, l3Ifaces } from '@/lab/simulate';
 import { useLab } from '@/lab/store';
 import type { Cable, Device, DhcpPool, LabDoc, WirelessConfig } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
@@ -97,12 +98,12 @@ export function ServicesTab({ d, doc }: { d: Device; doc: LabDoc }) {
       )}
 
       {bridge && (
-        <Section title="Spanning tree (Rapid PVST)" testid="svc-stp">
+        <Section title="Spanning tree" testid="svc-stp">
           <div className="flex flex-wrap items-center gap-3">
-            <Toggle label="Enabled" checked={bridge.enabled} onChange={(v) => st.updateDevice(d.id, { stp: { enabled: v, priority: d.stp?.priority ?? 32768 } })} />
+            <Toggle label="Enabled" checked={bridge.enabled} onChange={(v) => st.updateDevice(d.id, { stp: { ...d.stp, enabled: v, priority: d.stp?.priority ?? 32768 } })} />
             <label className="flex items-center gap-1">
               Priority
-              <select className={sel} value={d.stp?.priority ?? 32768} onChange={(e) => st.updateDevice(d.id, { stp: { enabled: d.stp?.enabled ?? true, priority: Number(e.target.value) } })} aria-label="Bridge priority">
+              <select className={sel} value={d.stp?.priority ?? 32768} onChange={(e) => st.updateDevice(d.id, { stp: { ...d.stp, enabled: d.stp?.enabled ?? true, priority: Number(e.target.value) } })} aria-label="Bridge priority">
                 {Array.from({ length: 16 }, (_, k) => k * 4096).map((p) => (
                   <option key={p} value={p}>
                     {p}
@@ -110,6 +111,12 @@ export function ServicesTab({ d, doc }: { d: Device; doc: LabDoc }) {
                 ))}
               </select>
             </label>
+            <select className={sel} value={d.stp?.mode ?? 'rapid-pvst'} onChange={(e) => st.updateDevice(d.id, { stp: { enabled: d.stp?.enabled ?? true, priority: d.stp?.priority ?? 32768, ...d.stp, mode: e.target.value as 'pvst' } })} aria-label="STP mode">
+              <option value="pvst">PVST+</option>
+              <option value="rapid-pvst">Rapid PVST+</option>
+              <option value="mst">MST</option>
+            </select>
+            <Toggle label="BPDU guard on PortFast ports" checked={!!d.stp?.bpduGuardDefault} onChange={(v) => st.updateDevice(d.id, { stp: { enabled: d.stp?.enabled ?? true, priority: d.stp?.priority ?? 32768, ...d.stp, bpduGuardDefault: v } })} />
             {bridge.enabled && <Badge tone={bridge.isRoot ? 'good' : 'neutral'}>{bridge.isRoot ? 'Root bridge' : `Root port ${bridge.rootPort ?? '-'}, cost ${bridge.rootCost}`}</Badge>}
           </div>
           {bridge.enabled && (
@@ -121,7 +128,7 @@ export function ServicesTab({ d, doc }: { d: Device; doc: LabDoc }) {
                     <tr key={port} className="border-b border-line/60">
                       <td className="py-0.5">{port}</td>
                       <td>{p.role}</td>
-                      <td className={p.state === 'blocking' ? 'text-degraded' : 'text-healthy'}>{p.state}</td>
+                      <td className={p.state === 'blocking' ? 'text-degraded' : 'text-healthy'}>{p.role === 'root-inconsistent' ? 'blocking (root-inconsistent)' : p.state}</td>
                       <td className="text-muted">cost {p.cost}</td>
                     </tr>
                   ))}
@@ -131,6 +138,8 @@ export function ServicesTab({ d, doc }: { d: Device; doc: LabDoc }) {
           {cp.storms.some((loop) => loop.includes(d.id)) && <p className="text-down">Broadcast storm: this switch is in a loop with spanning tree off.</p>}
         </Section>
       )}
+
+      {d.kind === 'switch' && <SwitchServices d={d} />}
 
       {channels.length > 0 && (
         <Section title="EtherChannel" testid="svc-etherchannel">
@@ -198,21 +207,82 @@ export function ServicesTab({ d, doc }: { d: Device; doc: LabDoc }) {
       )}
 
       {(d.kind === 'router' || d.kind === 'switch' || hsrp.length > 0) && l3Ifaces(d).length > 0 && (
-        <Section title="First-hop redundancy (HSRP)" testid="svc-hsrp">
+        <Section title="First-hop redundancy (HSRP, VRRP, GLBP)" testid="svc-hsrp">
           {l3Ifaces(d).map((i) => (
             <div key={i.name} className="flex flex-wrap items-center gap-1.5">
               <span className="w-20 font-mono text-[11px]">{i.name}</span>
-              <Input className="!h-7 !w-28" placeholder="virtual IP" defaultValue={i.hsrp?.vip ?? ''} aria-label={`HSRP virtual IP on ${i.name}`} onBlur={(e) => st.updateIface(d.id, i.name, { hsrp: isIp(e.target.value) ? { group: i.hsrp?.group ?? 1, vip: e.target.value, priority: i.hsrp?.priority ?? 100, preempt: i.hsrp?.preempt ?? false } : undefined })} />
+              <select className={cx(sel, '!h-7')} value={i.hsrp?.proto ?? 'hsrp'} onChange={(e) => i.hsrp && st.updateIface(d.id, i.name, { hsrp: { ...i.hsrp, proto: e.target.value as 'hsrp' } })} aria-label={`FHRP protocol on ${i.name}`}>
+                <option value="hsrp">HSRP</option>
+                <option value="vrrp">VRRP</option>
+                <option value="glbp">GLBP</option>
+              </select>
+              <Input className="!h-7 !w-28" placeholder="virtual IP" defaultValue={i.hsrp?.vip ?? ''} aria-label={`HSRP virtual IP on ${i.name}`} onBlur={(e) => st.updateIface(d.id, i.name, { hsrp: isIp(e.target.value) ? { group: i.hsrp?.group ?? 1, vip: e.target.value, priority: i.hsrp?.priority ?? 100, preempt: i.hsrp?.preempt ?? false, proto: i.hsrp?.proto } : undefined })} />
               <Input className="!h-7 !w-16" type="number" disabled={!i.hsrp} defaultValue={i.hsrp?.priority ?? 100} aria-label={`HSRP priority on ${i.name}`} onBlur={(e) => i.hsrp && st.updateIface(d.id, i.name, { hsrp: { ...i.hsrp, priority: Number(e.target.value) || 100 } })} />
               <Toggle label="preempt" checked={!!i.hsrp?.preempt} onChange={(v) => i.hsrp && st.updateIface(d.id, i.name, { hsrp: { ...i.hsrp, preempt: v } })} />
             </div>
           ))}
           {hsrp.map((g) => (
             <p key={g.key} className={g.issues.length ? 'text-degraded' : ''}>
-              Group {g.group} {g.vip}: active {g.active ? name(g.active.device) : 'none'}, standby {g.standby ? name(g.standby.device) : 'none'}
+              {g.proto.toUpperCase()} group {g.group} {g.vip}: {g.proto === 'vrrp' ? 'master' : 'active'} {g.active ? name(g.active.device) : 'none'}, {g.proto === 'vrrp' ? 'backup' : 'standby'} {g.standby ? name(g.standby.device) : 'none'}
               {g.issues.length ? `. ${g.issues.join(' ')}` : ''}
             </p>
           ))}
+        </Section>
+      )}
+
+      {(d.acls?.length || l3Ifaces(d).some((i) => i.aclIn || i.aclOut)) && (
+        <Section title="Access lists" testid="svc-acl">
+          {(d.acls ?? []).map((a) => (
+            <div key={a.name}>
+              <p className="font-medium">
+                {a.type === 'standard' ? 'Standard' : 'Extended'} {a.name}
+                <span className="ml-2 font-normal text-muted">
+                  {d.interfaces
+                    .filter((i) => i.aclIn === a.name || i.aclOut === a.name)
+                    .map((i) => `${i.name} ${i.aclIn === a.name ? 'in' : 'out'}`)
+                    .join(', ') || 'not applied'}
+                </span>
+              </p>
+              <ul className="font-mono text-[11px] text-muted">
+                {a.entries.map((e) => (
+                  <li key={e.seq}>{e.remark ? `${e.seq} remark ${e.remark}` : aclEntryText(a, e)}</li>
+                ))}
+                <li className="text-faint">(implicit deny any)</li>
+              </ul>
+            </div>
+          ))}
+          {d.interfaces.filter((i) => (i.aclIn && !d.acls?.some((a) => a.name === i.aclIn)) || (i.aclOut && !d.acls?.some((a) => a.name === i.aclOut))).map((i) => (
+            <p key={i.name} className="text-degraded">
+              {i.name} references ACL {i.aclIn ?? i.aclOut}, which is not defined: it permits everything.
+            </p>
+          ))}
+          <p className="text-[11px] text-muted">Edit ACLs in the Design CLI: ip access-list extended NAME, then ip access-group NAME in|out on an interface.</p>
+        </Section>
+      )}
+
+      {(d.eigrpProcess || d.interfaces.some((i) => i.eigrp)) && (
+        <Section title="EIGRP" testid="svc-eigrp">
+          <p>
+            AS {d.eigrpProcess?.as ?? d.interfaces.find((i) => i.eigrp)?.eigrp?.as} on {d.interfaces.filter((i) => i.eigrp).map((i) => `${i.name}${i.eigrp!.passive ? ' (passive)' : ''}`).join(', ')}
+          </p>
+          {cp.eigrp
+            .filter((n) => n.device === d.id)
+            .map((n) => (
+              <p key={`${n.iface}-${n.peer}`} className={n.up ? 'text-healthy' : 'text-down'}>
+                {n.iface} ↔ {name(n.peer)} {n.peerIp}: {n.up ? 'neighbour up' : n.reason}
+              </p>
+            ))}
+          {routes.some((r) => r.kind === 'eigrp') && (
+            <ul className="font-mono text-[11px] text-muted">
+              {routes
+                .filter((r) => r.kind === 'eigrp')
+                .map((r) => (
+                  <li key={r.prefix}>
+                    D {r.prefix} [90/{r.metric}] via {r.via}
+                  </li>
+                ))}
+            </ul>
+          )}
         </Section>
       )}
 
@@ -238,6 +308,15 @@ export function ServicesTab({ d, doc }: { d: Device; doc: LabDoc }) {
                 ))}
             </div>
           )}
+          {d.staticNat?.length ? (
+            <ul className="font-mono text-[11px] text-muted">
+              {d.staticNat.map((n) => (
+                <li key={n.inside}>
+                  static {n.inside} ↔ {n.outside}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </Section>
       )}
 
@@ -371,5 +450,67 @@ export function CablePhysical({ cable }: { cable: Cable }) {
       </div>
       <p className="text-[11px] text-muted">Applied to packet simulation: loss drops packets, latency and jitter add delay, and a slow cap shows as a delayed packet.</p>
     </section>
+  );
+}
+
+const parseVlanList = (t: string) =>
+  t
+    .split(',')
+    .flatMap((x) => (x.includes('-') ? Array.from({ length: Number(x.split('-')[1]) - Number(x.split('-')[0]) + 1 }, (_, k) => Number(x.split('-')[0]) + k) : [Number(x)]))
+    .filter((v) => Number.isInteger(v) && v > 0 && v < 4095);
+
+/** Layer 3 switching, VTP, DHCP snooping and DAI for a switch. */
+function SwitchServices({ d }: { d: Device }) {
+  const st = useLab();
+  const vtp = d.vtp ?? { mode: 'server' as const, domain: '', revision: 0 };
+  const sn = d.dhcpSnooping ?? { enabled: false, vlans: [] };
+  const err = d.interfaces.filter((i) => i.errDisabled);
+  const l3 = MODELS[d.model]?.key === 'c9300-24t' || !!d.ipRouting;
+  return (
+    <Section title="Switching services" testid="svc-switching">
+      <div className="flex flex-wrap items-center gap-3">
+        <span title={l3 ? undefined : 'This model is a layer 2 access switch; ip routing is mainly for the Catalyst 9300 here.'}>
+          <Toggle label="ip routing (layer 3 switch)" checked={!!d.ipRouting} onChange={(v) => st.updateDevice(d.id, { ipRouting: v })} />
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium">VTP</span>
+        <select className={sel} value={d.vtp ? vtp.mode : 'off'} onChange={(e) => st.updateDevice(d.id, { vtp: { ...vtp, mode: e.target.value as typeof vtp.mode, revision: e.target.value === 'transparent' || e.target.value === 'off' ? 0 : vtp.revision } })} aria-label="VTP mode">
+          <option value="server">server</option>
+          <option value="client">client</option>
+          <option value="transparent">transparent</option>
+          <option value="off">off</option>
+        </select>
+        <Input className="!h-7 !w-28" placeholder="domain" defaultValue={vtp.domain} key={`vtpd-${vtp.domain}`} aria-label="VTP domain" onBlur={(e) => st.updateDevice(d.id, { vtp: { ...vtp, domain: e.target.value.trim() } })} />
+        <span className="text-muted">revision {vtp.revision}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Toggle label="DHCP snooping" checked={sn.enabled} onChange={(v) => st.updateDevice(d.id, { dhcpSnooping: { ...sn, enabled: v } })} />
+        <Input className="!h-7 !w-32" placeholder="VLANs e.g. 10,20" defaultValue={sn.vlans.join(',')} key={`snv-${sn.vlans.join(',')}`} aria-label="DHCP snooping VLANs" onBlur={(e) => st.updateDevice(d.id, { dhcpSnooping: { ...sn, vlans: parseVlanList(e.target.value) } })} />
+        <span className="font-medium">DAI VLANs</span>
+        <Input className="!h-7 !w-28" placeholder="10,20" defaultValue={(d.dai?.vlans ?? []).join(',')} key={`dai-${(d.dai?.vlans ?? []).join(',')}`} aria-label="DAI VLANs" onBlur={(e) => st.updateDevice(d.id, { dai: { vlans: parseVlanList(e.target.value) } })} />
+      </div>
+      <p className="text-[11px] text-muted">Trusted ports: {d.interfaces.filter((i) => i.dhcpTrust).map((i) => i.name).join(', ') || 'none'} (set per port in the Physical tab or with ip dhcp snooping trust).</p>
+      {err.length > 0 && (
+        <div className="space-y-1 rounded bg-[#ff7a1a]/10 p-2" data-testid="svc-err-disabled">
+          {err.map((i) => (
+            <div key={i.name} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1">
+                <span className="font-mono">{i.name}</span> err-disabled: {i.errDisabled}
+              </span>
+              <Button
+                size="sm"
+                onClick={() => {
+                  st.updateIface(d.id, i.name, { shutdown: true });
+                  st.updateIface(d.id, i.name, { shutdown: false });
+                }}
+              >
+                Recover
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
   );
 }

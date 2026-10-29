@@ -102,6 +102,25 @@ export function auditDoc(doc: LabDoc): Finding[] {
       })());
       if (edge.length && d.origin === 'design') add({ severity: 'info', area: 'switching', title: `${d.name}: host ports without PortFast`, detail: `${edge.map((i) => i.name).join(', ')} wait 30 s in listening/learning after link up, so DHCP can time out.`, fix: 'spanning-tree portfast on host-facing ports.', devices: [d.id] });
     }
+    if (d.kind === 'switch') {
+      const hostPorts = d.interfaces.filter((i) => (i.mode ?? 'access') === 'access' && !i.parent && i.type !== 'console' && !/^vlan/i.test(i.name) && (() => {
+        const c = cableOnPort(doc, d.id, i.name);
+        const peer = c ? deviceById(doc, c.a.device === d.id ? c.b.device : c.a.device) : undefined;
+        return !!peer && modelOf(peer).forwarding === 'host';
+      })());
+      const noPs = hostPorts.filter((i) => !i.portSecurity?.enabled);
+      if (d.origin === 'design' && noPs.length) add({ severity: 'info', area: 'security', title: `${d.name}: host ports without port security`, detail: `${noPs.map((i) => i.name).slice(0, 6).join(', ')}${noPs.length > 6 ? '…' : ''} accept any MAC address.`, fix: 'switchport port-security (maximum 1-2, sticky, violation restrict or shutdown).', devices: [d.id] });
+      const pfNoGuard = d.interfaces.filter((i) => i.portfast && !i.bpduGuard && !d.stp?.bpduGuardDefault);
+      if (d.origin === 'design' && pfNoGuard.length) add({ severity: 'info', area: 'switching', title: `${d.name}: PortFast without BPDU guard`, detail: `${pfNoGuard.map((i) => i.name).join(', ')} would forward immediately if someone plugs a switch in, creating a loop.`, fix: 'spanning-tree portfast bpduguard default (or spanning-tree bpduguard enable per port).', devices: [d.id] });
+      const dyn = d.interfaces.filter((i) => i.dtp && cableOnPort(doc, d.id, i.name));
+      if (dyn.length) add({ severity: 'info', area: 'security', title: `${d.name}: DTP negotiation on ${dyn.map((i) => i.name).join(', ')}`, detail: 'Dynamic ports let an attacker negotiate a trunk (switch spoofing) and reach every VLAN.', fix: 'switchport mode access or switchport mode trunk with switchport nonegotiate.', devices: [d.id] });
+      const sn = d.dhcpSnooping;
+      if (sn?.enabled && sn.vlans.length && !d.interfaces.some((i) => i.dhcpTrust)) add({ severity: 'warning', area: 'services', title: `${d.name}: DHCP snooping with no trusted port`, detail: 'Every DHCP offer, including the real server’s, is dropped on untrusted ports. Clients will fall back to 169.254 addresses.', fix: 'ip dhcp snooping trust on the uplink toward the DHCP server or relay.', devices: [d.id] });
+      if (sn?.enabled && !sn.vlans.length) add({ severity: 'info', area: 'services', title: `${d.name}: DHCP snooping enabled on no VLAN`, detail: 'ip dhcp snooping is on globally, but no VLAN is listed, so nothing is inspected.', fix: 'ip dhcp snooping vlan <list>.', devices: [d.id] });
+      if (d.dai?.vlans.length && !sn?.enabled) add({ severity: 'warning', area: 'security', title: `${d.name}: DAI without DHCP snooping`, detail: 'Dynamic ARP inspection validates ARP against the snooping binding table; without snooping there are no bindings.', fix: 'Enable ip dhcp snooping on the same VLANs.', devices: [d.id] });
+      if (d.vtp?.mode === 'server' && d.vtp.domain && doc.devices.filter((x) => x.vtp?.domain === d.vtp!.domain && x.vtp?.mode === 'server').length > 1 && doc.devices.find((x) => x.vtp?.domain === d.vtp!.domain && x.vtp?.mode === 'server')?.id === d.id) add({ severity: 'info', area: 'switching', title: `VTP domain ${d.vtp.domain} has several servers`, detail: 'Any server with a higher revision overwrites every VLAN database in the domain (the "VTP bomb").', fix: 'Keep one server, make access switches clients or transparent, set a VTP password, or use VTPv3.', devices: doc.devices.filter((x) => x.vtp?.domain === d.vtp!.domain && x.vtp?.mode === 'server').map((x) => x.id) });
+    }
+    for (const i of d.interfaces) for (const name of [i.aclIn, i.aclOut].filter((x): x is string => !!x)) if (!d.acls?.some((a) => a.name === name) && !d.firewall.length) add({ severity: 'warning', area: 'security', title: `${d.name} ${i.name}: ACL ${name} is not defined`, detail: `ip access-group ${name} is applied, but the ACL does not exist, so IOS permits everything.`, fix: `Create ip access-list … ${name}, or remove the access-group.`, devices: [d.id] });
     if (d.firewall.length) {
       const rules = d.firewall.filter((r) => r.enabled);
       rules.forEach((r, k) => {
