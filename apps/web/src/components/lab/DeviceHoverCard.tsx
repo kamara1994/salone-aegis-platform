@@ -68,14 +68,14 @@ export function DevicePicture({ model, className }: { model: DeviceModel; classN
 export function DeviceHoverCard({ device: d, anchor, onEnter, onLeave }: { device: Device; anchor: DOMRect; onEnter?: () => void; onLeave?: () => void }) {
   const m = modelOf(d);
   const [zoom, setZoom] = useState(false);
-  const w = zoom ? 520 : 380;
+  const w = zoom ? Math.min(720, window.innerWidth - 16) : Math.min(380, window.innerWidth - 16);
   const right = anchor.right + 10 + w < window.innerWidth;
   const left = right ? anchor.right + 10 : Math.max(8, anchor.left - w - 10);
-  const top = Math.min(Math.max(8, anchor.top - 10), window.innerHeight - (zoom ? 520 : 430));
+  const top = Math.min(Math.max(8, anchor.top - 10), window.innerHeight - (zoom ? 620 : 430));
   return createPortal(
     <div role="tooltip" onMouseEnter={onEnter} onMouseLeave={onLeave} className="pointer-events-auto fixed z-[2000] rounded-[8px] border border-line-strong bg-pane p-2.5 text-[12px] shadow-xl" style={{ left, top, width: w }} data-testid="device-hover-card">
-      <div className="mb-2 flex h-[250px] items-center justify-center overflow-hidden rounded bg-white/95">
-        <DevicePicture model={m} className={`${zoom ? 'scale-[1.35]' : 'scale-[1.18]'} max-h-full max-w-full object-contain transition-transform duration-200`} />
+      <div className={`mb-2 flex items-center justify-center overflow-hidden rounded bg-white/95 ${zoom ? 'h-[430px]' : 'h-[250px]'}`}>
+        <DevicePicture model={m} className="max-h-full max-w-full object-contain" />
       </div>
       <div className="flex items-center gap-2"><p className="text-[13px] font-semibold">{m.vendor} {m.name}</p><button type="button" className="ml-auto rounded border border-line px-1.5 py-0.5 text-[10px] text-muted hover:text-text" onClick={() => setZoom((v) => !v)}>{zoom ? 'Fit image' : 'Zoom image'}</button></div>
       <p className="text-muted">
