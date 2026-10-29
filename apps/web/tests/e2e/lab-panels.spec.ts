@@ -64,3 +64,22 @@ test('mini map can be hidden and the diagram exports as PNG', async ({ page }) =
   const buf = fs.readFileSync((await (await dl).path())!);
   expect(buf.subarray(1, 4).toString()).toBe('PNG');
 });
+
+test('a draft saved by an older version still opens', async ({ page, context }) => {
+  await page.getByTestId('palette-isr4331').click();
+  await page.waitForTimeout(800);
+  const key = await page.evaluate(() => Object.keys(localStorage).find((k) => k.startsWith('aegis.lab.draft'))!);
+  await page.evaluate((k) => {
+    const raw = JSON.parse(localStorage.getItem(k)!);
+    for (const f of ['sites', 'racks', 'groups', 'annotations']) delete raw.doc[f];
+    for (const d of raw.doc.devices) {
+      delete d.firewall;
+      delete d.vlans;
+      for (const i of d.interfaces) delete i.speeds;
+    }
+    localStorage.setItem(k, JSON.stringify(raw));
+  }, key);
+  const p2 = await context.newPage();
+  await p2.goto('/lab');
+  await expect(p2.getByTestId('lab-device-Router0')).toBeVisible();
+});

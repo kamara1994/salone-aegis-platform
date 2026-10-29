@@ -2,6 +2,7 @@
 // Editor state for the lab designer: the document, selection, tools, undo/redo history,
 // packet traces and saved layouts. Every change to the document goes through `commit`,
 // which records history and autosaves the draft for this browser.
+import { normalizeDoc } from './normalize';
 import { create } from 'zustand';
 import { DEFAULT_MODEL, ifaceFromTemplate, KIND_LABEL, MODEL_BY_KEY } from './catalog';
 import { DEVICE_H, DEVICE_W } from './inventory';
@@ -236,8 +237,11 @@ export const useLab = create<LabState>((set, get) => ({
   },
 
   init(scope, fresh, baseline) {
-    const draft = typeof window !== 'undefined' ? storageGet<{ savedAt: string; doc: LabDoc; layoutName?: string | null; basis?: LabDoc | null }>(keys(scope).draft) : null;
-    const usable = draft?.doc?.version === 1 && draft.doc.source === fresh.source;
+    const raw = typeof window !== 'undefined' ? storageGet<{ savedAt: string; doc: LabDoc; layoutName?: string | null; basis?: LabDoc | null }>(keys(scope).draft) : null;
+    // Drafts saved by older versions are repaired so a missing field cannot crash the page.
+    const repaired = raw ? normalizeDoc(raw.doc) : null;
+    const draft = raw && repaired ? { ...raw, doc: repaired, basis: raw.basis ? normalizeDoc(raw.basis) : null } : null;
+    const usable = !!draft && draft.doc.source === fresh.source;
     set({
       scope,
       fresh,
@@ -772,7 +776,9 @@ export const useLab = create<LabState>((set, get) => ({
       d.workbook = undefined;
     });
   },
-  importDoc(doc) {
+  importDoc(raw) {
+    const doc = normalizeDoc(raw);
+    if (!doc) return;
     get().commit('Import lab', (d) => {
       Object.assign(d, clone(doc), { source: d.source });
     });
@@ -793,9 +799,10 @@ export const useLab = create<LabState>((set, get) => ({
   loadLayout(name) {
     const s = get();
     const l = (storageGet<Record<string, SavedLayout>>(keys(s.scope).layouts) ?? {})[name];
-    if (!l) return false;
+    const fixed = l ? normalizeDoc(l.doc) : null;
+    if (!fixed) return false;
     get().commit('Load layout', (doc) => {
-      Object.assign(doc, clone(l.doc));
+      Object.assign(doc, clone(fixed));
     });
     set({ layoutName: name, selection: { devices: [], cables: [] } });
     autosave(get());
