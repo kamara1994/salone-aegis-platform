@@ -167,7 +167,7 @@ test('device finder jumps to a device by IP', async ({ page }) => {
 });
 
 test('learn page: honest AI state in mock mode, subnetting drill works offline, lab drill opens the lab', async ({ page }) => {
-  await page.goto('/learn');
+  await page.goto('/learn?tab=practice');
   await page.getByTestId('learn-generate').click();
   await expect(page.getByTestId('learn-ai-unavailable')).toContainText('AI not connected');
   await page.getByRole('tab', { name: /Subnetting/ }).click();

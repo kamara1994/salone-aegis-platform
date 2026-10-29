@@ -432,14 +432,30 @@ export const NoteNode = memo(function NoteNode({ data, selected }: NodeProps<Nod
   return (
     <div
       ref={box}
-      className="h-full w-full"
+      className="relative h-full w-full"
       data-testid={`note-${n.id}`}
-      style={{
-        border: `2px ${n.kind === 'text' ? 'solid' : 'dashed'} ${c}`,
-        borderRadius: n.kind === 'ellipse' ? '50%' : 8,
-        background: n.kind === 'text' ? `${c}22` : `${c}0d`,
-      }}
+      style={
+        n.kind === 'arrow' || n.kind === 'label'
+          ? { outline: selected ? `1px dashed ${c}` : undefined, borderRadius: 4 }
+          : {
+              border: `2px ${n.kind === 'text' ? 'solid' : 'dashed'} ${c}`,
+              borderRadius: n.kind === 'ellipse' ? '50%' : 8,
+              background: n.kind === 'text' ? `${c}22` : `${c}0d`,
+            }
+      }
     >
+      {n.kind === 'arrow' && (
+        <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden data-testid={`arrow-${n.id}`}>
+          <defs>
+            <marker id={`ah-${n.id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill={c} />
+            </marker>
+          </defs>
+          <g style={{ transform: `rotate(${n.rotate ?? 0}deg)`, transformOrigin: '50% 50%' }}>
+            <line x1="6%" y1="50%" x2="94%" y2="50%" stroke={c} strokeWidth="3" markerEnd={`url(#ah-${n.id})`} />
+          </g>
+        </svg>
+      )}
       <NodeResizer isVisible={selected} minWidth={80} minHeight={40} color={c} onResizeEnd={(_e, p) => st().updateAnnotation(n.id, { x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.width), h: Math.round(p.height) })} />
       {edit ? (
         <textarea
@@ -458,20 +474,25 @@ export const NoteNode = memo(function NoteNode({ data, selected }: NodeProps<Nod
           }}
         />
       ) : (
-        <div className={cx('h-full w-full overflow-hidden whitespace-pre-wrap p-2 text-[12.5px]', n.kind !== 'text' && 'text-[12px] font-semibold')} style={{ color: n.kind === 'text' ? undefined : c }}>
+        <div className={cx('relative h-full w-full overflow-hidden whitespace-pre-wrap p-2 text-[12.5px]', n.kind !== 'text' && 'text-[12px] font-semibold', n.kind === 'arrow' && 'text-center', n.kind === 'label' && 'text-[15px]')} style={{ color: n.kind === 'text' ? undefined : c, textShadow: n.kind === 'label' || n.kind === 'arrow' ? '0 1px 2px rgba(0,0,0,.6)' : undefined }}>
           {n.text}
         </div>
       )}
       {selected && !edit && (
-        <div className="nodrag absolute -top-8 left-0 flex gap-1 rounded border border-line bg-pane p-0.5 shadow">
+        <div className="nodrag absolute -top-8 left-0 z-10 flex gap-1 rounded border border-line bg-pane p-0.5 shadow">
           {(Object.keys(NOTE_COLOR) as Annotation['color'][]).map((k) => (
             <button key={k} aria-label={`Colour ${k}`} className="size-4 rounded-full" style={{ background: NOTE_COLOR[k] }} onClick={() => st().updateAnnotation(n.id, { color: k })} />
           ))}
-          {(['text', 'rect', 'ellipse'] as const).map((k) => (
-            <button key={k} className={cx('rounded px-1 text-[10px]', n.kind === k ? 'bg-action/20' : 'text-muted')} onClick={() => st().updateAnnotation(n.id, { kind: k })}>
-              {k === 'text' ? 'Note' : k === 'rect' ? 'Box' : 'Oval'}
+          {(['text', 'label', 'rect', 'ellipse', 'arrow'] as const).map((k) => (
+            <button key={k} className={cx('rounded px-1 text-[10px]', n.kind === k ? 'bg-action/20' : 'text-muted')} onClick={() => st().updateAnnotation(n.id, { kind: k })} data-testid={`note-kind-${k}`}>
+              {{ text: 'Note', label: 'Label', rect: 'Box', ellipse: 'Oval', arrow: 'Arrow' }[k]}
             </button>
           ))}
+          {n.kind === 'arrow' && (
+            <button className="rounded px-1 text-[10px]" aria-label="Rotate arrow 45 degrees" onClick={() => st().updateAnnotation(n.id, { rotate: ((n.rotate ?? 0) + 45) % 360 })} data-testid="note-rotate">
+              ↻
+            </button>
+          )}
           <button className="rounded px-1 text-[10px]" onClick={() => setEdit(true)} data-testid="note-edit">
             Edit text
           </button>

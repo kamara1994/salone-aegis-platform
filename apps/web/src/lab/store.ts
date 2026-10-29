@@ -88,7 +88,8 @@ interface LabState {
   simDst: string;
   setView(v: Partial<Pick<LabState, 'portLabels' | 'labelMode' | 'simSrc' | 'simDst'>>): void;
   setBackground(v: LabBackground): void;
-  setCustomBackground(v: string | null): void;
+  /** Returns false when the image is shown but could not be saved for next time (storage full). */
+  setCustomBackground(v: string | null): boolean;
 
   init(scope: string, fresh: LabDoc, baseline: LabDoc): void;
   commit(label: string, fn: (d: LabDoc) => void, log?: Omit<LogEntry, 'at'>[]): void;
@@ -225,10 +226,13 @@ export const useLab = create<LabState>((set, get) => ({
     set({ customBackground, background: customBackground ? 'custom' : 'grid' });
     if (typeof window !== 'undefined') {
       const key = `${keys(get().scope).background}:custom`;
-      if (customBackground) storageSet(key, customBackground);
+      let saved = true;
+      if (customBackground) saved = storageSet(key, customBackground);
       else window.localStorage.removeItem(key);
       storageSet(keys(get().scope).background, customBackground ? 'custom' : 'grid');
+      return saved;
     }
+    return true;
   },
 
   init(scope, fresh, baseline) {

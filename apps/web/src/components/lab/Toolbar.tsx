@@ -4,6 +4,8 @@ import { useReactFlow } from '@xyflow/react';
 import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Image as ImageIcon, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote, Search } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { useLab, type LabBackground } from '@/lab/store';
+import { findDevices } from '@/lab/find';
+import { prepareBackground } from '@/lab/bgimage';
 import { cx, ConfirmDialog } from '@/components/ui';
 import { CableTypeSelect, ContextMenu, type MenuItem } from './Pickers';
 
@@ -120,18 +122,12 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
                 const file = e.target.files?.[0];
                 e.target.value = '';
                 if (!file) return;
-                if (!file.type.startsWith('image/')) return setBackgroundError('Choose an image file.');
-                if (file.size > 4 * 1024 * 1024) return setBackgroundError('Images must be 4 MB or smaller.');
-                const reader = new FileReader();
-                reader.onload = () => {
-                  if (typeof reader.result === 'string') {
-                    s.setCustomBackground(reader.result);
-                    setBackgroundError('');
-                    setBackgroundOpen(false);
-                  }
-                };
-                reader.onerror = () => setBackgroundError('This image could not be read.');
-                reader.readAsDataURL(file);
+                void prepareBackground(file).then((r) => {
+                  if (!r.ok) return setBackgroundError(r.error);
+                  const saved = s.setCustomBackground(r.dataUrl);
+                  setBackgroundError(saved ? '' : 'Shown now, but too large to keep after a reload. Try a smaller image.');
+                  if (saved) setBackgroundOpen(false);
+                });
               }}
             />
             <button type="button" className="mt-2 flex w-full items-center justify-center rounded border border-dashed border-line-strong px-2 py-1.5 text-[11px] text-muted hover:border-action hover:text-text" onClick={() => backgroundInput.current?.click()}>
@@ -241,23 +237,22 @@ export function Toolbar({ paletteOpen, setPaletteOpen, onLayouts, onStructure, o
   );
 }
 
-/** Find a device by name, IP or MAC and jump to it. */
+/** Find devices by name, IP, MAC, VLAN ("vlan 20") or port ("Gi0/14", "SW1 Gi0/1") and jump to them. */
 function DeviceFinder() {
   const rf = useReactFlow();
   const doc = useLab((s) => s.doc);
   const [q, setQ] = useState('');
   const [msg, setMsg] = useState('');
   const go = () => {
-    const needle = q.trim().toLowerCase();
-    if (!needle || !doc) return;
-    const d =
-      doc.devices.find((x) => x.name.toLowerCase() === needle) ??
-      doc.devices.find((x) => x.interfaces.some((i) => i.ip === needle || i.mac.toLowerCase() === needle)) ??
-      doc.devices.find((x) => x.name.toLowerCase().includes(needle));
-    if (!d) return setMsg('Not found');
-    setMsg('');
-    useLab.getState().select({ devices: [d.id], cables: [] });
-    rf.setCenter(d.x + 64, d.y + 52, { zoom: Math.max(rf.getZoom(), 1.1), duration: 400 });
+    if (!doc) return;
+    const ids = findDevices(doc, q);
+    if (!ids.length) return setMsg('Not found');
+    setMsg(ids.length > 1 ? `${ids.length} devices` : '');
+    useLab.getState().select({ devices: ids, cables: [] });
+    if (ids.length === 1) {
+      const d = doc.devices.find((x) => x.id === ids[0])!;
+      rf.setCenter(d.x + 64, d.y + 52, { zoom: Math.max(rf.getZoom(), 1.1), duration: 400 });
+    } else rf.fitView({ nodes: ids.map((id) => ({ id })), padding: 0.3, duration: 400 });
   };
   return (
     <form
@@ -273,8 +268,8 @@ function DeviceFinder() {
         list="lab-device-names"
         value={q}
         onChange={(e) => (setQ(e.target.value), setMsg(''))}
-        placeholder="Find device, IP, MAC"
-        aria-label="Find a device by name, IP or MAC"
+        placeholder="Find name, IP, MAC, VLAN, port"
+        aria-label="Find devices by name, IP, MAC, VLAN or port"
         data-testid="device-finder"
         className="h-8 w-40 rounded-[5px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px] focus:border-action max-2xl:w-32"
       />

@@ -1,5 +1,6 @@
 'use client';
 
+import { labToSvg } from '@/lab/svgExport';
 import { Download, Play, Plus, Trash, Upload, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { Badge, Button, cx, IconButton, Input, Tabs } from '@/components/ui';
@@ -374,6 +375,9 @@ function ExportTab({ doc }: { doc: LabDoc }) {
         </Button>
         <Button size="sm" className="w-full" onClick={() => download(`aegis-configs-${stamp}.txt`, doc.devices.filter((d) => ['router', 'switch', 'firewall'].includes(d.kind)).map((d) => `! ===== ${d.name} =====\n${runningConfig(d)}`).join('\n\n'), 'text/plain')}>
           <Download className="size-3.5" /> All running configs (.txt)
+        </Button>
+        <Button size="sm" className="w-full" onClick={() => download(`aegis-diagram-${stamp}.svg`, labToSvg(doc, st.layoutName ?? 'Lab diagram'), 'image/svg+xml')} data-testid="export-svg">
+          <Download className="size-3.5" /> Diagram (.svg)
         </Button>
         <Button size="sm" className="w-full" onClick={() => file.current?.click()} data-testid="import-json">
           <Upload className="size-3.5" /> Import lab file

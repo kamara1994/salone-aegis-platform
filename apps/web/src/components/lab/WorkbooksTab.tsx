@@ -2,7 +2,8 @@
 
 import { useReactFlow } from '@xyflow/react';
 import { Check, ChevronRight, Lightbulb, RotateCcw, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { updateProgress } from '@/content/progress';
 import { Badge, Button, cx } from '@/components/ui';
 import { useLab } from '@/lab/store';
 import type { LabDoc } from '@/lab/types';
@@ -58,6 +59,13 @@ function Active({ wb, doc }: { wb: Workbook; doc: LabDoc }) {
   const [hints, setHints] = useState<Record<string, boolean>>({});
   const done = results.filter((r) => r.ok).length;
   const pct = Math.round((done / wb.tasks.length) * 100);
+  // Record completion locally so Learn > Tracks can show it.
+  useEffect(() => {
+    if (pct === 100)
+      updateProgress((p) => {
+        p.lessons[`lab:${wb.id}`] = { ...(p.lessons[`lab:${wb.id}`] ?? { section: 0, visited: [], quiz: {}, trainer: {} }), done: true, updatedAt: new Date().toISOString() };
+      });
+  }, [pct, wb.id]);
   return (
     <div className="grid h-full min-h-0 grid-cols-[280px_1fr] gap-3 text-[12.5px] max-lg:grid-cols-1" data-testid="workbook-active">
       <div className="space-y-2 overflow-auto">

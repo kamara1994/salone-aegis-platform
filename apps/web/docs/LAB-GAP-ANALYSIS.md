@@ -112,7 +112,10 @@ containerlab documentation, and day-to-day enterprise network engineering practi
 
 | Capability | Where it comes from | Status |
 |---|---|---|
-| Annotations: text notes, rectangles, ellipses | PT notes/shapes, EVE-NG, CML annotations | Built |
+| Annotations: notes, labels, arrows (rotatable), rectangles, ellipses | PT notes/shapes, EVE-NG, CML annotations | Built |
+| Search by name, IP, MAC, VLAN (`vlan 20`) or port (`SW1 Gi0/1`) | PT find, CML search | Built |
+| Diagram export as SVG (devices, cables coloured by state, port labels, notes) | CML/EVE-NG export, Visio-style docs | Built |
+| Custom canvas backgrounds (PNG/JPEG/WebP/GIF, 4 MB, resized to fit browser storage, overlay, remove) | EVE-NG/CML backgrounds | Built |
 | Export/import the lab as JSON; inventory CSV and bill of materials | CML YAML export, EVE-NG export | Built |
 | Goals ("A must reach B on 443", "users must not reach the DB") with Check results | PT Activity Wizard | Built |
 | Troubleshooting challenges: inject a hidden fault, fix it, reveal the change | PT activities, real on-call | Built |
@@ -122,3 +125,15 @@ containerlab documentation, and day-to-day enterprise network engineering practi
 | Multi-user editing with presence | EVE-NG Pro, PT multiuser | Roadmap |
 | Automation: API, pyATS/Ansible export, MCP | CML | Roadmap |
 | IoT programming, OT protocols (Modbus, Profinet) | PT 9 | Roadmap |
+
+## 10. Learning, games and tracks
+
+| Capability | Where it comes from | Status |
+|---|---|---|
+| Interactive lessons with Next/Back, progress, search, bookmarks, notes, beginner/advanced, watch/guided/independent modes | NetAcad course pages, interactive textbooks | Built |
+| Quizzes, reveals, predictions, command trainer, "Open this in the Lab" | NetAcad activities | Built |
+| Help-desk/NOC/SOC triage game with scoring, hints on request and lab links | Real service-desk practice | Built (16 roles, 21 cases) |
+| Certification tracks with local progress and export | NetAcad, vendor learning paths | Built (AI exams need the back end) |
+| Content packs (lessons, games, labs as validated JSON) | PT activity files, CML lab sharing | Built |
+| Lesson/game authoring UI (forms instead of JSON) | PT Activity Wizard | Roadmap |
+| DNS, HTTP and traceroute steps in packet simulation; PCAP export | PT simulation mode, CML capture | Partial (traceroute and capture exist; DNS/HTTP steps on the roadmap) |

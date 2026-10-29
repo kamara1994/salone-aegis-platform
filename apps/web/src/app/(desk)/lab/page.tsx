@@ -1,5 +1,6 @@
 'use client';
 
+import { loadPacks } from '@/content/progress';
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
@@ -114,6 +115,14 @@ function Designer({ lab }: { lab: MockLab | null }) {
       window.history.replaceState(null, '', window.location.pathname);
       if (useLab.getState().doc?.workbook?.id !== wb) startWorkbookById(wb);
       setTools('labs');
+      return;
+    }
+    const pack = params.get('pack');
+    if (pack) {
+      window.history.replaceState(null, '', window.location.pathname);
+      const lab = loadPacks().find((p) => p.name === pack)?.labs?.[Number(params.get('lab') ?? 0)];
+      const d = lab?.doc as LabDoc | undefined;
+      if (d && d.version === 1 && Array.isArray(d.devices) && Array.isArray(d.cables)) useLab.getState().importDoc(d);
       return;
     }
     const id = params.get('challenge');

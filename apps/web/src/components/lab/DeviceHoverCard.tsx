@@ -59,11 +59,20 @@ const LAB_ASSET: Record<string, string> = {
 };
 
 export function DevicePicture({ model, className }: { model: DeviceModel; className?: string }) {
-  const [failed, setFailed] = useState(false);
+  // 0 = generated photo-style asset, 1 = catalog illustration, 2 = neither loaded: show a labelled placeholder
+  const [stage, setStage] = useState(0);
   const asset = LAB_ASSET[model.key] ?? model.image;
+  if (stage === 2)
+    return (
+      <div role="img" aria-label={`${model.vendor} ${model.name} (picture unavailable)`} className={`${className ?? ''} grid place-items-center bg-pane-2 text-center text-[11px] text-muted`} data-photo="placeholder" style={{ minHeight: 96 }}>
+        Picture unavailable
+        <br />
+        {model.vendor} {model.name}
+      </div>
+    );
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={failed ? model.image : asset} onError={() => setFailed(true)} alt={`${model.vendor} ${model.name}`} className={className} data-photo={failed ? 'illustration' : 'generated-asset'} />
+    <img src={stage === 0 ? asset : model.image} onError={() => setStage((x) => (x === 0 && asset !== model.image ? 1 : 2))} alt={`${model.vendor} ${model.name}`} className={className} data-photo={stage === 0 ? 'generated-asset' : 'illustration'} />
   );
 }
 

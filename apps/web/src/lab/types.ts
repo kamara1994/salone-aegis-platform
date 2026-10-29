@@ -225,7 +225,10 @@ export interface Cable {
 
 export interface Annotation {
   id: string;
-  kind: 'text' | 'rect' | 'ellipse';
+  /** text = sticky note, label = bare text, rect/ellipse = zones, arrow = pointer across the box */
+  kind: 'text' | 'label' | 'rect' | 'ellipse' | 'arrow';
+  /** arrow direction in degrees (0 = pointing right) */
+  rotate?: number;
   x: number;
   y: number;
   w: number;
