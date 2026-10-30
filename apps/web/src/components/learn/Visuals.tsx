@@ -4,8 +4,9 @@ import { ArrowLeft, ArrowRight, BookOpenText, CheckCircle2, Crosshair, Maximize2
 import { useState } from 'react';
 import { Badge, Dialog } from '@/components/ui';
 import { topicById, type Topic } from '@/content/topics';
+import { useLearningPreferences } from '@/state/learning';
 
-type Callout = { number: string; title: string; explanation: string; pinX: number; pinY: number; targetX: number; targetY: number };
+type Callout = { number: string; title: string; explanation: string; beginnerExplanation: string; pinX: number; pinY: number; targetX: number; targetY: number };
 
 const huntingSteps = [
   {
@@ -15,9 +16,9 @@ const huntingSteps = [
     image: '/learn/visuals/hunting/screenshots/50_alerts.png',
     source: 'https://docs.securityonion.net/en/2.4/alerts.html',
     callouts: [
-      { number: '1', title: 'Set a useful time window', explanation: 'Include the alert and nearby activity in the time picker. Security Onion displays these times in UTC, so keep that in mind when matching other evidence.', pinX: 1230, pinY: 135, targetX: 1160, targetY: 183 },
-      { number: '2', title: 'Read the alert rule and severity', explanation: 'Use the rule name, severity, and summary to understand what triggered. A high severity is a lead to validate, not proof by itself.', pinX: 1450, pinY: 145, targetX: 1640, targetY: 176 },
-      { number: '3', title: 'Open the event row', explanation: 'Expand the matching row to inspect the individual event. Compare its timestamp, sensor, source and destination, ports, and protocol with the exercise question.', pinX: 260, pinY: 365, targetX: 276, targetY: 438 },
+      { number: '1', title: 'Set a useful time window', explanation: 'Include the alert and nearby activity in the time picker. Security Onion displays these times in UTC, so keep that in mind when matching other evidence.', beginnerExplanation: 'Choose a time range that includes the alert and a little time before and after it. Like rewinding a video, this shows what was happening around it.', pinX: 1230, pinY: 135, targetX: 1160, targetY: 183 },
+      { number: '2', title: 'Read the alert rule and severity', explanation: 'Use the rule name, severity, and summary to understand what triggered. A high severity is a lead to validate, not proof by itself.', beginnerExplanation: 'Read the alert’s name and severity. The severity tells you how serious it looks; it does not prove the activity is harmful.', pinX: 1450, pinY: 145, targetX: 1640, targetY: 176 },
+      { number: '3', title: 'Open the event row', explanation: 'Expand the matching row to inspect the individual event. Compare its timestamp, sensor, source and destination, ports, and protocol with the exercise question.', beginnerExplanation: 'Open the row to see what happened. Check who connected to whom and when, then compare those details with the lab question.', pinX: 260, pinY: 365, targetX: 276, targetY: 438 },
     ],
     record: 'Only if the lab worksheet or a case requires it, note the alert name or ID, UTC time, affected host, and the specific reason it needs checking. Use these details to scope your Hunt search.',
   },
@@ -28,8 +29,8 @@ const huntingSteps = [
     image: '/learn/visuals/hunting/screenshots/51_alerts_play.png',
     source: 'https://docs.securityonion.net/en/2.4/alerts.html#guided-analysis',
     callouts: [
-      { number: '1', title: 'Read one focused question', explanation: 'Start with the question and context. Check the stated data source and date range so you know what evidence its suggested search can find.', pinX: 1040, pinY: 151, targetX: 930, targetY: 184 },
-      { number: '2', title: 'Open the query in Hunt', explanation: 'The blue crosshair opens this query in Hunt. Review and adjust it there; treat the suggested question and sample results as leads, not a confirmed finding.', pinX: 394, pinY: 375, targetX: 340, targetY: 335 },
+      { number: '1', title: 'Read one focused question', explanation: 'Start with the question and context. Check the stated data source and date range so you know what evidence its suggested search can find.', beginnerExplanation: 'Read the question, then check what data and time it looks at. Treat it as a clue that helps you decide what to check next.', pinX: 1040, pinY: 151, targetX: 930, targetY: 184 },
+      { number: '2', title: 'Open the query in Hunt', explanation: 'The blue crosshair opens this query in Hunt. Review and adjust it there; treat the suggested question and sample results as leads, not a confirmed finding.', beginnerExplanation: 'Select the blue crosshair to open the search. Check the results yourself; the example answer is a hint, not proof.', pinX: 394, pinY: 375, targetX: 340, targetY: 335 },
     ],
     record: 'This step is optional. If Guided Analysis is disabled or the exercise does not use it, skip to Hunt. Record a question or query only when it helps answer the lab task or is required in a case.',
   },
@@ -40,9 +41,9 @@ const huntingSteps = [
     image: '/learn/visuals/hunting/screenshots/56_hunt.png',
     source: 'https://docs.securityonion.net/en/2.4/hunt.html',
     callouts: [
-      { number: '1', title: 'Check the active query and filters', explanation: 'Read the OQL query and blue filter chips together; they define what this search includes. Replace the sample values with the host, indicator, or question from your exercise.', pinX: 700, pinY: 231, targetX: 700, targetY: 183 },
-      { number: '2', title: 'Set and verify the time range', explanation: 'Make sure the time picker covers the activity you are testing. Start with a focused interval and widen it only when related evidence falls outside it.', pinX: 1500, pinY: 134, targetX: 1460, targetY: 184 },
-      { number: '3', title: 'Compare matching events', explanation: 'Compare timestamps, hosts, destinations, and available process or network fields. Check ordinary explanations before calling a pattern suspicious.', pinX: 1600, pinY: 700, targetX: 1300, targetY: 798 },
+      { number: '1', title: 'Check the active query and filters', explanation: 'Read the OQL query and blue filter chips together; they define what this search includes. Replace the sample values with the host, indicator, or question from your exercise.', beginnerExplanation: 'The search line and blue tags tell the computer what to look for. Replace the example with the computer or clue from your lab.', pinX: 700, pinY: 231, targetX: 700, targetY: 183 },
+      { number: '2', title: 'Set and verify the time range', explanation: 'Make sure the time picker covers the activity you are testing. Start with a focused interval and widen it only when related evidence falls outside it.', beginnerExplanation: 'Set the calendar to the time you are checking. Start with a small window, then make it wider if you need to find more activity.', pinX: 1500, pinY: 134, targetX: 1460, targetY: 184 },
+      { number: '3', title: 'Compare matching events', explanation: 'Compare timestamps, hosts, destinations, and available process or network fields. Check ordinary explanations before calling a pattern suspicious.', beginnerExplanation: 'Look at the rows that came back. Check whether the same computer or address appears, and whether there is a normal reason for it.', pinX: 1600, pinY: 700, targetX: 1300, targetY: 798 },
     ],
     record: 'If the lab asks for a hunt record, include the query/filter, time range, and the event references that support your observation. A repeated pattern alone does not prove command and control.',
   },
@@ -53,9 +54,9 @@ const huntingSteps = [
     image: '/learn/visuals/hunting/screenshots/65_pcap_details.png',
     source: 'https://docs.securityonion.net/en/2.4/pcap.html',
     callouts: [
-      { number: '1', title: 'Verify the source and destination', explanation: 'Read both endpoint fields before interpreting the stream. Check that the addresses and ports match the network event you pivoted from.', pinX: 1650, pinY: 205, targetX: 1270, targetY: 135 },
-      { number: '2', title: 'Compare request and response headers', explanation: 'Read the request headers, then compare the response status, server, date, and content type. These fields explain the exchange without relying on an alert label alone.', pinX: 670, pinY: 356, targetX: 390, targetY: 286 },
-      { number: '3', title: 'Treat payload as sensitive evidence', explanation: 'The lower pane is captured content, not something to run. Inspect it only when the exercise requires it. If PCAP or endpoint data is unavailable, state that visibility limit.', pinX: 870, pinY: 650, targetX: 930, targetY: 700 },
+      { number: '1', title: 'Verify the source and destination', explanation: 'Read both endpoint fields before interpreting the stream. Check that the addresses and ports match the network event you pivoted from.', beginnerExplanation: 'Check the “from” and “to” addresses first. Make sure they match the connection you are investigating.', pinX: 1650, pinY: 205, targetX: 1270, targetY: 135 },
+      { number: '2', title: 'Compare request and response headers', explanation: 'Read the request headers, then compare the response status, server, date, and content type. These fields explain the exchange without relying on an alert label alone.', beginnerExplanation: 'The request is what one computer asked for. The response is what the other computer sent back. Compare them to understand the conversation.', pinX: 670, pinY: 356, targetX: 390, targetY: 286 },
+      { number: '3', title: 'Treat payload as sensitive evidence', explanation: 'The lower pane is captured content, not something to run. Inspect it only when the exercise requires it. If PCAP or endpoint data is unavailable, state that visibility limit.', beginnerExplanation: 'The lower part can contain a file or message from the connection. Look only if the lab asks, and never open or run an unknown file.', pinX: 870, pinY: 650, targetX: 930, targetY: 700 },
     ],
     record: 'Only when requested, note the event/stream reference, endpoints, time, and the relevant field or header. Treat captured payloads as evidence; never execute a downloaded file.',
   },
@@ -66,17 +67,17 @@ const huntingSteps = [
     image: '/learn/visuals/hunting/screenshots/57_2_cases_create.png',
     source: 'https://docs.securityonion.net/en/2.4/cases.html',
     callouts: [
-      { number: '1', title: 'Name the case clearly', explanation: 'Use a concise title that identifies the host or activity and the investigation question. Keep it factual; do not present an unverified hypothesis as confirmed.', pinX: 1100, pinY: 133, targetX: 930, targetY: 111 },
-      { number: '2', title: 'Write an evidence-based update', explanation: 'Summarize the time range, data source, query or pivot, and evidence that supports or weakens the hypothesis. State whether the result is suspicious, benign, or inconclusive, and name the next action.', pinX: 1410, pinY: 322, targetX: 1120, targetY: 493 },
-      { number: '3', title: 'Link the relevant event', explanation: 'Use the case’s Events area to attach the event that supports the update. Create or update a case only when the exercise or response process calls for it.', pinX: 1290, pinY: 180, targetX: 1150, targetY: 221 },
+      { number: '1', title: 'Name the case clearly', explanation: 'Use a concise title that identifies the host or activity and the investigation question. Keep it factual; do not present an unverified hypothesis as confirmed.', beginnerExplanation: 'Give the case a short name that says what you are checking. Use facts, not guesses.', pinX: 1100, pinY: 133, targetX: 930, targetY: 111 },
+      { number: '2', title: 'Write an evidence-based update', explanation: 'Summarize the time range, data source, query or pivot, and evidence that supports or weakens the hypothesis. State whether the result is suspicious, benign, or inconclusive, and name the next action.', beginnerExplanation: 'Write what you checked, what you found, and what you think so far. Say what should happen next, even if you are not sure yet.', pinX: 1410, pinY: 322, targetX: 1120, targetY: 493 },
+      { number: '3', title: 'Link the relevant event', explanation: 'Use the case’s Events area to attach the event that supports the update. Create or update a case only when the exercise or response process calls for it.', beginnerExplanation: 'Attach the event that shows why you wrote the update. Only make a case if your lab or team asks you to.', pinX: 1290, pinY: 180, targetX: 1150, targetY: 221 },
     ],
     record: 'Use a case comment only when a case is required. Include key evidence references, conclusion, confidence, and next action. If no case or worksheet is required, do not create extra records just to finish the hunt.',
   },
 ];
 
-function ScreenshotCallouts({ callouts, markerId, accessible = false }: { callouts: Callout[]; markerId: string; accessible?: boolean }) {
+function ScreenshotCallouts({ callouts, markerId, accessible = false, teach = 'technical' }: { callouts: Callout[]; markerId: string; accessible?: boolean; teach?: 'simple' | 'technical' }) {
   return (
-    <svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" className="pointer-events-none absolute inset-0 size-full" role={accessible ? 'img' : undefined} aria-hidden={accessible ? undefined : true} aria-label={accessible ? `Numbered arrows: ${callouts.map((item) => `${item.number}, ${item.title}: ${item.explanation}`).join('; ')}` : undefined}>
+    <svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" className="pointer-events-none absolute inset-0 size-full" role={accessible ? 'img' : undefined} aria-hidden={accessible ? undefined : true} aria-label={accessible ? `Numbered arrows: ${callouts.map((item) => `${item.number}, ${item.title}: ${teach === 'simple' ? item.beginnerExplanation : item.explanation}`).join('; ')}` : undefined}>
       <defs><marker id={markerId} markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto"><path d="M0 0 11 4 0 8Z" fill="#ffd44d" /></marker></defs>
       {callouts.map((callout) => {
         const dx = callout.targetX - callout.pinX;
@@ -97,7 +98,7 @@ function ScreenshotCallouts({ callouts, markerId, accessible = false }: { callou
   );
 }
 
-function HuntingLesson({ onBack }: { onBack: () => void }) {
+function HuntingLesson({ onBack, teach }: { onBack: () => void; teach: 'simple' | 'technical' }) {
   const [step, setStep] = useState(-1);
   const [zoomOpen, setZoomOpen] = useState(false);
   const current = huntingSteps[step];
@@ -163,7 +164,7 @@ function HuntingLesson({ onBack }: { onBack: () => void }) {
             <div className="relative aspect-video w-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={current.image} alt={`Security Onion SOC screenshot with numbered arrows for ${current.focus}`} className="block size-full object-fill" />
-              <ScreenshotCallouts callouts={current.callouts} markerId={`hunting-arrow-${step}`} accessible />
+              <ScreenshotCallouts callouts={current.callouts} markerId={`hunting-arrow-${step}`} accessible teach={teach} />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-[#0b1b29] px-3 py-2">
               <p className="text-[12px] text-[#dce8f4]">Screenshot: <a className="underline decoration-[#8bd8ff] underline-offset-2 hover:text-white" href={current.source} target="_blank" rel="noreferrer">Security Onion Solutions documentation 2.4</a> · <a className="underline decoration-[#8bd8ff] underline-offset-2 hover:text-white" href="https://docs.securityonion.net/en/2.4/about.html#license" target="_blank" rel="noreferrer">CC BY 4.0</a> · teaching arrows and notes by AEGIS.</p>
@@ -183,7 +184,7 @@ function HuntingLesson({ onBack }: { onBack: () => void }) {
               {current.callouts.map((callout) => (
                 <li key={callout.number} className="flex items-start gap-3 rounded-md border border-line bg-ink/35 p-3">
                   <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#ffd44d] text-[13px] font-bold text-[#081725]">{callout.number}</span>
-                  <span><strong className="text-white">{callout.title}.</strong> {callout.explanation}</span>
+                  <span><strong className="text-white">{callout.title}.</strong> {teach === 'simple' ? callout.beginnerExplanation : callout.explanation}</span>
                 </li>
               ))}
             </ol>
@@ -216,7 +217,7 @@ function HuntingLesson({ onBack }: { onBack: () => void }) {
             <div className="relative mx-auto aspect-video w-[min(92vw,1800px)] max-w-full overflow-hidden rounded-md bg-[#071421]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={current.image} alt={`Security Onion screenshot with numbered arrows for ${current.focus}`} className="block size-full object-fill" />
-              <ScreenshotCallouts callouts={current.callouts} markerId={`hunting-zoom-arrow-${step}`} />
+              <ScreenshotCallouts callouts={current.callouts} markerId={`hunting-zoom-arrow-${step}`} teach={teach} />
             </div>
             <p className="mt-2 text-[12px] text-[#dce8f4]">Security Onion Solutions documentation 2.4 · <a className="underline decoration-[#8bd8ff] underline-offset-2" href="https://docs.securityonion.net/en/2.4/about.html#license" target="_blank" rel="noreferrer">CC BY 4.0</a> · annotations by AEGIS.</p>
           </Dialog>
@@ -227,12 +228,13 @@ function HuntingLesson({ onBack }: { onBack: () => void }) {
 }
 
 export function VisualsView({ onTopic, scope, topicId }: { onTopic: (id: string) => void; scope?: Topic[]; topicId?: string }) {
+  const { teach } = useLearningPreferences();
   const [opened, setOpened] = useState(false);
   const huntingTopic = topicById('soc-hunting');
   const isSoc = !!scope?.some((topic) => topic.id === 'soc-hunting');
   const showHunting = isSoc && (opened || topicId === 'soc-hunting');
 
-  if (showHunting) return <HuntingLesson onBack={() => { setOpened(false); onTopic(''); }} />;
+  if (showHunting) return <HuntingLesson onBack={() => { setOpened(false); onTopic(''); }} teach={teach} />;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4" data-testid="visuals-view">

@@ -7,18 +7,18 @@ import { Badge, Button, cx } from '@/components/ui';
 import { loadProgress, updateProgress, type Progress } from '@/content/progress';
 import { certById, certTopics } from '@/content/certs';
 import { useUi } from '@/state/ui';
-import { ALL_TOPICS, COURSES, courseTopics, topicById, topicMatches, type CourseId, type TeachLevel, type Topic } from '@/content/topics';
+import { ALL_TOPICS, COURSES, courseTopics, teachingText, topicById, topicMatches, type CourseId, type ExamDifficulty, type TeachLevel, type Topic } from '@/content/topics';
+import { setExamDifficulty, setTeachingLevel, useLearningPreferences } from '@/state/learning';
+import { selectExamQuestions } from '@/content/exam';
 
 export const LEVELS: { key: TeachLevel; label: string; hint: string }[] = [
-  { key: 'simple', label: 'Simple', hint: 'Plain words and an everyday example, like explaining to a 10-year-old' },
-  { key: 'technical', label: 'Technical', hint: 'How it works, with the real terms and commands' },
-  { key: 'advanced', label: 'Advanced', hint: 'Design choices, edge cases and what professionals watch for' },
+  { key: 'simple', label: 'Beginner', hint: 'Plain words and familiar examples, with unfamiliar terms explained' },
+  { key: 'technical', label: 'Technical / Expert', hint: 'Precise terminology, commands, design choices, and edge cases' },
 ];
 
 const MODE_NOTE: Record<TeachLevel, string> = {
-  simple: 'Beginner: plain words and an everyday comparison. Underlined words show their meaning when you point at or tap them.',
-  technical: 'Intermediate: how it works, with the real terms and a worked example.',
-  advanced: 'Senior: design choices, edge cases, commands and what professionals watch for.',
+  simple: 'Beginner: plain language, familiar examples, and definitions for key terms.',
+  technical: 'Technical / Expert: precise concepts, commands, design choices, and professional edge cases.',
 };
 
 function TermsBlock({ t, title, compact }: { t: Topic; title: string; compact?: boolean }) {
@@ -73,16 +73,28 @@ function labLink(t: Topic) {
 
 /** End-of-topic exam: answer every question, then submit for a score with explanations. */
 function TopicExam({ t, onScore }: { t: Topic; onScore: (score: number, total: number) => void }) {
+  const { examDifficulty } = useLearningPreferences();
   const [picks, setPicks] = useState<Record<number, number>>({});
   const [done, setDone] = useState(false);
-  const score = t.quiz.filter((q, k) => picks[k] === q.answer).length;
+  const matchingCount = t.quiz.filter((q) => q.difficulty === examDifficulty).length;
+  const questions = useMemo(() => selectExamQuestions(t.quiz, Math.min(3, t.quiz.length), examDifficulty), [t, examDifficulty]);
+  useEffect(() => { setPicks({}); setDone(false); }, [t.id, examDifficulty]);
+  const score = questions.filter((q, k) => picks[k] === q.answer).length;
   return (
     <section className="space-y-3 rounded-[8px] border border-line p-3" data-testid="topic-exam">
       <div className="flex flex-wrap items-baseline gap-2">
-        <h3 className="text-[15px] font-semibold">Check yourself</h3>
-        <span className="text-[12px] text-muted">{t.quiz.length} questions. Answer all, then submit.</span>
+        <h3 className="text-[15px] font-semibold">Topic exam</h3>
+        <span className="text-[12px] text-muted">{questions.length} {examDifficulty} questions. Answer all, then submit.</span>
       </div>
-      {t.quiz.map((q, k) => (
+      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Exam difficulty">
+        {(['beginner', 'intermediate', 'advanced'] as ExamDifficulty[]).map((difficulty) => (
+          <button key={difficulty} role="radio" aria-checked={examDifficulty === difficulty} onClick={() => { setPicks({}); setDone(false); setExamDifficulty(difficulty); }} className={cx('rounded border px-2.5 py-1 text-[12px] capitalize', examDifficulty === difficulty ? 'border-action bg-action/15 text-text' : 'border-line text-muted')} data-testid={`topic-exam-level-${difficulty}`}>
+            {difficulty}
+          </button>
+        ))}
+      </div>
+      {matchingCount < questions.length && <p className="text-[12px] text-muted">{matchingCount ? `${matchingCount} questions match this level; the rest use the closest available difficulty.` : 'This topic has no questions tagged for this level yet, so this check uses its closest available questions.'} The course exam has a larger difficulty-specific pool.</p>}
+      {questions.map((q, k) => (
         <fieldset key={k} className="space-y-1.5">
           <legend className="text-[14px] font-medium">
             {k + 1}. {q.q}
@@ -110,7 +122,7 @@ function TopicExam({ t, onScore }: { t: Topic; onScore: (score: number, total: n
       {done ? (
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-semibold" data-testid="topic-exam-score">
-            Score: {score}/{t.quiz.length}
+            Score: {score}/{questions.length}
           </p>
           <Button
             size="sm"
@@ -125,10 +137,10 @@ function TopicExam({ t, onScore }: { t: Topic; onScore: (score: number, total: n
       ) : (
         <Button
           variant="primary"
-          disabled={Object.keys(picks).length < t.quiz.length}
+          disabled={Object.keys(picks).length < questions.length}
           onClick={() => {
             setDone(true);
-            onScore(score, t.quiz.length);
+            onScore(score, questions.length);
           }}
           data-testid="topic-exam-submit"
         >
@@ -172,18 +184,18 @@ function TopicPage({ t, list: scoped, scopeLabel, level, setLevel, onOpenLesson,
       {level === 'simple' && <TermsBlock t={t} title="Words to know first" />}
       <section className="rounded-[8px] border border-line bg-pane p-4" data-testid="topic-explanation" data-level={level}>
         <p className="mb-1.5 text-[11.5px] text-faint" data-testid="topic-mode-note">{MODE_NOTE[level]}</p>
-        <div className={cx('leading-relaxed', level === 'simple' ? 'text-[16.5px]' : level === 'technical' ? 'text-[15px]' : 'text-[14.5px]')}>{level === 'simple' ? <Glossed text={t.simple} terms={t.terms} /> : t[level]}</div>
+        <div className={cx('whitespace-pre-line leading-relaxed', level === 'simple' ? 'text-[16.5px]' : 'text-[15px]')}>{level === 'simple' ? <Glossed text={t.simple} terms={t.terms} /> : teachingText(t, level)}</div>
       </section>
-      {level !== 'simple' && t.example && (
+      {level === 'technical' && t.example && (
         <section className="space-y-1">
-          <h3 className="text-[14px] font-semibold">{level === 'advanced' ? `Config: ${t.example.title}` : t.example.title}</h3>
+          <h3 className="text-[14px] font-semibold">{t.example.title}</h3>
           <pre className="overflow-auto rounded-[6px] bg-ink p-3 font-mono text-[12.5px]">{t.example.code}</pre>
         </section>
       )}
-      {level !== 'simple' && <TermsBlock t={t} title={level === 'advanced' ? 'Terms and commands' : 'Key terms'} compact={level === 'advanced'} />}
+      {level === 'technical' && <TermsBlock t={t} title="Terms and commands" compact />}
       {t.mistakes && t.mistakes.length > 0 && (
         <section>
-          <h3 className="text-[14px] font-semibold">{level === 'simple' ? 'Watch out for' : level === 'advanced' ? 'What professionals watch for' : 'Common mistakes'}</h3>
+            <h3 className="text-[14px] font-semibold">{level === 'simple' ? 'Watch out for' : 'Common mistakes and edge cases'}</h3>
           <ul className="list-disc pl-5 text-[13.5px]">
             {t.mistakes.map((m) => (
               <li key={m}>{m}</li>
@@ -226,6 +238,7 @@ function TopicPage({ t, list: scoped, scopeLabel, level, setLevel, onOpenLesson,
 
 /** Learn by topic: pick a course, then a topic from the drop-down, and choose how it is taught. */
 export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: string; onOpenLesson: (id: string) => void }) {
+  const { teach: level } = useLearningPreferences();
   const cert = certById(useUi((s) => s.certId));
   const certList = useMemo(() => (cert ? certTopics(cert) : []), [cert]);
   const [allCourses, setAllCourses] = useState(false);
@@ -234,17 +247,12 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
   const [topicId, setTopicId] = useState<string | null>(initialTopic && topicById(initialTopic) ? initialTopic : null);
   const [q, setQ] = useState('');
   const [progress, setProgress] = useState<Progress | null>(null);
-  const [level, setLevelState] = useState<TeachLevel>('simple');
   useEffect(() => {
-    const p = loadProgress();
-    setProgress(p);
-    setLevelState(p.teach ?? 'simple');
+    setProgress(loadProgress());
   }, []);
   const setLevel = (l: TeachLevel) => {
-    setLevelState(l);
-    setProgress(updateProgress((p) => {
-      p.teach = l;
-    }));
+    setTeachingLevel(l);
+    setProgress(loadProgress());
   };
   const open = (id: string) => {
     const t = topicById(id);
@@ -388,14 +396,12 @@ export function TopicsView({ initialTopic, onOpenLesson }: { initialTopic?: stri
 
 /** One topic on its own (used by the dashboard playground): level choice, exam and lab link. */
 export function TopicPlayground({ topicId, list, scopeLabel, onTopic, onOpenLesson, level: fixedLevel }: { topicId: string; list?: Topic[]; scopeLabel?: string; onTopic: (id: string) => void; onOpenLesson: (id: string) => void; level?: TeachLevel }) {
+  const { teach } = useLearningPreferences();
   const t = topicById(topicId);
   const [progress, setProgress] = useState<Progress | null>(null);
-  const [ownLevel, setLevelState] = useState<TeachLevel>('simple');
-  const level = fixedLevel ?? ownLevel;
+  const level = fixedLevel ?? teach;
   useEffect(() => {
-    const p = loadProgress();
-    setProgress(p);
-    setLevelState(p.teach ?? 'simple');
+    setProgress(loadProgress());
   }, []);
   if (!t) return null;
   return (
@@ -406,10 +412,8 @@ export function TopicPlayground({ topicId, list, scopeLabel, onTopic, onOpenLess
       level={level}
       hideLevels={!!fixedLevel}
       setLevel={(l) => {
-        setLevelState(l);
-        setProgress(updateProgress((p) => {
-          p.teach = l;
-        }));
+        setTeachingLevel(l);
+        setProgress(loadProgress());
       }}
       onOpenLesson={onOpenLesson}
       onTopic={onTopic}

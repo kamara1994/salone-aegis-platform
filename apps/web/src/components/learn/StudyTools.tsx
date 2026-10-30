@@ -4,6 +4,7 @@ import { Binary, Calculator, Clock, FileCode2, Fingerprint, Hash, NotebookPen, P
 import { useEffect, useRef, useState } from 'react';
 import { Button, cx, Dialog } from '@/components/ui';
 import type { TeachLevel, Topic } from '@/content/topics';
+import { teachingText } from '@/content/topics';
 import { decode, defang, describeHash, encode, epochInfo, PORTS, refang, subnet, toBases, type Codec } from '@/learn/tools';
 
 export type ToolId = 'notes' | 'read' | 'timer' | 'subnet' | 'bases' | 'ports' | 'codec' | 'hash' | 'epoch' | 'defang';
@@ -58,7 +59,7 @@ export function ToolDialog({ tool, topic, mode, onClose }: { tool: ToolId | null
     <Dialog open={!!tool} onClose={onClose} title={meta ? `${meta.label}${meta.needsTopic && topic ? `: ${topic.title}` : ''}` : ''}>
       <div className="space-y-3" data-testid={tool ? `tool-${tool}` : undefined}>
         {tool === 'notes' && topic && <Notes topic={topic} />}
-        {tool === 'read' && topic && <ReadAloud text={topic[mode]} />}
+        {tool === 'read' && topic && <ReadAloud text={teachingText(topic, mode)} />}
         {tool === 'timer' && <StudyTimer />}
         {tool === 'subnet' && <SubnetTool />}
         {tool === 'bases' && <BasesTool />}

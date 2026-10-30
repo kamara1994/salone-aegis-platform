@@ -10,6 +10,8 @@ import { WORKBOOKS } from '@/lab/workbooks';
 import type { LabDoc } from '@/lab/types';
 import { LearnError, learnApi, TRACKS, type AnswerResult, type InterviewSession, type Question, type QuizMode, type Track } from '@/learn/api';
 import { checkDrill, makeDrill, type Drill, type DrillKind } from '@/learn/subnet';
+import type { ExamDifficulty } from '@/content/topics';
+import { setExamDifficulty, useLearningPreferences } from '@/state/learning';
 
 const sel = 'h-9 rounded-[5px] border border-line-strong bg-ink px-2 text-[13px]';
 
@@ -113,10 +115,17 @@ function QuestionCard({ q, n, total, mode, onDone }: { q: Question; n: number; t
   );
 }
 
-export function Practice({ initialTrack, initialDifficulty = 3 }: { initialTrack?: Track; initialDifficulty?: number }) {
+const PRACTICE_LEVELS: { key: ExamDifficulty; label: string; detail: string; value: number }[] = [
+  { key: 'beginner', label: 'Beginner', detail: 'Foundations and clear recognition', value: 1 },
+  { key: 'intermediate', label: 'Intermediate', detail: 'Apply technical knowledge', value: 3 },
+  { key: 'advanced', label: 'Advanced', detail: 'Multi-step analysis and decisions', value: 5 },
+];
+
+export function Practice({ initialTrack }: { initialTrack?: Track }) {
+  const { examDifficulty } = useLearningPreferences();
   const [track, setTrack] = useState<Track>(initialTrack ?? 'ccna');
   const [topic, setTopic] = useState('');
-  const [difficulty, setDifficulty] = useState(initialDifficulty);
+  const difficulty = PRACTICE_LEVELS.find((level) => level.key === examDifficulty)!.value;
   const [count, setCount] = useState(10);
   const [mode, setMode] = useState<QuizMode>('quiz');
   const [useLab, setUseLab] = useState(false);
@@ -163,8 +172,15 @@ export function Practice({ initialTrack, initialDifficulty = 3 }: { initialTrack
             <Input value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Topic" />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label={`Difficulty ${difficulty}/5`}>
-              <input type="range" min={1} max={5} value={difficulty} onChange={(e) => setDifficulty(Number(e.target.value))} className="w-full" aria-label="Difficulty" />
+            <Field label={mode === 'exam' ? 'Exam difficulty' : 'Question level'}>
+              <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="AI practice difficulty">
+                {PRACTICE_LEVELS.map((level) => (
+                  <button key={level.key} type="button" role="radio" aria-checked={examDifficulty === level.key} title={level.detail} onClick={() => setExamDifficulty(level.key)} className={cx('rounded border px-2 py-1 text-[11px]', examDifficulty === level.key ? 'border-action bg-action/15 text-text' : 'border-line text-muted')} data-testid={`ai-level-${level.key}`}>
+                    {level.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-[11px] text-muted">{PRACTICE_LEVELS.find((level) => level.key === examDifficulty)?.detail} · API difficulty {difficulty}/5</p>
             </Field>
             <Field label="Questions">
               <select className={cx(sel, 'w-full')} value={count} onChange={(e) => setCount(Number(e.target.value))} aria-label="Number of questions">

@@ -1,6 +1,7 @@
 // Local-only progress, bookmarks and imported content packs. Everything lives in this browser's
 // storage; nothing is sent anywhere. Export/import lets the user move it between machines.
 import type { GameTemplate, Lesson } from './types';
+import type { ExamDifficulty, TeachLevel } from './topics/types';
 
 const KEY = 'aegis.learn.progress.v1';
 const PACKS = 'aegis.content.packs.v1';
@@ -30,14 +31,20 @@ export interface Progress {
   mode: 'watch' | 'guided' | 'independent';
   level: 'beginner' | 'advanced';
   /** Topic catalog: chosen teaching level and the end-of-topic exam result */
-  topics?: Record<string, { level?: 'simple' | 'technical' | 'advanced'; score?: number; total?: number; at: string }>;
+  topics?: Record<string, { level?: TeachLevel; score?: number; total?: number; at: string }>;
   /** Timed exams taken */
-  exams?: { course: string; score: number; total: number; minutes: number; at: string }[];
-  /** Preferred teaching level for new topics */
-  teach?: 'simple' | 'technical' | 'advanced';
+  exams?: { course: string; difficulty?: ExamDifficulty; score: number; total: number; minutes: number; at: string }[];
+  /** One teaching preference shared across course pages and browser tabs. */
+  teach?: TeachLevel;
+  /** Exam question difficulty shared across timed, topic, and AI generated exams. */
+  examDifficulty?: ExamDifficulty;
 }
 
-const empty = (): Progress => ({ version: 1, lessons: {}, bookmarks: [], games: [], notes: {}, mode: 'guided', level: 'beginner' });
+const empty = (): Progress => ({ version: 1, lessons: {}, bookmarks: [], games: [], notes: {}, mode: 'guided', level: 'beginner', teach: 'simple', examDifficulty: 'intermediate' });
+type SavedProgress = Omit<Progress, 'teach' | 'topics'> & {
+  teach?: TeachLevel | 'advanced';
+  topics?: Record<string, { level?: TeachLevel | 'advanced'; score?: number; total?: number; at: string }>;
+};
 
 function read<T>(key: string): T | null {
   try {
@@ -58,11 +65,20 @@ function write(key: string, v: unknown): boolean {
 
 export function loadProgress(): Progress {
   if (typeof window === 'undefined') return empty();
-  const p = read<Progress>(KEY);
-  return p?.version === 1 ? { ...empty(), ...p } : empty();
+  const p = read<SavedProgress>(KEY);
+  if (p?.version !== 1) return empty();
+  return {
+    ...empty(),
+    ...p,
+    // Older saved settings had a separate Advanced teaching mode; preserve its depth in Technical.
+    teach: p.teach === 'technical' || p.teach === 'advanced' ? 'technical' : 'simple',
+    examDifficulty: p.examDifficulty === 'beginner' || p.examDifficulty === 'advanced' ? p.examDifficulty : 'intermediate',
+    topics: Object.fromEntries(Object.entries(p.topics ?? {}).map(([id, result]) => [id, { ...result, level: result.level === 'technical' || result.level === 'advanced' ? 'technical' : 'simple' }])),
+  };
 }
 export function saveProgress(p: Progress) {
-  write(KEY, p);
+  if (!write(KEY, p) || typeof window === 'undefined') return;
+  window.dispatchEvent(new Event('aegis:learn-progress'));
 }
 export function updateProgress(fn: (p: Progress) => void): Progress {
   const p = loadProgress();

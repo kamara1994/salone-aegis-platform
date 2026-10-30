@@ -8,7 +8,7 @@ import { NETWORKING } from './networking';
 import { PENTEST } from './pentest';
 import { SECURITY_PLUS } from './security-plus';
 import { SOC } from './soc';
-import type { Course, CourseId, Topic } from './types';
+import type { Course, CourseId, TeachLevel, Topic } from './types';
 import { WINDOWS_AD } from './windows-ad';
 
 export * from './types';
@@ -33,8 +33,12 @@ export const COURSES: Course[] = [
 
 export const topicById = (id: string) => ALL_TOPICS.find((t) => t.id === id);
 export const courseTopics = (c: CourseId) => ALL_TOPICS.filter((t) => t.course === c);
+export function teachingText(t: Topic, level: TeachLevel) {
+  if (level === 'simple') return t.simple;
+  return [t.technical, t.advanced].map((part) => part.trim()).filter(Boolean).join('\n\n');
+}
 export function topicMatches(t: Topic, q: string) {
   const n = q.trim().toLowerCase();
   if (!n) return true;
-  return `${t.title} ${t.unit} ${t.terms.map((x) => x.join(' ')).join(' ')} ${t.simple}`.toLowerCase().includes(n);
+  return `${t.title} ${t.unit} ${t.terms.map((x) => x.join(' ')).join(' ')} ${t.simple} ${t.technical} ${t.advanced}`.toLowerCase().includes(n);
 }

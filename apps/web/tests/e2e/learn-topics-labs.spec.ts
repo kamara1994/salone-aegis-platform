@@ -15,7 +15,7 @@ test('Learn has four tabs; pick a course and topic, switch teaching level, take 
   await expect(page.getByTestId('topic-title')).toHaveText('VLANs');
   await page.getByTestId('level-simple').click();
   await expect(page.getByTestId('topic-explanation')).toContainText('invisible walls');
-  await page.getByTestId('level-advanced').click();
+  await page.getByTestId('level-technical').click();
   await expect(page.getByTestId('topic-explanation')).toContainText('parking VLAN');
   const exam = page.getByTestId('topic-exam');
   for (let k = 0; k < 3; k++) await exam.getByTestId(`exam-q${k}-o1`).click();
@@ -23,7 +23,7 @@ test('Learn has four tabs; pick a course and topic, switch teaching level, take 
   await expect(page.getByTestId('topic-exam-score')).toContainText('/3');
   await page.reload();
   await expect(page.getByTestId('topic-title')).toHaveText('VLANs');
-  await expect(page.getByTestId('level-advanced')).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByTestId('level-technical')).toHaveAttribute('aria-checked', 'true');
   await page.getByTestId('topic-next').click();
   await expect(page.getByTestId('topic-title')).toHaveText('802.1Q trunks');
   await page.getByTestId('topic-prev').click();

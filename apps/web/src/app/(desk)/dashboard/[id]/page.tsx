@@ -19,12 +19,12 @@ import { VisualsView } from '@/components/learn/Visuals';
 import { ScenarioLibrary } from '@/components/scenarios/ScenarioLibrary';
 import { cx, EmptyState } from '@/components/ui';
 import { ToolDialog, TOOLS, toolsFor, type ToolId } from '@/components/learn/StudyTools';
-import { loadProgress, updateProgress } from '@/content/progress';
 import { allGames } from '@/content';
 import { certById, certTopics, CERTS, dashboardById, type Cert } from '@/content/certs';
 import type { Track } from '@/learn/api';
 import type { TeachLevel, Topic } from '@/content/topics';
 import { useUi } from '@/state/ui';
+import { setTeachingLevel, useLearningPreferences } from '@/state/learning';
 
 type Part = { key: string; label: string; hint?: string; icon: LucideIcon; hue: string };
 
@@ -44,14 +44,10 @@ const LEARN_PARTS: Part[] = [
   { key: 'lessons', label: 'Interactive lessons', hint: 'Guided walk-throughs', icon: Compass, hue: HUE.read },
 ];
 
-/** Practice exam defaults per learning mode: questions and minutes. */
-const EXAM_PRESET: Record<TeachLevel, [number, number]> = { simple: [5, 10], technical: [10, 10], advanced: [20, 20] };
-
 /** Learning mode: how deep the topic explanations go. */
 const MODES: { key: TeachLevel; label: string; hint: string }[] = [
-  { key: 'simple', label: 'Beginner', hint: 'Plain words and an everyday example' },
-  { key: 'technical', label: 'Intermediate', hint: 'How it works, with the real terms and commands' },
-  { key: 'advanced', label: 'Senior', hint: 'Design choices, edge cases and what professionals watch for' },
+  { key: 'simple', label: 'Beginner', hint: 'Plain language and familiar examples' },
+  { key: 'technical', label: 'Technical / Expert', hint: 'Expert terms, commands, design choices, and edge cases' },
 ];
 
 /** Scenario library filter that suits each dashboard (the library's tags combine with AND). */
@@ -79,6 +75,7 @@ const lastKey = (id: string) => `aegis.dash.last.${id}`;
 
 /** A dashboard: its own icon rail (DashboardSide), a second toolbar, a side panel for the picked section and a playground. */
 export default function DashboardPage() {
+  const { teach: mode } = useLearningPreferences();
   const { id } = useParams<{ id: string }>();
   const dash = dashboardById(id);
   const focus = certById(id);
@@ -89,7 +86,6 @@ export default function DashboardPage() {
   const [topicPickerOpen, setTopicPickerOpen] = useState(false);
   const [lesson, setLesson] = useState<string | null>(null);
   const [last, setLast] = useState<string | null>(null);
-  const [mode, setModeState] = useState<TeachLevel>('simple');
   const [tool, setTool] = useState<ToolId | null>(null);
   const topics = useMemo(() => (focus ? certTopics(focus) : []), [focus]);
   const units = useMemo(() => {
@@ -119,7 +115,6 @@ export default function DashboardPage() {
     useDashItem.setState({ item: !it || it.startsWith('topic:') ? null : (moved[it] ?? it) });
     setTopicId(p.get('topic') ?? '');
     if (window.innerWidth < 768) setPanel(false);
-    setModeState(loadProgress().teach ?? 'simple');
     try {
       setLast(dash ? window.localStorage.getItem(lastKey(dash.id)) : null);
     } catch {
@@ -154,10 +149,7 @@ export default function DashboardPage() {
     }
   };
   const setMode = (m: TeachLevel) => {
-    setModeState(m);
-    updateProgress((p) => {
-      p.teach = m;
-    });
+    setTeachingLevel(m);
   };
   const openLab = (workbook?: string) => {
     try {
@@ -328,7 +320,7 @@ export default function DashboardPage() {
               {part === 'images' && <VisualsView onTopic={pickTopic} scope={topics} topicId={topicId} />}
               {part === 'exam' && (
                 <div data-testid="playground-exam">
-                  <TimedExam key={`${scope ?? 'all'}-${mode}`} scope={scope} onStudy={studyTopic} initialCount={EXAM_PRESET[mode][0]} initialMinutes={EXAM_PRESET[mode][1]} />
+                  <TimedExam key={scope ?? 'all'} scope={scope} onStudy={studyTopic} />
                 </div>
               )}
               {part === 'flashcards' && (
@@ -341,8 +333,8 @@ export default function DashboardPage() {
                   <ScenarioQuestions key={topicId} gameIds={focus.games} topic={topic} />
                 </div>
               )}
-              {part === 'interview' && <Interview key={mode} initialLevel={mode === 'simple' ? 'entry' : mode === 'technical' ? 'mid' : 'senior'} />}
-              {part === 'ai' && <Practice key={mode} initialTrack={focus.aiTrack as Track | undefined} initialDifficulty={mode === 'simple' ? 2 : mode === 'technical' ? 3 : 5} />}
+              {part === 'interview' && <Interview key={mode} initialLevel={mode === 'simple' ? 'entry' : 'senior'} />}
+              {part === 'ai' && <Practice key={focus.aiTrack} initialTrack={focus.aiTrack as Track | undefined} />}
               {part === 'subnetting' && <Subnetting />}
               {part === 'tracks' && (
                 <TracksView

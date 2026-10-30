@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Badge, Button, cx, Input, Textarea } from '@/components/ui';
 import { allLessons, TRACKS } from '@/content';
 import { lessonProgress, loadProgress, updateProgress, type Progress } from '@/content/progress';
+import { setTeachingLevel, useLearningPreferences } from '@/state/learning';
 import type { Block, Lesson, TrackId } from '@/content/types';
 import { BlockView, type Mode } from './Blocks';
 
@@ -121,14 +122,16 @@ export function LessonLibrary({ onOpen, track }: { onOpen: (id: string, section?
 }
 
 export function LessonReader({ lessonId, initialSection, onClose }: { lessonId: string; initialSection?: string; onClose: () => void }) {
+  const { teach } = useLearningPreferences();
   const lesson = allLessons().find((l) => l.id === lessonId)!;
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
-  const level = progress.level;
+  const level = teach === 'technical' ? 'advanced' : 'beginner';
   const mode = progress.mode;
   const sections = useMemo(() => lesson.sections.filter((s) => level === 'advanced' || !s.advanced), [lesson, level]);
   const start = initialSection ? Math.max(0, sections.findIndex((s) => s.id === initialSection)) : Math.min(lessonProgress(progress, lesson.id).section, sections.length - 1);
   const [idx, setIdx] = useState(start);
-  const sec = sections[idx];
+  const safeIdx = Math.max(0, Math.min(idx, sections.length - 1));
+  const sec = sections[safeIdx];
   const lp = lessonProgress(progress, lesson.id);
   const bookmarked = progress.bookmarks.some((b) => b.lesson === lesson.id && b.section === sec.id);
 
@@ -160,6 +163,9 @@ export function LessonReader({ lessonId, initialSection, onClose }: { lessonId: 
   }, [idx]);
 
   const set = (patch: Partial<Progress>) => setProgress(updateProgress((p) => Object.assign(p, patch)));
+  useEffect(() => {
+    if (idx >= sections.length) setIdx(Math.max(0, sections.length - 1));
+  }, [idx, sections.length]);
   const pct = Math.round(((idx + 1) / sections.length) * 100);
   return (
     <div className="grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)]" data-testid="lesson-reader">
@@ -168,10 +174,10 @@ export function LessonReader({ lessonId, initialSection, onClose }: { lessonId: 
           <ArrowLeft className="size-4" /> All lessons
         </button>
         <p className="text-[15px] font-semibold">{lesson.title}</p>
-        <div className="flex gap-1" role="radiogroup" aria-label="Level">
-          {(['beginner', 'advanced'] as const).map((l) => (
-            <button key={l} role="radio" aria-checked={level === l} onClick={() => set({ level: l })} className={cx('flex-1 rounded border px-2 py-1 text-[12px] capitalize', level === l ? 'border-action bg-action/15' : 'border-line text-muted')}>
-              {l}
+        <div className="flex gap-1" role="radiogroup" aria-label="Explanation style">
+          {(['simple', 'technical'] as const).map((l) => (
+            <button key={l} role="radio" aria-checked={teach === l} onClick={() => setTeachingLevel(l)} className={cx('flex-1 rounded border px-2 py-1 text-[12px]', teach === l ? 'border-action bg-action/15' : 'border-line text-muted')}>
+              {l === 'simple' ? 'Beginner' : 'Technical / Expert'}
             </button>
           ))}
         </div>

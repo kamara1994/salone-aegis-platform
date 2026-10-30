@@ -32,10 +32,10 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await page.getByTestId('dash-topic').selectOption('ospf');
   await expect(page.getByTestId('topic-title')).toHaveText('OSPF basics');
   await expect(page.getByTestId('topics-heading')).toHaveCount(0);
-  await page.getByTestId('mode-advanced').click();
-  await expect(page.getByTestId('mode-advanced')).toHaveAttribute('aria-checked', 'true');
-  // Senior mode changes the explanation; Beginner glosses the jargon
-  await expect(page.getByTestId('topic-explanation')).toHaveAttribute('data-level', 'advanced');
+  await page.getByTestId('mode-technical').click();
+  await expect(page.getByTestId('mode-technical')).toHaveAttribute('aria-checked', 'true');
+  // Technical / Expert mode includes operational detail and professional edge cases.
+  await expect(page.getByTestId('topic-explanation')).toHaveAttribute('data-level', 'technical');
   await page.getByTestId('mode-simple').click();
   await expect(page.getByTestId('topic-explanation')).toHaveAttribute('data-level', 'simple');
   await expect(page.getByTestId('topic-mode-note')).toContainText('Beginner');
@@ -104,6 +104,24 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await sw.selectOption('all');
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId('nav-dashboard')).toHaveCount(0);
+});
+
+test('learning and exam levels persist across dashboards and browser tabs', async ({ browser }) => {
+  const context = await browser.newContext({ baseURL: 'http://localhost:3100' });
+  const firstTab = await context.newPage();
+  const secondTab = await context.newPage();
+  await firstTab.goto('/dashboard/soc');
+  await firstTab.getByTestId('side-learn').click();
+  await firstTab.getByTestId('mode-technical').click();
+  await firstTab.getByTestId('side-part-exam').click();
+  await secondTab.goto('/dashboard/networking');
+  await secondTab.getByTestId('side-learn').click();
+  await expect(secondTab.getByTestId('mode-technical')).toHaveAttribute('aria-checked', 'true');
+
+  await secondTab.getByTestId('side-part-exam').click();
+  await secondTab.getByTestId('exam-level-advanced').click();
+  await expect(firstTab.getByTestId('exam-level-advanced')).toHaveAttribute('aria-checked', 'true');
+  await context.close();
 });
 
 test('a choice saved before dashboards existed opens the right dashboard', async ({ page }) => {
