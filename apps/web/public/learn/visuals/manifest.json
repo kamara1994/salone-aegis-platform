@@ -1,5 +1,21 @@
 {
-  "version": 1,
-  "notice": "These are generated simulated training interfaces. They are not official vendor screenshots and contain no real credentials or customer data.",
-  "assets": []
+  "version": 2,
+  "notice": "SOC lesson screenshots are genuine Security Onion 2.4 documentation screenshots. They are not AEGIS-generated interface mockups. AEGIS overlays numbered teaching arrows and supplies explanations below the screenshot.",
+  "source": "https://docs.securityonion.net/en/2.4/",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "assets": [
+    "soc/39_grid.png",
+    "soc/40_upload.png",
+    "soc/45_import.png",
+    "soc/53_dashboards.png",
+    "soc/57_0_cases.png",
+    "soc/57_detections.png",
+    "soc/60_detection_nids_3_playbook.png",
+    "soc/61_actions.png",
+    "hunting/screenshots/50_alerts.png",
+    "hunting/screenshots/51_alerts_play.png",
+    "hunting/screenshots/56_hunt.png",
+    "hunting/screenshots/57_2_cases_create.png",
+    "hunting/screenshots/65_pcap_details.png"
+  ]
 }

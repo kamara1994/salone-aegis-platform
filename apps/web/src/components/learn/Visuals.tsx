@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Badge, Dialog } from '@/components/ui';
 import { topicById, type Topic } from '@/content/topics';
 import { useLearningPreferences } from '@/state/learning';
+import { SOC_VISUAL_LESSONS, type SocVisualLesson } from './socVisualLessons';
 
 type Callout = { number: string; title: string; explanation: string; beginnerExplanation: string; pinX: number; pinY: number; targetX: number; targetY: number };
 
@@ -227,40 +228,189 @@ function HuntingLesson({ onBack, teach }: { onBack: () => void; teach: 'simple' 
   );
 }
 
+function SocTopicLesson({ lesson, onBack, teach }: { lesson: SocVisualLesson; onBack: () => void; teach: 'simple' | 'technical' }) {
+  const topic = topicById(lesson.topicId);
+  const [step, setStep] = useState(-1);
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const current = lesson.steps[step];
+  if (!topic) return null;
+
+  return (
+    <section className="mx-auto max-w-7xl space-y-3" data-testid={`soc-visual-lesson-${lesson.topicId}`}>
+      <button onClick={onBack} className="inline-flex items-center gap-1.5 text-[14px] text-[#dce8f4] hover:text-white">
+        <ArrowLeft className="size-4" /> All SOC image lessons
+      </button>
+
+      {step < 0 ? (
+        <div className="rounded-xl border border-line-strong bg-pane p-5 md:p-7" data-testid="soc-visual-lesson-intro">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge>SOC · {topic.unit}</Badge>
+            <span className="text-[13px] text-[#d0deeb]">About {lesson.minutes} minutes · {lesson.steps.length} guided steps</span>
+          </div>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">{topic.title}</h1>
+          <p className="mt-2 max-w-5xl whitespace-pre-line text-[17px] leading-7 text-[#f0f5fa]">
+            {teach === 'simple' ? topic.simple : `${topic.technical}\n\n${topic.advanced}`}
+          </p>
+          {lesson.topicId === 'edr' ? <p className="mt-3 rounded-md border border-[#42617a] bg-[#102b40] p-3 text-[14px] leading-6 text-white">This lesson uses Security Onion screens to teach evidence pivots. It is not a vendor EDR console, and it cannot isolate or control a live endpoint.</p> : null}
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <article className="rounded-lg border border-line bg-ink/40 p-4">
+              <h2 className="flex items-center gap-2 text-[16px] font-semibold text-white"><BookOpenText className="size-4 text-action" /> What you’ll learn</h2>
+              <ul className="mt-2 list-inside list-disc space-y-1.5 text-[15px] leading-6 text-[#e8f0f7]">
+                {lesson.learn.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </article>
+            <article className="rounded-lg border border-line bg-ink/40 p-4">
+              <h2 className="flex items-center gap-2 text-[16px] font-semibold text-white"><Crosshair className="size-4 text-action" /> What to focus on</h2>
+              <ul className="mt-2 list-inside list-disc space-y-1.5 text-[15px] leading-6 text-[#e8f0f7]">
+                {lesson.focus.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </article>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-action/10 px-4 py-3">
+            <p className="max-w-4xl text-[14px] leading-6 text-[#edf4fa]">These are real Security Onion 2.4 product screenshots from its documentation. Numbered arrows point to the matching explanations below each image. Example records are training data, not your live system.</p>
+            <button onClick={() => setStep(0)} className="inline-flex items-center gap-2 rounded-md bg-action px-4 py-2 text-[13px] font-semibold text-white hover:brightness-110" data-testid={`soc-visual-start-${lesson.topicId}`}>
+              Start step 1 <ArrowRight className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : current ? (
+        <>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-[#65c9ff]">Step {step + 1} of {lesson.steps.length}</p>
+              <h1 className="mt-1 text-2xl font-semibold text-white">{current.title}</h1>
+            </div>
+            <button onClick={() => setStep(-1)} className="inline-flex items-center gap-1.5 rounded-md border border-line-strong px-3 py-2 text-[13px] text-[#e7eff6] hover:text-white">
+              <RotateCcw className="size-3.5" /> Lesson overview
+            </button>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-line-strong bg-[#071421] shadow-lg">
+            <div className="relative aspect-video w-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={current.image} alt={`Security Onion SOC screenshot showing ${current.focus}`} className="block size-full object-fill" />
+              <ScreenshotCallouts callouts={current.callouts} markerId={`soc-${lesson.topicId}-arrow-${step}`} accessible teach={teach} />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-[#0b1b29] px-3 py-2">
+              <p className="text-[12px] text-[#dce8f4]">Screenshot: <a className="underline decoration-[#8bd8ff] underline-offset-2 hover:text-white" href={current.source} target="_blank" rel="noreferrer">Security Onion Solutions documentation 2.4</a> · <a className="underline decoration-[#8bd8ff] underline-offset-2 hover:text-white" href="https://docs.securityonion.net/en/2.4/about.html#license" target="_blank" rel="noreferrer">CC BY 4.0</a> · arrows and notes by AEGIS.</p>
+              <button onClick={() => setZoomOpen(true)} className="inline-flex items-center gap-1.5 rounded border border-line-strong px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-pane-2" aria-label="Enlarge screenshot">
+                <Maximize2 className="size-3.5" /> Enlarge screenshot
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-line-strong bg-pane p-4 md:p-5" data-testid="soc-visual-step-notes">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>{current.location}</Badge>
+              <span className="text-[13px] font-medium text-white">Focus: {current.focus}</span>
+            </div>
+            <h2 className="mt-3 text-[17px] font-semibold text-white">Follow the numbered arrows</h2>
+            <ol className="mt-2 grid gap-2 text-[15px] leading-6 text-[#f0f5fa] md:grid-cols-2">
+              {current.callouts.map((callout) => (
+                <li key={callout.number} className="flex items-start gap-3 rounded-md border border-line bg-ink/35 p-3">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#ffd44d] text-[13px] font-bold text-[#081725]">{callout.number}</span>
+                  <span><strong className="text-white">{callout.title}.</strong> {teach === 'simple' ? callout.beginnerExplanation : callout.explanation}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-3 rounded-md border border-[#3b6682] bg-[#102b40] p-3">
+              <p className="text-[13px] font-bold uppercase tracking-wide text-[#8bd8ff]">Notes · when the lab or response process requires them</p>
+              <p className="mt-1 text-[14px] leading-6 text-white">{current.record}</p>
+            </div>
+          </div>
+
+          <nav className="flex items-center justify-between gap-3" aria-label={`${topic.title} lesson steps`}>
+            <button onClick={() => setStep(step === 0 ? -1 : step - 1)} className="inline-flex items-center gap-2 rounded-md border border-line-strong px-4 py-2 text-[13px] hover:bg-pane-2" data-testid="soc-visual-previous">
+              <ArrowLeft className="size-4" /> Previous
+            </button>
+            <div className="flex items-center gap-1.5" aria-label={`Step ${step + 1} of ${lesson.steps.length}`}>
+              {lesson.steps.map((item, index) => (
+                <button key={item.title} onClick={() => setStep(index)} aria-label={`Go to step ${index + 1}: ${item.title}`} aria-current={index === step ? 'step' : undefined} className={`size-2.5 rounded-full ${index === step ? 'bg-action ring-2 ring-action/25' : index < step ? 'bg-action/60' : 'bg-line-strong'}`} />
+              ))}
+            </div>
+            {step < lesson.steps.length - 1 ? (
+              <button onClick={() => setStep(step + 1)} className="inline-flex items-center gap-2 rounded-md bg-action px-4 py-2 text-[13px] font-semibold text-white hover:brightness-110" data-testid="soc-visual-next">
+                Next <ArrowRight className="size-4" />
+              </button>
+            ) : (
+              <button onClick={() => setStep(-1)} className="inline-flex items-center gap-2 rounded-md bg-action px-4 py-2 text-[13px] font-semibold text-white hover:brightness-110" data-testid="soc-visual-finish">
+                Finish <CheckCircle2 className="size-4" />
+              </button>
+            )}
+          </nav>
+
+          <Dialog open={zoomOpen} onClose={() => setZoomOpen(false)} title={`${current.title} · Security Onion screenshot`} wide>
+            <div className="relative mx-auto aspect-video w-[min(92vw,1800px)] max-w-full overflow-hidden rounded-md bg-[#071421]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={current.image} alt={`Security Onion SOC screenshot showing ${current.focus}`} className="block size-full object-fill" />
+              <ScreenshotCallouts callouts={current.callouts} markerId={`soc-${lesson.topicId}-zoom-arrow-${step}`} teach={teach} />
+            </div>
+            <p className="mt-2 text-[12px] text-[#dce8f4]">Security Onion Solutions documentation 2.4 · <a className="underline decoration-[#8bd8ff] underline-offset-2" href="https://docs.securityonion.net/en/2.4/about.html#license" target="_blank" rel="noreferrer">CC BY 4.0</a> · annotations by AEGIS.</p>
+          </Dialog>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 export function VisualsView({ onTopic, scope, topicId }: { onTopic: (id: string) => void; scope?: Topic[]; topicId?: string }) {
   const { teach } = useLearningPreferences();
-  const [opened, setOpened] = useState(false);
   const huntingTopic = topicById('soc-hunting');
-  const isSoc = !!scope?.some((topic) => topic.id === 'soc-hunting');
-  const showHunting = isSoc && (opened || topicId === 'soc-hunting');
+  const socTopics = scope?.filter((topic) => topic.course === 'soc') ?? [];
+  const isSoc = socTopics.length > 0 || topicId?.startsWith('soc-') === true;
+  // The toolbar topic picker owns the selection. Keeping a second local selection here
+  // makes the displayed lesson stale when the learner changes topics from the toolbar.
+  const selectedId = isSoc ? topicId : undefined;
+  const returnToLibrary = () => onTopic('');
 
-  if (showHunting) return <HuntingLesson onBack={() => { setOpened(false); onTopic(''); }} teach={teach} />;
+  if (selectedId === 'soc-hunting' && isSoc) return <HuntingLesson onBack={returnToLibrary} teach={teach} />;
+  const selectedLesson = SOC_VISUAL_LESSONS.find((lesson) => lesson.topicId === selectedId);
+  if (selectedLesson && isSoc) return <SocTopicLesson key={selectedLesson.topicId} lesson={selectedLesson} onBack={returnToLibrary} teach={teach} />;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4" data-testid="visuals-view">
       <div>
         <p className="text-[13px] text-muted">Focused visual walkthroughs for difficult tasks that benefit from seeing where to look and what evidence matters.</p>
-        <p className="mt-1 text-[11.5px] text-faint">Training screens are simulated and contain no real credentials or customer data.</p>
+        <p className="mt-1 text-[11.5px] text-faint">{isSoc ? 'Screenshots are genuine Security Onion documentation examples with no live customer data.' : 'Training screens are simulated and contain no real credentials or customer data.'}</p>
           </div>
       {isSoc && huntingTopic ? (
-        <article className="overflow-hidden rounded-xl border border-line-strong bg-pane md:grid md:grid-cols-[minmax(0,1fr)_19rem]">
-          <div className="space-y-3 p-5 md:p-6">
-            <div className="flex flex-wrap items-center gap-2"><Badge>SOC · Investigation</Badge><span className="text-[12px] text-muted">5 guided visual steps</span></div>
-            <h1 className="text-2xl font-semibold">Hunting</h1>
-            <p className="max-w-2xl text-[14px] leading-6 text-muted">Learn how to move from a focused hypothesis to scoped searches, suspicious patterns, endpoint evidence, and a clear documented outcome.</p>
-            <button onClick={() => { onTopic(huntingTopic.id); setOpened(true); }} className="inline-flex items-center gap-2 rounded-md bg-action px-4 py-2 text-[13px] font-semibold text-white hover:brightness-110" data-testid="open-hunting-visual-lesson">
-              Open Hunting lesson <ArrowRight className="size-4" />
-            </button>
+        <section className="space-y-3" data-testid="soc-visual-library">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <Badge>SOC · {socTopics.length || 18} topic walkthroughs</Badge>
+              <h1 className="mt-2 text-2xl font-semibold text-white">Learn with images</h1>
+              <p className="mt-1 max-w-4xl text-[14px] leading-6 text-[#e8f0f7]">Choose a difficult SOC task to see the real Security Onion screen, what to inspect, and what to write down only when the exercise or response process requires it.</p>
+            </div>
           </div>
-          <div className="flex flex-col justify-center gap-2 border-t border-line bg-ink/35 p-5 md:border-t-0 md:border-l">
-            {['Review the alert', 'Guided Analysis (optional)', 'Search and compare in Hunt', 'Inspect PCAP if needed', 'Document in Cases if required'].map((item, index) => (
-              <div key={item} className="flex items-center gap-2.5 text-[13px] text-muted"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-action/15 text-[11px] font-semibold text-action">{index + 1}</span>{item}</div>
-            ))}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[huntingTopic, ...SOC_VISUAL_LESSONS.map((lesson) => topicById(lesson.topicId)).filter((topic): topic is Topic => !!topic)]
+              .filter((topic) => !socTopics.length || socTopics.some((candidate) => candidate.id === topic.id))
+              .map((topic) => {
+                const firstStep = topic.id === 'soc-hunting' ? huntingSteps[0] : SOC_VISUAL_LESSONS.find((lesson) => lesson.topicId === topic.id)?.steps[0];
+                if (!firstStep) return null;
+                const selected = selectedId === topic.id;
+                return (
+                <button key={topic.id} onClick={() => onTopic(topic.id)} className={`overflow-hidden rounded-xl border bg-pane text-left transition hover:border-action hover:bg-pane-2 ${selected ? 'border-action ring-1 ring-action/40' : 'border-line-strong'}`} data-testid={`open-soc-visual-${topic.id}`}>
+                    <div className="relative aspect-video bg-[#071421]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={firstStep.image} alt={`${topic.title} lesson screenshot preview`} loading="lazy" decoding="async" className="block size-full object-contain" />
+                      <span className="absolute left-2 top-2 rounded border border-[#49c9ff] bg-[#071421]/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#dff7ff]">Security Onion · real UI</span>
+                    </div>
+                    <span className="block space-y-1 p-4">
+                      <span className="block text-[16px] font-semibold text-white">{topic.title}</span>
+                      <span className="block text-[12px] text-[#b8cce0]">{topic.unit} · {topic.id === 'soc-hunting' ? huntingSteps.length : SOC_VISUAL_LESSONS.find((lesson) => lesson.topicId === topic.id)?.steps.length} guided steps</span>
+                      <span className="block text-[13px] leading-5 text-[#e8f0f7]">{topic.simple}</span>
+                    </span>
+                  </button>
+                );
+              })}
           </div>
-        </article>
+        </section>
       ) : (
         <div className="rounded-lg border border-line bg-pane p-4 text-[13px] text-muted" data-testid="visuals-topic-empty">
-          {scope ? 'This certification does not have a visual walkthrough yet. Hunting is the first SOC walkthrough.' : 'Choose the SOC dashboard to open the Hunting visual walkthrough.'}
+          {scope ? 'This certification does not include SOC image lessons.' : 'Choose the SOC dashboard to open the SOC image lessons.'}
         </div>
       )}
     </div>
