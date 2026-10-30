@@ -77,7 +77,7 @@ function CableLibrary() {
       {hover && typeof document !== 'undefined' && createPortal(
         <div className="pointer-events-none fixed z-[2100] w-56 rounded border border-line-strong bg-pane p-2 text-left text-[10px] shadow-xl" style={{ left: Math.min(hover.rect.right + 8, window.innerWidth - 240), top: Math.min(hover.rect.top, window.innerHeight - 190) }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="mb-1 flex h-20 w-full items-center justify-center overflow-hidden rounded bg-pane-2"><img src={CABLE_ASSET[hover.info.type] ?? '/lab/generated/cables/cat6-ethernet-blue.png'} alt="" className="h-full w-full object-contain" /></div>
+          <div className="mb-1 flex h-20 w-full items-center justify-center overflow-hidden rounded bg-pane-2"><img src={CABLE_ASSET[hover.info.type] ?? '/lab/generated/cables/cat6-ethernet-blue.webp'} alt="" className="h-full w-full object-contain" loading="lazy" decoding="async" /></div>
           <b className="block text-[11px]">{hover.info.name}</b>
           <span className="mt-1 block text-muted">{hover.info.use}</span>
           <span className="mt-1 block font-mono text-faint">{hover.info.connector} · {hover.info.limit}</span>

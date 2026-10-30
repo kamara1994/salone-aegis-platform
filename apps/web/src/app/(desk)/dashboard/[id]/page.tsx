@@ -1,22 +1,11 @@
 'use client';
 
 import { Award, BookOpenText, BrainCircuit, Calculator, ChevronDown, Compass, History, Images, Joystick, Layers, ListChecks, MessagesSquare, MousePointerClick, PanelLeftClose, PanelLeftOpen, Route, ScrollText, Settings2, Siren, Tags, Timer, TrendingUp, Wrench, type LucideIcon } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import LabPage from '@/app/(desk)/lab/page';
-import SettingsPage from '@/app/(desk)/settings/page';
-import SkillsPage from '@/app/(desk)/skills/page';
 import { CertStrip } from '@/components/cert/CertStrip';
 import { dashAccent, sectionOf, SIDE_ITEMS, useDashItem, type DashSection } from '@/components/cert/DashboardSide';
-import { GamesView } from '@/components/games/GamesView';
-import { Flashcards, TimedExam } from '@/components/learn/Exams';
-import { LessonLibrary, LessonReader } from '@/components/learn/Lessons';
-import { Interview, LabDrills, Practice, Subnetting } from '@/components/learn/Practice';
-import { ScenarioQuestions } from '@/components/learn/ScenarioQuestions';
-import { TopicPlayground } from '@/components/learn/Topics';
-import { TracksView } from '@/components/learn/Tracks';
-import { VisualsView } from '@/components/learn/Visuals';
-import { ScenarioLibrary } from '@/components/scenarios/ScenarioLibrary';
 import { cx, EmptyState } from '@/components/ui';
 import { ToolDialog, TOOLS, toolsFor, type ToolId } from '@/components/learn/StudyTools';
 import { allGames } from '@/content';
@@ -25,6 +14,27 @@ import type { Track } from '@/learn/api';
 import type { TeachLevel, Topic } from '@/content/topics';
 import { useUi } from '@/state/ui';
 import { setTeachingLevel, useLearningPreferences } from '@/state/learning';
+
+// Keep the dashboard's first screen light. Large lab, learning, and scenario tools are loaded
+// only when the learner opens that section, then remain cached by the browser.
+const SectionLoading = () => <div className="grid min-h-32 place-items-center text-[13px] text-muted" role="status">Loading section…</div>;
+const LabPage = dynamic(() => import('@/app/(desk)/lab/page'), { loading: SectionLoading });
+const SettingsPage = dynamic(() => import('@/app/(desk)/settings/page'), { loading: SectionLoading });
+const SkillsPage = dynamic(() => import('@/app/(desk)/skills/page'), { loading: SectionLoading });
+const GamesView = dynamic(() => import('@/components/games/GamesView').then((module) => module.GamesView), { loading: SectionLoading });
+const Flashcards = dynamic(() => import('@/components/learn/Exams').then((module) => module.Flashcards), { loading: SectionLoading });
+const TimedExam = dynamic(() => import('@/components/learn/Exams').then((module) => module.TimedExam), { loading: SectionLoading });
+const LessonLibrary = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonLibrary), { loading: SectionLoading });
+const LessonReader = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonReader), { loading: SectionLoading });
+const Interview = dynamic(() => import('@/components/learn/Practice').then((module) => module.Interview), { loading: SectionLoading });
+const LabDrills = dynamic(() => import('@/components/learn/Practice').then((module) => module.LabDrills), { loading: SectionLoading });
+const Practice = dynamic(() => import('@/components/learn/Practice').then((module) => module.Practice), { loading: SectionLoading });
+const Subnetting = dynamic(() => import('@/components/learn/Practice').then((module) => module.Subnetting), { loading: SectionLoading });
+const ScenarioQuestions = dynamic(() => import('@/components/learn/ScenarioQuestions').then((module) => module.ScenarioQuestions), { loading: SectionLoading });
+const TopicPlayground = dynamic(() => import('@/components/learn/Topics').then((module) => module.TopicPlayground), { loading: SectionLoading });
+const TracksView = dynamic(() => import('@/components/learn/Tracks').then((module) => module.TracksView), { loading: SectionLoading });
+const VisualsView = dynamic(() => import('@/components/learn/Visuals').then((module) => module.VisualsView), { loading: SectionLoading });
+const ScenarioLibrary = dynamic(() => import('@/components/scenarios/ScenarioLibrary').then((module) => module.ScenarioLibrary), { loading: SectionLoading });
 
 type Part = { key: string; label: string; hint?: string; icon: LucideIcon; hue: string };
 

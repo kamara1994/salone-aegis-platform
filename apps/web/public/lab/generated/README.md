@@ -1,6 +1,6 @@
 # Individual lab visual assets
 
-Each image in this directory is a separate asset for the lab designer. Device, cable, and port files are intentionally kept independent so the canvas can attach the correct visual to one object at a time and scale it during hover/zoom.
+Each image in this directory is a separate asset for the lab designer. Device, cable, and port files are intentionally kept independent so the canvas can attach the correct visual to one object at a time and scale it during hover/zoom. Images use lossless WebP to reduce download and storage size without changing visible pixels.
 
 Labels, arrows, link lights, port state, VLAN, speed, duplex, PoE, and fault indicators should be rendered as interactive overlays by the lab UI. This keeps them synchronized with the simulated state instead of baking stale values into an image.
 

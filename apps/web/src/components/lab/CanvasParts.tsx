@@ -54,22 +54,22 @@ export function primaryVlan(d: Device) {
 
 /** High-detail, model-specific visuals used by the hover preview. */
 const REAL_ASSET: Record<string, string> = {
-  isr4331: '/lab/generated/labeled/cisco-isr-4331-annotated.png',
-  isr1941: '/lab/generated/labeled/cisco-1941-annotated.png',
-  c2960x24: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
-  c2960x24ps: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.png',
-  'c9300-24t': '/lab/generated/labeled/cisco-catalyst-9300-annotated.png',
-  dec2750: '/lab/generated/labeled/opnsense-dec2750-annotated.png',
-  r650: '/lab/generated/labeled/dell-poweredge-r650-annotated.png',
-  'proxmox-vm': '/lab/generated/labeled/proxmox-vm-annotated.png',
-  'aws-vpc': '/lab/generated/labeled/aws-vpc-annotated.png',
-  internet: '/lab/generated/labeled/internet-wan-annotated.png',
-  optiplex: '/lab/generated/labeled/dell-optiplex-7010-annotated.png',
-  thinkpad: '/lab/generated/labeled/thinkpad-t14-annotated.png',
-  'legacy-pc': '/lab/generated/labeled/legacy-pc-annotated.png',
-  c9120: '/lab/generated/labeled/catalyst-9120axi-annotated.png',
-  'axis-cam': '/lab/generated/labeled/axis-m3106-annotated.png',
-  'iot-sensor': '/lab/generated/labeled/environmental-sensor-annotated.png',
+  isr4331: '/lab/generated/labeled/cisco-isr-4331-annotated.webp',
+  isr1941: '/lab/generated/labeled/cisco-1941-annotated.webp',
+  c2960x24: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.webp',
+  c2960x24ps: '/lab/generated/labeled/cisco-catalyst-2960x-annotated.webp',
+  'c9300-24t': '/lab/generated/labeled/cisco-catalyst-9300-annotated.webp',
+  dec2750: '/lab/generated/labeled/opnsense-dec2750-annotated.webp',
+  r650: '/lab/generated/labeled/dell-poweredge-r650-annotated.webp',
+  'proxmox-vm': '/lab/generated/labeled/proxmox-vm-annotated.webp',
+  'aws-vpc': '/lab/generated/labeled/aws-vpc-annotated.webp',
+  internet: '/lab/generated/labeled/internet-wan-annotated.webp',
+  optiplex: '/lab/generated/labeled/dell-optiplex-7010-annotated.webp',
+  thinkpad: '/lab/generated/labeled/thinkpad-t14-annotated.webp',
+  'legacy-pc': '/lab/generated/labeled/legacy-pc-annotated.webp',
+  c9120: '/lab/generated/labeled/catalyst-9120axi-annotated.webp',
+  'axis-cam': '/lab/generated/labeled/axis-m3106-annotated.webp',
+  'iot-sensor': '/lab/generated/labeled/environmental-sensor-annotated.webp',
 };
 
 // Keep device previews singleton while the pointer crosses canvas nodes.
@@ -222,16 +222,16 @@ export const CABLE_STYLE = STYLE;
 
 const LIGHT: Record<CableStatus['state'], string> = { up: '#2fb36a', degraded: '#e5a23a', down: '#e5484d', disabled: '#6b7c8f' };
 export const CABLE_ASSET: Partial<Record<Cable['type'] | 'auto', string>> = {
-  auto: '/lab/generated/cables/cat6-ethernet-blue.png',
-  straight: '/lab/generated/cables/cat6-ethernet-blue.png',
-  crossover: '/lab/generated/cables/ethernet-crossover-orange.png',
-  access: '/lab/generated/cables/ethernet-access-green.png',
-  trunk: '/lab/generated/cables/ethernet-trunk-purple.png',
-  fiber: '/lab/generated/cables/fiber-lc-aqua.png',
-  console: '/lab/generated/cables/console-rollover-rj45-db9.png',
-  serial: '/lab/generated/cables/serial-dce-dte-red.png',
-  wan: '/lab/generated/cables/wan-circuit-black.png',
-  virtual: '/lab/generated/cables/virtual-wireless-blue.png',
+  auto: '/lab/generated/cables/cat6-ethernet-blue.webp',
+  straight: '/lab/generated/cables/cat6-ethernet-blue.webp',
+  crossover: '/lab/generated/cables/ethernet-crossover-orange.webp',
+  access: '/lab/generated/cables/ethernet-access-green.webp',
+  trunk: '/lab/generated/cables/ethernet-trunk-purple.webp',
+  fiber: '/lab/generated/cables/fiber-lc-aqua.webp',
+  console: '/lab/generated/cables/console-rollover-rj45-db9.webp',
+  serial: '/lab/generated/cables/serial-dce-dte-red.webp',
+  wan: '/lab/generated/cables/wan-circuit-black.webp',
+  virtual: '/lab/generated/cables/virtual-wireless-blue.webp',
 };
 
 function center(n: ReturnType<typeof useInternalNode>) {

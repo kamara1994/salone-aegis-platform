@@ -35,27 +35,27 @@ export function portSummary(m: DeviceModel): string {
 const LAB_ASSET_ROOT = '/lab/generated/labeled/trimmed';
 const asset = (name: string) => `${LAB_ASSET_ROOT}/${name}`;
 const LAB_ASSET: Record<string, string> = {
-  isr4331: asset('cisco-isr-4331-annotated.png'),
-  isr1941: asset('cisco-1941-annotated.png'),
-  c2960x24: asset('cisco-catalyst-2960x-annotated.png'),
-  c2960x24ps: asset('cisco-catalyst-2960x-annotated.png'),
-  'c9300-24t': asset('cisco-catalyst-9300-annotated.png'),
-  dec2750: asset('opnsense-dec2750-annotated.png'),
-  r650: asset('dell-poweredge-r650-annotated.png'),
-  'proxmox-vm': asset('proxmox-vm-annotated.png'),
-  optiplex: asset('dell-optiplex-7010-annotated.png'),
-  'legacy-pc': asset('legacy-pc-annotated.png'),
-  thinkpad: asset('thinkpad-t14-annotated.png'),
-  c9120: asset('catalyst-9120axi-annotated.png'),
-  'aws-vpc': asset('aws-vpc-annotated.png'),
-  internet: asset('internet-wan-annotated.png'),
-  'axis-cam': asset('axis-m3106-annotated.png'),
-  'iot-sensor': asset('environmental-sensor-annotated.png'),
-  c9800l: asset('cisco-catalyst-9800l-annotated.png'),
-  'services-server': asset('ubuntu-services-server-annotated.png'),
-  'kali-workstation': asset('kali-workstation-annotated.png'),
-  'ip-phone-8845': asset('ip-phone-8845-annotated.png'),
-  'network-printer': asset('network-printer-annotated.png'),
+  isr4331: asset('cisco-isr-4331-annotated.webp'),
+  isr1941: asset('cisco-1941-annotated.webp'),
+  c2960x24: asset('cisco-catalyst-2960x-annotated.webp'),
+  c2960x24ps: asset('cisco-catalyst-2960x-annotated.webp'),
+  'c9300-24t': asset('cisco-catalyst-9300-annotated.webp'),
+  dec2750: asset('opnsense-dec2750-annotated.webp'),
+  r650: asset('dell-poweredge-r650-annotated.webp'),
+  'proxmox-vm': asset('proxmox-vm-annotated.webp'),
+  optiplex: asset('dell-optiplex-7010-annotated.webp'),
+  'legacy-pc': asset('legacy-pc-annotated.webp'),
+  thinkpad: asset('thinkpad-t14-annotated.webp'),
+  c9120: asset('catalyst-9120axi-annotated.webp'),
+  'aws-vpc': asset('aws-vpc-annotated.webp'),
+  internet: asset('internet-wan-annotated.webp'),
+  'axis-cam': asset('axis-m3106-annotated.webp'),
+  'iot-sensor': asset('environmental-sensor-annotated.webp'),
+  c9800l: asset('cisco-catalyst-9800l-annotated.webp'),
+  'services-server': asset('ubuntu-services-server-annotated.webp'),
+  'kali-workstation': asset('kali-workstation-annotated.webp'),
+  'ip-phone-8845': asset('ip-phone-8845-annotated.webp'),
+  'network-printer': asset('network-printer-annotated.webp'),
 };
 
 export function DevicePicture({ model, className }: { model: DeviceModel; className?: string }) {
@@ -72,7 +72,7 @@ export function DevicePicture({ model, className }: { model: DeviceModel; classN
     );
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={stage === 0 ? asset : model.image} onError={() => setStage((x) => (x === 0 && asset !== model.image ? 1 : 2))} alt={`${model.vendor} ${model.name}`} className={className} data-photo={stage === 0 ? 'generated-asset' : 'illustration'} />
+    <img src={stage === 0 ? asset : model.image} onError={() => setStage((x) => (x === 0 && asset !== model.image ? 1 : 2))} alt={`${model.vendor} ${model.name}`} className={className} loading="lazy" decoding="async" data-photo={stage === 0 ? 'generated-asset' : 'illustration'} />
   );
 }
 
