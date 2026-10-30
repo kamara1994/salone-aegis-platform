@@ -1,21 +1,16 @@
 'use client';
 
-import { LabPicker } from '@/components/lab/LabPicker';
+import dynamic from 'next/dynamic';
 import { loadPacks } from '@/content/progress';
 import { X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
 import type { Topology } from '@/api/types';
 import { useRuntime } from '@/components/providers';
-import { CableInspector, DeviceInspector, VmDialog } from '@/components/lab/Inspector';
 import { LabCanvas, LabFlowProvider, type CanvasActions } from '@/components/lab/LabCanvas';
-import { DiffPanel, LayoutsDialog, ReplaceCableDialog, ShortcutsDialog, StructureDialog } from '@/components/lab/LabDialogs';
 import { Palette } from '@/components/lab/Palette';
-import { NewCableDialog } from '@/components/lab/Pickers';
-import { SimPanel } from '@/components/lab/SimPanel';
 import { Toolbar } from '@/components/lab/Toolbar';
-import { ToolsPanel, type ToolKey } from '@/components/lab/ToolsPanel';
-import { startWorkbookById } from '@/components/lab/WorkbooksTab';
+import type { ToolKey } from '@/components/lab/ToolsPanel';
 import { Button, cx, ErrorState, IconButton, Loading, relTime } from '@/components/ui';
 import { prepareChallenge } from '@/lab/challenges';
 import { buildDoc } from '@/lab/inventory';
@@ -25,6 +20,23 @@ import { deviceById } from '@/lab/validate';
 import { initialLab, type LabState as MockLab } from '@/mock/lab';
 
 const BASELINE_KEY = 'aegis.lab.baseline.v1:live-topology';
+const PanelLoading = () => <div className="grid min-h-24 place-items-center text-[12px] text-muted" role="status">Loading…</div>;
+const CableInspector = dynamic(() => import('@/components/lab/Inspector').then((module) => module.CableInspector), { loading: PanelLoading });
+const DeviceInspector = dynamic(() => import('@/components/lab/Inspector').then((module) => module.DeviceInspector), { loading: PanelLoading });
+const VmDialog = dynamic(() => import('@/components/lab/Inspector').then((module) => module.VmDialog), { loading: PanelLoading });
+const DiffPanel = dynamic(() => import('@/components/lab/LabDialogs').then((module) => module.DiffPanel), { loading: PanelLoading });
+const LayoutsDialog = dynamic(() => import('@/components/lab/LabDialogs').then((module) => module.LayoutsDialog), { loading: PanelLoading });
+const ReplaceCableDialog = dynamic(() => import('@/components/lab/LabDialogs').then((module) => module.ReplaceCableDialog), { loading: PanelLoading });
+const ShortcutsDialog = dynamic(() => import('@/components/lab/LabDialogs').then((module) => module.ShortcutsDialog), { loading: PanelLoading });
+const StructureDialog = dynamic(() => import('@/components/lab/LabDialogs').then((module) => module.StructureDialog), { loading: PanelLoading });
+const NewCableDialog = dynamic(() => import('@/components/lab/Pickers').then((module) => module.NewCableDialog), { loading: PanelLoading });
+const SimPanel = dynamic(() => import('@/components/lab/SimPanel').then((module) => module.SimPanel), { loading: PanelLoading });
+const ToolsPanel = dynamic(() => import('@/components/lab/ToolsPanel').then((module) => module.ToolsPanel), { loading: PanelLoading });
+const LabPicker = dynamic(() => import('@/components/lab/LabPicker').then((module) => module.LabPicker), { loading: PanelLoading });
+
+function loadWorkbook(id: string) {
+  void import('@/components/lab/WorkbooksTab').then(({ startWorkbookById }) => startWorkbookById(id));
+}
 
 function liveBaseline(fresh: LabDoc): LabDoc {
   try {
@@ -128,7 +140,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
     const wb = params.get('workbook');
     if (wb) {
       window.history.replaceState(null, '', window.location.pathname);
-      if (useLab.getState().doc?.workbook?.id !== wb) startWorkbookById(wb);
+      if (useLab.getState().doc?.workbook?.id !== wb) loadWorkbook(wb);
       setTools('labs');
       return;
     }
@@ -271,15 +283,15 @@ function Designer({ lab }: { lab: MockLab | null }) {
           <ToolsPanel tab={tools} setTab={setTools} onClose={() => setTools(null)} />
         </div>
       )}
-      <LayoutsDialog open={layouts} onClose={() => setLayouts(false)} />
-      <StructureDialog open={structure} onClose={() => setStructure(false)} />
-      <ShortcutsDialog open={shortcuts} onClose={() => setShortcuts(false)} />
-      <LabPicker
-        open={labsOpen}
+      {layouts && <LayoutsDialog open onClose={() => setLayouts(false)} />}
+      {structure && <StructureDialog open onClose={() => setStructure(false)} />}
+      {shortcuts && <ShortcutsDialog open onClose={() => setShortcuts(false)} />}
+      {labsOpen && <LabPicker
+        open
         onClose={() => setLabsOpen(false)}
         onStart={(id) => {
           setLabsOpen(false);
-          startWorkbookById(id);
+          loadWorkbook(id);
           setTools('labs');
           setSimOpenRaw(false);
         }}
@@ -294,10 +306,10 @@ function Designer({ lab }: { lab: MockLab | null }) {
           else cur.setError({ title: 'This ticket needs a design with a PC on a switch. Reset to the built-in lab and try again.', issues: [], tone: 'error' });
           setTools('challenge');
         }}
-      />
-      <NewCableDialog open={!!newCable} onClose={() => setNewCable(null)} initial={newCable ?? undefined} />
-      <ReplaceCableDialog cableId={replace} onClose={() => setReplace(null)} />
-      {vmDevice && <VmDialog device={vmDevice} open={!!vmDevice} onClose={() => setVmFor(null)} />}
+      />}
+      {newCable && <NewCableDialog open onClose={() => setNewCable(null)} initial={newCable} />}
+      {replace && <ReplaceCableDialog cableId={replace} onClose={() => setReplace(null)} />}
+      {vmDevice && <VmDialog device={vmDevice} open onClose={() => setVmFor(null)} />}
       {!rt.mock && <span className="sr-only">Live mode</span>}
     </div>
   );
