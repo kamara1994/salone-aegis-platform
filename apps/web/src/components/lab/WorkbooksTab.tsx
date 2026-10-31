@@ -127,6 +127,7 @@ function Active({ wb, doc }: { wb: Workbook; doc: LabDoc }) {
 }
 
 export function WorkbooksTab({ doc }: { doc: LabDoc }) {
+  if (doc.workbook?.id.startsWith('arena:')) return <p className="p-2 text-[12.5px] text-muted" data-testid="workbook-arena-note">A Lab Arena activity is running. Its tasks, timer and results are in the Lab Arena panel on the right.</p>;
   const wb = doc.workbook ? WORKBOOKS.find((w) => w.id === doc.workbook!.id) : undefined;
   return wb ? <Active wb={wb} doc={doc} /> : <Catalog />;
 }

@@ -261,6 +261,7 @@ function vlanAccepts(port: Iface, tag: number | undefined): { vlan?: number; dro
     if (allowed !== 'all' && !allowed.includes(v)) return { drop: `VLAN ${v} is not in the allowed list on trunk ${port.name}` };
     return { vlan: v };
   }
+  if (tag !== undefined && port.voiceVlan === tag) return { vlan: tag };
   if (tag !== undefined && tag !== (port.vlan ?? 1)) return { drop: `a frame tagged for VLAN ${tag} arrived on access port ${port.name} (VLAN ${port.vlan ?? 1}) and was discarded` };
   return { vlan: port.vlan ?? 1 };
 }
@@ -299,12 +300,12 @@ export function l2Walk(doc: LabDoc, from: Device, egress: Iface, nextHop: string
         continue;
       }
       const mode = isAp ? 'access' : out.mode ?? 'access';
-      if (mode === 'access' && !isAp && (out.vlan ?? 1) !== vlan) continue;
+      if (mode === 'access' && !isAp && (out.vlan ?? 1) !== vlan && out.voiceVlan !== vlan) continue;
       if (mode === 'trunk') {
         const allowed = out.allowedVlans ?? 'all';
         if (allowed !== 'all' && !allowed.includes(vlan)) continue;
       }
-      const tag = mode === 'trunk' && vlan !== (out.nativeVlan ?? 1) ? vlan : undefined;
+      const tag = (mode === 'trunk' && vlan !== (out.nativeVlan ?? 1)) || (mode === 'access' && out.voiceVlan === vlan && (out.vlan ?? 1) !== vlan) ? vlan : undefined;
       for (const c of cables) {
         if (except && out.type === 'wireless' && cable && c.id === cable.id) continue;
         const step: L2Step | undefined = cable && except ? { cable, device: sw, inPort: except, outPort: out.name, vlan, tagged: tag !== undefined } : undefined;
@@ -326,7 +327,15 @@ export function l2Walk(doc: LabDoc, from: Device, egress: Iface, nextHop: string
     if (!queue.length) blockers.push({ reason: `no cable on any member of ${from.name} ${egress.name}`, fix: 'Connect a bridge member port.' });
   } else {
     const start = physical(from, egress);
-    queue.push({ device: from, port: start.port, tag: start.tag, trail: [] });
+    let tag = start.tag;
+    // An IP phone learns the voice VLAN from the switch (CDP / LLDP-MED) and tags its own traffic with it.
+    if (tag === undefined && from.model === 'ip-phone-8845') {
+      const c = cableOnPort(doc, from.id, start.port.name);
+      const far = c ? (c.a.device === from.id ? c.b : c.a) : undefined;
+      const sp = far ? doc.devices.find((x) => x.id === far.device)?.interfaces.find((x) => x.name === far.port) : undefined;
+      if (sp?.voiceVlan && (sp.mode ?? 'access') === 'access') tag = sp.voiceVlan;
+    }
+    queue.push({ device: from, port: start.port, tag, trail: [] });
   }
 
   while (queue.length) {

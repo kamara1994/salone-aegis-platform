@@ -45,7 +45,7 @@ export interface Workbook {
 
 // ---------------- topology builder ----------------
 
-function builder() {
+export function builder() {
   const doc: LabDoc = { version: 1, devices: [], cables: [], sites: [], racks: [], vlans: [], subnets: [], groups: [], annotations: [], goals: [], source: 'blank', generatedAt: new Date().toISOString() };
   const api = {
     doc,

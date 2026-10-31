@@ -21,6 +21,7 @@ function iosIface(i: Iface, d: Device): string[] {
     } else {
       out.push(' switchport mode access');
       if ((i.vlan ?? 1) !== 1) out.push(` switchport access vlan ${i.vlan}`);
+      if (i.voiceVlan) out.push(` switchport voice vlan ${i.voiceVlan}`);
     }
     const ps = i.portSecurity;
     if (ps?.enabled) {

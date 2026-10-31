@@ -1,5 +1,6 @@
 'use client';
 
+import { useReactFlow } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { loadPacks } from '@/content/progress';
 import { X } from 'lucide-react';
@@ -12,6 +13,8 @@ import { Palette } from '@/components/lab/Palette';
 import { Toolbar } from '@/components/lab/Toolbar';
 import type { ToolKey } from '@/components/lab/ToolsPanel';
 import { Button, cx, ErrorState, IconButton, Loading, relTime } from '@/components/ui';
+import { ARENA_PREFIX } from '@/lab/arena';
+import { startArena, useArenaUi } from '@/lab/arena/session';
 import { prepareChallenge } from '@/lab/challenges';
 import { buildDoc } from '@/lab/inventory';
 import { setFresh, useLab } from '@/lab/store';
@@ -32,6 +35,8 @@ const StructureDialog = dynamic(() => import('@/components/lab/LabDialogs').then
 const NewCableDialog = dynamic(() => import('@/components/lab/Pickers').then((module) => module.NewCableDialog), { loading: PanelLoading });
 const SimPanel = dynamic(() => import('@/components/lab/SimPanel').then((module) => module.SimPanel), { loading: PanelLoading });
 const ToolsPanel = dynamic(() => import('@/components/lab/ToolsPanel').then((module) => module.ToolsPanel), { loading: PanelLoading });
+const ArenaPanel = dynamic(() => import('@/components/arena/ArenaPanel').then((module) => module.ArenaPanel), { loading: PanelLoading });
+const TerminalDock = dynamic(() => import('@/components/arena/TerminalDock').then((module) => module.TerminalDock), { ssr: false });
 const LabPicker = dynamic(() => import('@/components/lab/LabPicker').then((module) => module.LabPicker), { loading: PanelLoading });
 
 function loadWorkbook(id: string) {
@@ -92,6 +97,7 @@ function Banner({ tone = 'info', children, onClose }: { tone?: 'info' | 'warn'; 
 
 function Designer({ lab }: { lab: MockLab | null }) {
   const rt = useRuntime();
+  const rf = useReactFlow();
   const s = useLab();
   const doc = s.doc!;
   const [palette, setPalette] = useState(true);
@@ -137,6 +143,12 @@ function Designer({ lab }: { lab: MockLab | null }) {
   // /lab?workbook=<id> and /lab?challenge=<id> (from the Learn page) start a guided lab or a drill.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const arena = params.get('arena');
+    if (arena) {
+      window.history.replaceState(null, '', window.location.pathname);
+      if (useLab.getState().doc?.workbook?.id !== ARENA_PREFIX + arena) startArena(arena);
+      return;
+    }
     const wb = params.get('workbook');
     if (wb) {
       window.history.replaceState(null, '', window.location.pathname);
@@ -180,6 +192,10 @@ function Designer({ lab }: { lab: MockLab | null }) {
 
   const actions: CanvasActions = {
     openTerminal: (id) => {
+      if (arenaId) {
+        useArenaUi.getState().openTerm(id);
+        return;
+      }
       s.select({ devices: [id], cables: [] });
       s.openInspector('terminal');
     },
@@ -192,6 +208,14 @@ function Designer({ lab }: { lab: MockLab | null }) {
     newCable: (a) => setNewCable({ a }),
   };
 
+  const arenaId = doc.workbook?.id.startsWith(ARENA_PREFIX) ? doc.workbook.id.slice(ARENA_PREFIX.length) : null;
+  // Every Arena lab (and every restart) opens with the whole topology in view.
+  const arenaStart = doc.workbook?.startedAt;
+  useEffect(() => {
+    if (!arenaId) return;
+    const t = [150, 700].map((ms) => setTimeout(() => rf.fitView({ padding: 0.12, duration: 250 }), ms));
+    return () => t.forEach(clearTimeout);
+  }, [arenaId, arenaStart, rf]);
   const selDevice = s.selection.devices.length === 1 ? deviceById(doc, s.selection.devices[0]) : undefined;
   const selCable = s.selection.cables.length === 1 ? doc.cables.find((c) => c.id === s.selection.cables[0]) : undefined;
   const showInspector = s.inspectorOpen && (selDevice || selCable);
@@ -237,6 +261,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
         )}
         <main className="relative min-w-0 flex-1" aria-label="Canvas">
           <LabCanvas actions={actions} />
+          {arenaId && <TerminalDock />}
         </main>
         {s.compare && (
           <aside className="w-[300px] shrink-0 border-l border-line bg-pane max-xl:absolute max-xl:inset-y-0 max-xl:right-0 max-xl:z-20 max-xl:shadow-xl">
@@ -248,6 +273,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
             />
           </aside>
         )}
+        {arenaId && <ArenaPanel key={arenaId} labId={arenaId} />}
         {showInspector && (
           <aside className="flex w-[430px] shrink-0 flex-col border-l border-line bg-pane max-xl:absolute max-xl:inset-y-0 max-xl:right-0 max-xl:z-30 max-xl:w-[min(430px,100%)] max-xl:shadow-xl" aria-label="Inspector" data-testid="inspector">
             <header className="flex items-center justify-between border-b border-line px-3 py-2">

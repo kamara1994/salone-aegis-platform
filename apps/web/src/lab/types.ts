@@ -23,6 +23,8 @@ export interface Iface {
   /** Switch ports */
   mode?: 'access' | 'trunk' | 'routed';
   vlan?: number; // access VLAN or the VLAN a host sits in
+  /** Voice VLAN on an access port: an attached IP phone tags its traffic with it (learned by CDP/LLDP-MED) */
+  voiceVlan?: number;
   allowedVlans?: number[] | 'all';
   nativeVlan?: number;
   /** Layer 3 */

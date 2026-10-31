@@ -35,6 +35,7 @@ const AITutor = dynamic(() => import('@/components/learn/AITutor').then((module)
 const TopicPlayground = dynamic(() => import('@/components/learn/Topics').then((module) => module.TopicPlayground), { loading: SectionLoading });
 const TracksView = dynamic(() => import('@/components/learn/Tracks').then((module) => module.TracksView), { loading: SectionLoading });
 const VisualsView = dynamic(() => import('@/components/learn/Visuals').then((module) => module.VisualsView), { loading: SectionLoading });
+const ArenaHome = dynamic(() => import('@/components/arena/ArenaHome').then((module) => module.ArenaHome), { loading: SectionLoading });
 const ScenarioLibrary = dynamic(() => import('@/components/scenarios/ScenarioLibrary').then((module) => module.ScenarioLibrary), { loading: SectionLoading });
 
 type Part = { key: string; label: string; hint?: string; icon: LucideIcon; hue: string };
@@ -70,6 +71,7 @@ function partsFor(section: DashSection, focus: Cert): Part[] {
   if (section === 'learn') return LEARN_PARTS;
   if (section === 'scenario-lab')
     return [
+      { key: 'arena', label: 'Lab Arena', hint: 'Graded labs by CCNA topic', icon: Award, hue: HUE.test },
       { key: 'faults', label: 'Fault scenarios', hint: 'Inject a fault, fix it, debrief', icon: Siren, hue: HUE.real },
       { key: 'drills', label: 'Guided lab drills', hint: 'Workbooks and troubleshooting', icon: ListChecks, hue: HUE.path },
     ];
@@ -384,6 +386,7 @@ export default function DashboardPage() {
           )}
           {section === 'scenario-lab' && (
             <div data-testid="playground-scenario-lab">
+              {part === 'arena' && <ArenaHome embedded />}
               {part === 'faults' && <ScenarioLibrary key={dash.id} initialTags={SCENARIO_TAGS[dash.id]} />}
               {part === 'drills' && (
                 <div className="p-4">

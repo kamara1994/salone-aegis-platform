@@ -4,7 +4,7 @@
 import { modelOf } from './catalog';
 import { runningConfig } from './config';
 import { ciscoMac, ipToInt, isIp, maskToPrefix, prefixToMask } from './net';
-import { bpduGuardOn, macsBehind, portSecurityState } from './l2features';
+import { bpduGuardOn, dtpResult, macsBehind, portSecurityState } from './l2features';
 import { arpTable, cdpNeighbors, controlPlane, dhcpLease, macTable, poeUsage } from './protocols';
 import { aclEntryText, isRouter, l3Ifaces, ping, primaryIp, traceroute } from './simulate';
 import { useLab } from './store';
@@ -675,6 +675,18 @@ export class DesignCli {
         if (d.kind !== 'switch') return '% Command rejected: not a switch.';
         set(neg ? { mode: 'routed' } : { mode: 'access', vlan: i.vlan ?? 1, ip: undefined, prefix: undefined });
         if (neg && !d.ipRouting) out.push('% AEGIS: routed port configured; enable ip routing on the switch to route between it and the SVIs.');
+      } else if (has('switchport', 'voice', 'vlan')) {
+        if (d.kind !== 'switch') return '% Command rejected: not a switch port.';
+        if (neg) set({ voiceVlan: undefined });
+        else {
+          const v = Number(w[3]);
+          if (!Number.isInteger(v) || v < 1 || v > 4094) return '% Bad VLAN.';
+          if (!d.vlans[v]) {
+            st.setVlans(d.id, { ...d.vlans, [v]: `VLAN${String(v).padStart(4, '0')}` });
+            out.push(`% Voice VLAN does not exist. Creating vlan ${v}`);
+          }
+          set({ voiceVlan: v });
+        }
       } else if (has('switchport', 'access', 'vlan')) {
         const v = neg ? 1 : Number(w[3]);
         if (!Number.isInteger(v)) return '% Bad VLAN.';
@@ -917,6 +929,18 @@ export class DesignCli {
       });
       return `Port      Name               Status       Vlan       Duplex Speed  Type\r\n${rows.join('\r\n')}`;
     }
+    if (s('interfaces') && sub.length >= 3 && 'switchport'.startsWith(sub[sub.length - 1]) && sub[sub.length - 1].length >= 2) {
+      if (d.kind !== 'switch') return '% Not a switch.';
+      const i = resolveIface(d, sub.slice(1, -1).join(''));
+      if (typeof i === 'string') return `% Invalid interface ${i}`;
+      const c = cableOnPort(doc, d.id, i.name);
+      const peer = c ? deviceById(doc, c.a.device === d.id ? c.b.device : c.a.device) : undefined;
+      const pp = c && peer ? peer.interfaces.find((x) => x.name === (c.a.device === d.id ? c.b.port : c.a.port)) : undefined;
+      const oper = i.mode === 'routed' ? 'routed' : i.dtp ? dtpResult(i, peer, pp) : i.mode === 'trunk' ? 'trunk' : 'static access';
+      const admin = i.mode === 'routed' ? 'routed' : i.dtp ? `dynamic ${i.dtp}` : i.mode === 'trunk' ? 'trunk' : 'static access';
+      const vname = (v: number) => d.vlans[v] ?? 'Inactive';
+      return [`Name: ${i.name}`, `Switchport: ${i.mode === 'routed' ? 'Disabled' : 'Enabled'}`, `Administrative Mode: ${admin}`, `Operational Mode: ${oper === 'access' ? 'static access' : oper}${i.shutdown ? ' (down)' : ''}`, `Administrative Trunking Encapsulation: dot1q`, `Negotiation of Trunking: ${i.nonegotiate || (!i.dtp && i.mode !== 'trunk') ? 'Off' : 'On'}`, `Access Mode VLAN: ${i.vlan ?? 1} (${vname(i.vlan ?? 1)})`, `Trunking Native Mode VLAN: ${i.nativeVlan ?? 1} (${vname(i.nativeVlan ?? 1)})`, `Voice VLAN: ${i.voiceVlan ? `${i.voiceVlan} (${vname(i.voiceVlan)})` : 'none'}`, `Trunking VLANs Enabled: ${i.allowedVlans === undefined || i.allowedVlans === 'all' ? 'ALL' : i.allowedVlans.join(',') || 'NONE'}`, `Pruning VLANs Enabled: 2-1001`].join('\r\n');
+    }
     if (s('interfaces') && sub[1]) {
       const i = resolveIface(d, sub.slice(1).join(''));
       if (typeof i === 'string') return `% Invalid interface ${i}`;
@@ -933,7 +957,7 @@ export class DesignCli {
     }
     if (s('vlan')) {
       const rows = Object.entries(d.vlans).map(([id, name]) => {
-        const ports = d.interfaces.filter((i) => (i.mode ?? 'access') === 'access' && (i.vlan ?? 1) === Number(id) && !i.parent && i.type !== 'console' && !/^vlan/i.test(i.name)).map((i) => i.name);
+        const ports = d.interfaces.filter((i) => (i.mode ?? 'access') === 'access' && ((i.vlan ?? 1) === Number(id) || i.voiceVlan === Number(id)) && !i.parent && i.type !== 'console' && !/^vlan/i.test(i.name)).map((i) => i.name);
         return `${pad(id, 5)}${pad(name, 33)}active    ${ports.join(', ')}`;
       });
       return `VLAN Name                             Status    Ports\r\n---- -------------------------------- --------- -------------------------------\r\n${rows.join('\r\n')}`;
@@ -1041,9 +1065,9 @@ export class DesignCli {
 
   private help(): string {
     if (this.mode === 'user' || this.mode === 'priv')
-      return ['enable / disable / configure terminal / write memory', 'show running-config | startup-config | ip interface brief | interfaces status | interfaces <if>', 'show ip route | ip ospf neighbor | standby | ip nat translations | ip dhcp pool', 'show vlan | mac address-table | spanning-tree | etherchannel summary | cdp neighbors | arp | power inline', 'show interfaces trunk | interfaces status err-disabled | port-security [interface <if>] | vtp status | monitor', 'show ip dhcp snooping [binding] | ip arp inspection | access-lists | vrrp | glbp | ip eigrp neighbors | ip protocols', 'clear port-security sticky [interface <if>]', 'ping <ip|device> [repeat n]   traceroute <ip|device>'].join('\r\n');
+      return ['enable / disable / configure terminal / write memory', 'show running-config | startup-config | ip interface brief | interfaces status | interfaces <if>', 'show ip route | ip ospf neighbor | standby | ip nat translations | ip dhcp pool', 'show vlan | mac address-table | spanning-tree | etherchannel summary | cdp neighbors | arp | power inline', 'show interfaces trunk | interfaces <if> switchport | interfaces status err-disabled | port-security [interface <if>] | vtp status | monitor', 'show ip dhcp snooping [binding] | ip arp inspection | access-lists | vrrp | glbp | ip eigrp neighbors | ip protocols', 'clear port-security sticky [interface <if>]', 'ping <ip|device> [repeat n]   traceroute <ip|device>'].join('\r\n');
     if (this.mode === 'config') return ['hostname <name>   interface <if> | interface range <if - n>   vlan <id> (name <n>)', 'ip route <net> <mask> <next-hop>   ip default-gateway <ip>   router ospf <pid>', 'spanning-tree vlan 1 priority <n> | root primary   no spanning-tree vlan 1', 'ip nat inside source list 1 interface <if> overload   ip dhcp pool <name>', 'enable secret <pw>   banner motd #text#   crypto key generate rsa   line vty 0 15 (transport input ssh)', 'ip routing (layer 3 switch)   spanning-tree mode rapid-pvst   spanning-tree portfast default | portfast bpduguard default', 'vtp mode server|client|transparent   vtp domain <name>   vtp password <pw>', 'ip dhcp snooping   ip dhcp snooping vlan <list>   ip arp inspection vlan <list>', 'access-list <1-99> permit|deny <src>   access-list <100-199> permit|deny <proto> <src> <dst> [eq <port>]', 'ip access-list standard|extended <name>   ip nat inside source static <local> <global>   router eigrp <as>', 'monitor session <n> source|destination interface <if>'].join('\r\n');
-    if (this.mode === 'if') return ['ip address <ip> <mask> | ip address dhcp   [no] shutdown   description <text>', 'switchport mode access|trunk   switchport access vlan <n>   switchport trunk allowed vlan <list|add|remove>', 'switchport trunk native vlan <n>   speed <10|100|1000|auto>   duplex <full|half|auto>   mtu <bytes>', 'channel-group <n> mode active|passive|on|desirable|auto   spanning-tree portfast', 'standby <g> ip <vip> | priority <n> | preempt   ip nat inside|outside   ip helper-address <ip>', 'ip ospf <pid> area <a>   ip ospf cost|hello-interval|dead-interval <n>   encapsulation dot1Q <vlan>', 'switchport mode dynamic auto|desirable   switchport nonegotiate   [no] switchport (routed port)', 'switchport port-security [maximum <n> | violation shutdown|restrict|protect | mac-address sticky|<H.H.H>]', 'spanning-tree bpduguard enable   spanning-tree guard root   ip dhcp snooping trust   ip arp inspection trust', 'ip access-group <acl> in|out   vrrp|glbp <g> ip <vip> | priority <n> | preempt'].join('\r\n');
+    if (this.mode === 'if') return ['ip address <ip> <mask> | ip address dhcp   [no] shutdown   description <text>', 'switchport mode access|trunk   switchport access vlan <n>   switchport voice vlan <n>   switchport trunk allowed vlan <list|add|remove>', 'switchport trunk native vlan <n>   speed <10|100|1000|auto>   duplex <full|half|auto>   mtu <bytes>', 'channel-group <n> mode active|passive|on|desirable|auto   spanning-tree portfast', 'standby <g> ip <vip> | priority <n> | preempt   ip nat inside|outside   ip helper-address <ip>', 'ip ospf <pid> area <a>   ip ospf cost|hello-interval|dead-interval <n>   encapsulation dot1Q <vlan>', 'switchport mode dynamic auto|desirable   switchport nonegotiate   [no] switchport (routed port)', 'switchport port-security [maximum <n> | violation shutdown|restrict|protect | mac-address sticky|<H.H.H>]', 'spanning-tree bpduguard enable   spanning-tree guard root   ip dhcp snooping trust   ip arp inspection trust', 'ip access-group <acl> in|out   vrrp|glbp <g> ip <vip> | priority <n> | preempt'].join('\r\n');
     if (this.mode === 'router') return this.routerProto === 'eigrp' ? 'network <ip> [wildcard]   passive-interface <if>   no auto-summary   eigrp router-id <ip>' : 'network <ip> <wildcard> area <a>   router-id <ip>   passive-interface <if>   default-information originate';
     if (this.mode === 'acl') return '[seq] permit|deny ...   remark <text>   no <seq>   exit';
     if (this.mode === 'dhcp') return 'network <ip> <mask>   default-router <ip>   dns-server <ip>';
