@@ -8,6 +8,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
 import type { Topology } from '@/api/types';
 import { useRuntime } from '@/components/providers';
+import { certById, certTopics } from '@/content/certs';
+import { ALL_TOPICS, COURSES } from '@/content/topics';
 import { LabCanvas, LabFlowProvider, type CanvasActions } from '@/components/lab/LabCanvas';
 import { Palette } from '@/components/lab/Palette';
 import { Toolbar } from '@/components/lab/Toolbar';
@@ -22,6 +24,7 @@ import { setFresh, useLab } from '@/lab/store';
 import type { CableEnd, LabDoc } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
 import { initialLab, type LabState as MockLab } from '@/mock/lab';
+import { useUi } from '@/state/ui';
 
 const BASELINE_KEY = 'aegis.lab.baseline.v1:live-topology';
 const PanelLoading = () => <div className="grid min-h-24 place-items-center text-[12px] text-muted" role="status">Loading…</div>;
@@ -100,6 +103,18 @@ function Designer({ lab }: { lab: MockLab | null }) {
   const rt = useRuntime();
   const rf = useReactFlow();
   const s = useLab();
+  const certId = useUi((state) => state.certId);
+  const studyCert = certById(certId);
+  const studyTopics = useMemo(() => studyCert ? certTopics(studyCert) : ALL_TOPICS, [studyCert]);
+  const studyTopicGroups = useMemo(() => {
+    const groups = new Map<string, typeof studyTopics>();
+    for (const topic of studyTopics) {
+      const course = COURSES.find((item) => item.id === topic.course)?.title.replace(/ \(.*\)$/, '') ?? topic.course;
+      const group = `${course} · ${topic.unit}`;
+      groups.set(group, [...(groups.get(group) ?? []), topic]);
+    }
+    return [...groups.entries()];
+  }, [studyTopics]);
   const doc = s.doc!;
   const [palette, setPalette] = useState(true);
   const [layouts, setLayouts] = useState(false);
@@ -114,6 +129,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
   const [libraryFilter, setLibraryFilter] = useState<'all' | 'guided' | 'scenario' | 'assessment'>('all');
   const [libraryView, setLibraryView] = useState<'type' | 'topic'>('type');
   const [libraryTopic, setLibraryTopic] = useState<string | null>(null);
+  const [studyTopicId, setStudyTopicId] = useState('');
   const [libraryProgress, setLibraryProgress] = useState(false);
   const setSimOpen = (v: boolean) => {
     setSimOpenRaw(v);
@@ -238,7 +254,36 @@ function Designer({ lab }: { lab: MockLab | null }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="lab-designer">
-      <Toolbar onLabs={() => setLabsOpen(true)} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
+      <div className="flex flex-wrap items-end gap-2 border-b border-line bg-pane-2/70 px-3 py-2" data-testid="lab-study-path">
+        <label className="space-y-0.5">
+          <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted">Topic</span>
+          <select
+            className="h-8 min-w-[260px] max-w-[min(78vw,440px)] rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]"
+            value={studyTopicId}
+            aria-label="Choose a topic for a lab"
+            data-testid="lab-topic-picker"
+            onChange={(event) => {
+              const topicId = event.target.value;
+              setStudyTopicId(topicId);
+              if (!topicId) return;
+              setLibraryTopic(topicId);
+              setLibraryView('topic');
+              setLibraryFilter('all');
+              setLibraryProgress(false);
+              setLabsOpen(true);
+            }}
+          >
+            <option value="">Choose a topic from {studyCert?.short ?? 'the course'}…</option>
+            {studyTopicGroups.map(([group, topics]) => (
+              <optgroup key={group} label={group}>
+                {topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+        <p className="pb-1 text-[11.5px] text-muted">Choose a topic first. Its lab types and available labs will open below.</p>
+      </div>
+      <Toolbar onLabs={() => { setLibraryTopic(null); setLibraryView('type'); setLabsOpen(true); }} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
           if (tools) setTools(null);
           else {
             setTools(useLab.getState().doc?.workbook ? 'labs' : 'audit');

@@ -4,6 +4,7 @@ import { BookOpen, Clock3, Search, ShieldAlert, Sparkles, Target, Wrench, Code2,
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Button, cx, Dialog } from '@/components/ui';
 import { certById } from '@/content/certs';
+import { topicById } from '@/content/topics';
 import { ARENA_LABS, ARENA_TOPICS, KIND_LABEL, labsFor } from '@/lab/arena';
 import { topicMastery, useArena } from '@/lab/arena/progress';
 import type { ArenaKind } from '@/lab/arena/types';
@@ -178,17 +179,22 @@ export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlay
   const topics = useMemo(() => [...new Set(entries.map((entry) => entry.topic))].sort((a, b) => a.localeCompare(b)), [entries]);
   const topicsRef = useRef(topics);
   topicsRef.current = topics;
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
   useEffect(() => {
     if (!open) return;
     setViewMode(initialView);
     setShowProgress(initialProgress);
     if (initialTopic) {
+      const studyTopic = topicById(initialTopic);
+      const linkedLabId = studyTopic?.lab?.workbook ?? studyTopic?.lab?.challenge;
+      const linkedLab = linkedLabId ? entriesRef.current.find((entry) => entry.id === linkedLabId) : undefined;
       const chapter = initialTopic.match(/ch-?(\d+)/i)?.[1];
       const normalized = initialTopic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       const currentTopics = topicsRef.current;
       const match = currentTopics.find((topic) => topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === normalized)
         ?? (chapter ? currentTopics.find((topic) => new RegExp(`^ch\\s*${chapter}\\b`, 'i').test(topic)) : undefined);
-      setTopicFilter(match ?? 'all');
+      setTopicFilter(linkedLab?.topic ?? match ?? (studyTopic ? '__selected_topic__' : 'all'));
     }
     setCategoryFilter('all');
     setSectionFilter('all');
@@ -241,8 +247,8 @@ export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlay
         <header className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-action/25 bg-gradient-to-r from-action/10 via-pane to-pane px-4 py-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-action">Build · practise · prove</p>
-            <h2 className="mt-1 text-[17px] font-semibold">Choose a lab, then work in the canvas</h2>
-            <p className="mt-1 max-w-[72ch] text-[12.5px] text-muted">Guided builds, scenario troubleshooting and exam assessments all open in this same designer. The task panel follows the selected lab.</p>
+            <h2 className="mt-1 text-[17px] font-semibold">{initialTopic && topicById(initialTopic) ? `Choose a lab for ${topicById(initialTopic)!.title}` : 'Choose a lab, then work in the canvas'}</h2>
+            <p className="mt-1 max-w-[72ch] text-[12.5px] text-muted">{initialTopic ? 'Choose a lab type below, then select the lab you want to do. Its playground and task panel will open next.' : 'Guided builds, scenario troubleshooting and exam assessments all open in this same designer. The task panel follows the selected lab.'}</p>
           </div>
           {cert && <Badge tone="info">Suggested for {cert.short}</Badge>}
         </header>
@@ -253,13 +259,20 @@ export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlay
               <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted" aria-hidden />
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search topics or labs…" aria-label="Search topics or labs" className="h-9 w-full rounded-lg border border-line-strong bg-ink pr-2 pl-9 text-[13px] focus:border-action" data-testid="lab-picker-search" />
             </label>
-            <label className="block">
-              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">Topic</span>
-              <select className="h-9 w-full rounded-lg border border-line-strong bg-ink px-2 text-[12.5px]" value={topicFilter} onChange={(event) => setTopicFilter(event.target.value)} aria-label="Filter labs by topic">
-                <option value="all">All topics ({topics.length})</option>
-                {topics.map((topic) => <option key={topic} value={topic}>{topic}</option>)}
-              </select>
-            </label>
+            {initialTopic && topicById(initialTopic) ? (
+              <div className="rounded-lg border border-action/30 bg-action/10 px-2.5 py-2" data-testid="lab-selected-topic">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-action">Selected topic</span>
+                <span className="mt-0.5 block text-[12px] font-medium text-text">{topicById(initialTopic)!.title}</span>
+              </div>
+            ) : (
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">Topic</span>
+                <select className="h-9 w-full rounded-lg border border-line-strong bg-ink px-2 text-[12.5px]" value={topicFilter} onChange={(event) => setTopicFilter(event.target.value)} aria-label="Filter labs by topic">
+                  <option value="all">All topics ({topics.length})</option>
+                  {topics.map((topic) => <option key={topic} value={topic}>{topic}</option>)}
+                </select>
+              </label>
+            )}
             <div className="space-y-1" aria-label="Lab categories">
               <button type="button" onClick={() => setCategoryFilter('all')} className={cx('flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[12px]', categoryFilter === 'all' ? 'bg-action/15 text-text' : 'text-muted hover:bg-pane-2')} data-testid="lab-cat-all">All categories</button>
               {legacyCategories.map((category) => {
@@ -308,10 +321,10 @@ export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlay
               {(query || topicFilter !== 'all' || categoryFilter !== 'all' || sectionFilter !== 'all' || subtypeFilter !== 'all' || filter !== 'all') && <Button size="sm" variant="ghost" onClick={() => { setQuery(''); setTopicFilter('all'); setCategoryFilter('all'); setSectionFilter('all'); setSubtypeFilter('all'); setFilter('all'); }}>Clear filters</Button>}
             </div>
 
-            {filtered.length ? (
+            {filtered.length || (viewMode === 'topic' && topicFilter !== 'all') ? (
               <div className="max-h-[min(58vh,620px)] space-y-5 overflow-y-auto pr-1" data-testid="lab-library-results">
                 {(viewMode === 'topic'
-                  ? [...grouped.entries()].map(([topic, labs]) => ({ id: topic, label: topic, labs }))
+                  ? (topicFilter === 'all' ? [...grouped.entries()].map(([topic, labs]) => ({ id: topic, label: topic, labs })) : [{ id: topicFilter, label: topicFilter === '__selected_topic__' ? topicById(initialTopic ?? '')?.title ?? 'Selected topic' : topicFilter, labs: grouped.get(topicFilter) ?? [] }])
                   : (sectionFilter === 'all' ? SECTIONS.filter((item) => item.id !== 'playground') : SECTIONS.filter((item) => item.id === sectionFilter)).map((section) => ({ id: section.id, label: section.label, labs: groupedSections.get(section.id) ?? [] }))
                 ).map(({ id, label, labs }) => (
                   <section key={id} aria-label={`${label} labs`} data-testid={`lab-group-${String(id).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
@@ -329,11 +342,11 @@ export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlay
                     {!labs.length && <p className="mb-2 rounded-lg border border-dashed border-line px-3 py-4 text-[12px] text-muted">{SECTIONS.find((item) => item.id === id)?.available ? 'No labs in this format are available yet.' : 'Planned format · labs will appear here when ready.'}</p>}
                     {viewMode === 'topic' ? (
                       <div className="space-y-4">
-                        {SECTIONS.filter((section) => labs.some((lab) => lab.section === section.id)).map((section) => {
+                        {SECTIONS.filter((section) => section.id !== 'playground').map((section) => {
                           const sectionLabs = labs.filter((lab) => lab.section === section.id);
                           return <div key={section.id} data-testid={`lab-topic-section-${section.id}`}>
                             <h5 className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted"><span>{section.label}</span><span className="rounded-full bg-pane-2 px-1.5 py-0.5 text-[10px] tabular-nums">{sectionLabs.length}</span><span className="h-px flex-1 bg-line" /></h5>
-                            <ul className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">{sectionLabs.map(renderLabCard)}</ul>
+                            {sectionLabs.length ? <ul className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">{sectionLabs.map(renderLabCard)}</ul> : <p className="rounded-lg border border-dashed border-line px-3 py-2 text-[11px] text-muted">{section.available ? 'No labs in this format are linked to this topic yet.' : 'Planned format · labs will appear here when ready.'}</p>}
                           </div>;
                         })}
                       </div>
