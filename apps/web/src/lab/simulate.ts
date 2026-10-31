@@ -287,6 +287,11 @@ export function l2Walk(doc: LabDoc, from: Device, egress: Iface, nextHop: string
   /** A switch floods the frame out of every forwarding port that carries `vlan`. Returns an SVI that owns the next hop, if any. */
   const flood = (sw: Device, vlan: number, except: string | undefined, trail: L2Step[], cable?: Cable): Iface | undefined => {
     const isAp = sw.kind === 'ap';
+    // A switch only forwards in VLANs that exist in its database; ports assigned to a missing VLAN are inactive.
+    if (sw.kind === 'switch' && !sw.vlans[vlan]) {
+      blockers.push({ reason: `VLAN ${vlan} does not exist on ${sw.name}, so its ports in VLAN ${vlan} are inactive`, fix: `Create it on ${sw.name}: vlan ${vlan}.` });
+      return undefined;
+    }
     const svi = sw.interfaces.find((i) => isSvi(sw, i) && i.vlan === vlan && owns(sw, i) && !i.shutdown);
     if (svi) return svi;
     if (collect) for (const i of sw.interfaces.filter((x) => isSvi(sw, x) && x.vlan === vlan && x.ip && !x.shutdown)) res.reached.push({ device: sw, iface: i, vlan });
@@ -422,7 +427,9 @@ export function l2Walk(doc: LabDoc, from: Device, egress: Iface, nextHop: string
       }
       continue;
     }
-    const candidates = peer.interfaces.filter((i) => (s.tag === undefined ? i.name === peerPort.name || (peer.kind === 'cloud' && !i.parent) : i.parent === peerPort.name && i.vlan === s.tag) && ifaceUp(peer, i));
+    // A phone accepts frames tagged with the voice VLAN its switch port advertises.
+    const voiceTagged = peer.model === 'ip-phone-8845' && s.tag !== undefined && s.port.voiceVlan === s.tag;
+    const candidates = peer.interfaces.filter((i) => (s.tag === undefined || voiceTagged ? i.name === peerPort.name || (peer.kind === 'cloud' && !i.parent) : i.parent === peerPort.name && i.vlan === s.tag) && ifaceUp(peer, i));
     if (collect) for (const i of candidates) if (i.ip) res.reached.push({ device: peer, iface: i, vlan: s.tag });
     const owner = candidates.find((i) => owns(peer, i)) ?? (peer.kind === 'cloud' && nextHop ? peer.interfaces.find((i) => i.ip === nextHop && !i.shutdown) : undefined);
     if (owner && !collect) {
@@ -645,6 +652,18 @@ export function simulatePacket(doc: LabDoc, req: PacketRequest, cpIn?: ControlPl
       return fail('dropped', l2.reason ?? 'ARP failed.', l2.fix);
     }
     const target = l2.target!;
+    // The reply has to come back over layer 2 too. A one-way fault (native VLAN mismatch, a VLAN
+    // pruned on one end only) lets the request through and loses the reply, so the ping still fails.
+    const backTo = egress.ip ?? pdu.srcIp;
+    if (backTo && target.iface.ip !== backTo) {
+      const back = l2Walk(doc, target.device, target.iface, backTo, ctx);
+      if (!back.ok || back.target?.device.id !== cur.id) {
+        const why = back.reason?.replace(/^ARP for \S+ got no reply: /, '') ?? 'no layer 2 path back';
+        const reason = `${target.device.name} received the frame, but its reply never got back to ${cur.name}: ${why}`;
+        push({ device: target.device.id, layer: 'L2', decision: 'drop', info: reason, route: routeText });
+        return fail('dropped', reason, back.fix);
+      }
+    }
     push({ device: cur.id, inIface: egress.name, layer: 'L2', decision: 'arp', info: `ARP reply from ${target.device.name}: ${nextHop} is at ${target.iface.mac || 'its MAC'}${ctx.vipOwners.get(nextHop)?.device === target.device.id ? ' (HSRP active router answers for the virtual IP)' : ''}.` }, 0.02, { proto: 'arp', srcMac: target.iface.mac, dstMac: egress.mac, bytes: 42, sport: undefined, dport: undefined });
     pdu.dstMac = target.iface.mac;
     for (const step of l2.steps) {

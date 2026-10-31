@@ -237,7 +237,9 @@ export function cableStatus(doc: LabDoc, c: Cable): CableStatus {
   if (c.lengthM && lim && c.lengthM > lim.max) issues.push({ code: 'too_long', severity: 'down', message: `${lim.label} is limited to ${lim.max >= 1000 ? `${lim.max / 1000} km` : `${lim.max} m`}; this run is ${c.lengthM >= 1000 ? `${c.lengthM / 1000} km` : `${c.lengthM} m`}. The signal is too weak for a stable link.`, fix: lim.fix });
   const neg = negotiate(A.iface, B.iface, A.device, B.device);
   issues.push(...neg.issues);
-  issues.push(...vlanChecks(doc, A.device, A.iface, B.device, B.iface));
+  // Assessed labs (doc.workbook.exam) leave out the VLAN diagnoses, so the canvas and inspector never
+  // name the fault the student is meant to find. They are display-only; the simulator does not use them.
+  if (!doc.workbook?.exam) issues.push(...vlanChecks(doc, A.device, A.iface, B.device, B.iface));
   const state = issues.some((i) => i.severity === 'down') ? 'down' : issues.some((i) => i.severity === 'degraded') ? 'degraded' : 'up';
   return { state, issues, negotiated: state === 'down' ? undefined : neg.text };
 }

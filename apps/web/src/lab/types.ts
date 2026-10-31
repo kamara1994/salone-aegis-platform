@@ -300,7 +300,7 @@ export interface LabDoc {
   /** Active troubleshooting challenge (the fault is hidden until revealed) */
   challenge?: { id: string; title: string; brief: string; startedAt: string; revealed: boolean; fault: string };
   /** Active guided lab workbook */
-  workbook?: { id: string; startedAt: string };
+  workbook?: { id: string; startedAt: string; /** Simlet: show and ping only, configuration is locked */ readOnly?: boolean; /** Assessed lab: the canvas hides configuration diagnoses, only link lights stay */ exam?: boolean };
   /** Where the inventory part came from, for honesty labels. */
   source: 'simulated-lab' | 'live-topology' | 'blank';
   generatedAt: string;

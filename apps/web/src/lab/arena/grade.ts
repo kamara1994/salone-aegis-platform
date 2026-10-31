@@ -2,11 +2,11 @@
 // A hinted item earns half its points. Nothing here reads what the student typed, only the result.
 import { makeCtx } from '../workbooks';
 import type { LabDoc } from '../types';
-import type { ArenaLab, Grade, ItemResult, TestResult } from './types';
+import type { ArenaLab, Grade, ItemResult, QuestionResult, TestResult } from './types';
 
 export const HINT_FACTOR = 0.5;
 
-export function gradeArena(lab: ArenaLab, doc: LabDoc, log: { deviceId: string; text: string }[], hinted: ReadonlySet<string> = new Set()): Grade {
+export function gradeArena(lab: ArenaLab, doc: LabDoc, log: { deviceId: string; text: string }[], hinted: ReadonlySet<string> = new Set(), answers: Readonly<Record<string, string[]>> = {}): Grade {
   const ctx = makeCtx(doc, log);
   const items: ItemResult[] = lab.items.map((it) => {
     let ok = false;
@@ -35,11 +35,18 @@ export function gradeArena(lab: ArenaLab, doc: LabDoc, log: { deviceId: string; 
     const ok = t.expect === 'reach' ? reached : !reached;
     return { id: t.id, label: t.label, points: t.points, earned: ok ? t.points : 0, ok, detail: ok ? undefined : t.expect === 'reach' ? detail ?? 'no reply' : 'traffic got through but should be blocked' };
   });
-  const max = [...items, ...tests].reduce((n, x) => n + x.points, 0);
-  const score = [...items, ...tests].reduce((n, x) => n + x.earned, 0);
-  const total = items.length + tests.length;
-  const okCount = items.filter((x) => x.ok).length + tests.filter((x) => x.ok).length;
-  return { items, tests, score, max, pct: max ? Math.round((score / max) * 100) : 0, completion: total ? Math.round((okCount / total) * 100) : 0 };
+  const questions: QuestionResult[] = (lab.questions ?? []).map((q) => {
+    const chosen = answers[q.id] ?? [];
+    const ok = chosen.length === q.answer.length && q.answer.every((a) => chosen.includes(a));
+    const h = hinted.has(q.id);
+    return { id: q.id, prompt: q.prompt, points: q.points, earned: ok ? (h ? Math.round(q.points * HINT_FACTOR) : q.points) : 0, ok, answered: chosen.length > 0, chosen, hinted: h };
+  });
+  const all = [...items, ...tests, ...questions];
+  const max = all.reduce((n, x) => n + x.points, 0);
+  const score = all.reduce((n, x) => n + x.earned, 0);
+  const total = all.length;
+  const okCount = items.filter((x) => x.ok).length + tests.filter((x) => x.ok).length + questions.filter((x) => x.answered).length;
+  return { items, tests, questions, score, max, pct: max ? Math.round((score / max) * 100) : 0, completion: total ? Math.round((okCount / total) * 100) : 0 };
 }
 
 /** Groups item results by their tree path for the Packet Tracer style assessment tree. */

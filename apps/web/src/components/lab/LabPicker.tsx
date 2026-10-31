@@ -46,7 +46,7 @@ const SECTIONS: { id: SectionId; label: string; description: string; icon: typeo
   { id: 'guided', label: 'Guided & Basic Labs', description: 'Learn step by step with live checks and hints.', icon: Sparkles, available: true },
   { id: 'scenario', label: 'Scenario Labs', description: 'Build from a specification, complete a partial network, or plan a design.', icon: Network, available: true },
   { id: 'troubleshooting', label: 'Troubleshooting Labs', description: 'Find faults, work tickets, and restore service.', icon: Wrench, available: true },
-  { id: 'simlet', label: 'Simlet Labs', description: 'Read command output and packet evidence, then explain what happened.', icon: Search, available: false },
+  { id: 'simlet', label: 'Simlet Labs', description: 'Read command output and packet evidence, then explain what happened.', icon: Search, available: true },
   { id: 'automation', label: 'Automation Labs', description: 'Work with JSON, mock APIs, and configuration as code.', icon: Code2, available: false },
   { id: 'gui', label: 'GUI Labs', description: 'Configure network services through a controller interface.', icon: PanelsTopLeft, available: false },
   { id: 'interview', label: 'Interview Labs', description: 'Explain decisions, troubleshoot aloud, and design on a whiteboard.', icon: Headphones, available: false },
@@ -64,7 +64,7 @@ const SUBTYPES: Partial<Record<SectionId, string[]>> = {
   challenge: ['Timed challenge'],
 };
 const ARENA_KIND_CATEGORY: Record<ArenaKind, Entry['category']> = {
-  guided: 'guided', skills: 'assessment', troubleshoot: 'scenario', challenge: 'assessment',
+  guided: 'guided', skills: 'assessment', troubleshoot: 'scenario', challenge: 'assessment', simlet: 'assessment',
 };
 
 function workbookFormat(title: string): Pick<Entry, 'section' | 'subtype' | 'category'> {
@@ -148,15 +148,15 @@ export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlay
       topic: arenaTopic(lab.topicId),
       legacyCategory: arenaTopic(lab.topicId),
       kind: 'arena' as const,
-      section: ({ guided: 'guided', skills: 'scenario', troubleshoot: 'troubleshooting', challenge: 'challenge' } as const)[lab.kind],
-      subtype: lab.kind === 'guided' ? 'Step-by-step build' : lab.kind === 'skills' ? 'Build to Spec' : lab.kind === 'challenge' ? 'Timed challenge' : /three tickets|tickets/i.test(lab.title) ? 'Ticket Queue' : /new switch|inherited/i.test(lab.title) ? 'Inherited Network' : 'Fault Hunt',
-      goal: lab.kind === 'challenge' || lab.kind === 'skills' ? 'CCNA Exam' : 'Job Ready',
+      section: ({ guided: 'guided', skills: 'scenario', troubleshoot: 'troubleshooting', challenge: 'challenge', simlet: 'simlet' } as const)[lab.kind],
+      subtype: lab.kind === 'simlet' ? 'Show-Command Questions' : lab.kind === 'guided' ? 'Step-by-step build' : lab.kind === 'skills' ? 'Build to Spec' : lab.kind === 'challenge' ? 'Timed challenge' : /three tickets|tickets/i.test(lab.title) ? 'Ticket Queue' : /new switch|inherited/i.test(lab.title) ? 'Inherited Network' : 'Fault Hunt',
+      goal: lab.kind === 'challenge' || lab.kind === 'skills' || lab.kind === 'simlet' ? 'CCNA Exam' : 'Job Ready',
       level: (lab.difficulty === 1 ? 'Beginner' : lab.difficulty === 2 ? 'Intermediate' : 'Advanced') as Entry['level'],
       category: ARENA_KIND_CATEGORY[lab.kind],
       badge: KIND_LABEL[lab.kind],
       description: lab.brief.split('\n')[0],
       minutes: lab.timeLimit ?? lab.minutes,
-      tasks: lab.items.length + lab.tests.length,
+      tasks: lab.items.length + lab.tests.length + (lab.questions?.length ?? 0),
       difficulty: lab.difficulty,
       onSelect: () => onArena(lab.id),
     }));

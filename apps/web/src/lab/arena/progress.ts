@@ -8,7 +8,7 @@ export interface ArenaProgress {
   version: 1;
   attempts: Attempt[];
   /** Live attempt state, so a reload keeps the timer and the hints you used. */
-  active?: { labId: string; startedAt: string; hinted: string[] };
+  active?: { labId: string; startedAt: string; hinted: string[]; /** simlet answers by question id */ answers?: Record<string, string[]> };
 }
 
 const empty = (): ArenaProgress => ({ version: 1, attempts: [] });

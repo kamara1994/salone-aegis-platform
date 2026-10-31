@@ -18,6 +18,7 @@ import { startArena, useArenaUi } from '@/lab/arena/session';
 import { updateArena } from '@/lab/arena/progress';
 import { prepareChallenge } from '@/lab/challenges';
 import { buildDoc, emptyDoc } from '@/lab/inventory';
+import { useLabProject } from '@/components/lab/projectContext';
 import { setFresh, useLab } from '@/lab/store';
 import type { CableEnd, LabDoc } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
@@ -55,7 +56,13 @@ function liveBaseline(fresh: LabDoc): LabDoc {
   return fresh;
 }
 
+/**
+ * The lab designer. Inside the dashboard's Projects section (LabProjectContext) it is a personal
+ * project workspace: same device and cable library, canvas and consoles, but it starts blank,
+ * saves under its own key and has no lab picker.
+ */
 export default function LabPage() {
+  const project = useLabProject();
   const rt = useRuntime();
   const topo = useTopology('all');
   const ready = useLab((s) => !!s.doc);
@@ -63,7 +70,13 @@ export default function LabPage() {
   const [lab, setLab] = useState<MockLab | null>(null);
 
   useEffect(() => {
-    if (!topo.data) return;
+    if (!project || inited.current) return;
+    inited.current = true;
+    useLab.getState().init(`project:${project}`, emptyDoc(), emptyDoc());
+  }, [project]);
+
+  useEffect(() => {
+    if (project || !topo.data) return;
     const snapshot = rt.mock ? rt.mock.labSnapshot() : null;
     setLab(snapshot);
     const fresh = buildDoc(topo.data as Topology, snapshot);
@@ -72,13 +85,13 @@ export default function LabPage() {
       const baseline = rt.mock ? buildDoc(topo.data as Topology, initialLab()) : liveBaseline(fresh);
       useLab.getState().init(fresh.source, fresh, baseline);
     } else setFresh(fresh);
-  }, [topo.data, rt.mock]);
+  }, [topo.data, rt.mock, project]);
 
-  if (topo.error) return <ErrorState error={topo.error} retry={() => topo.refetch()} />;
+  if (topo.error && !project) return <ErrorState error={topo.error} retry={() => topo.refetch()} />;
   if (!ready) return <Loading rows={8} />;
   return (
     <LabFlowProvider>
-      <Designer lab={lab} />
+      <Designer lab={lab} project={project} />
     </LabFlowProvider>
   );
 }
@@ -96,7 +109,7 @@ function Banner({ tone = 'info', children, onClose }: { tone?: 'info' | 'warn'; 
   );
 }
 
-function Designer({ lab }: { lab: MockLab | null }) {
+function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const rt = useRuntime();
   const rf = useReactFlow();
   const s = useLab();
@@ -110,7 +123,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
   const [vmFor, setVmFor] = useState<string | null>(null);
   const [simOpen, setSimOpenRaw] = useState(false);
   const [tools, setTools] = useState<ToolKey | null>(null);
-  const [labsOpen, setLabsOpen] = useState(true);
+  const [labsOpen, setLabsOpen] = useState(!project);
   const [libraryFilter, setLibraryFilter] = useState<'all' | 'guided' | 'scenario' | 'assessment'>('all');
   const [libraryView, setLibraryView] = useState<'type' | 'topic'>('topic');
   const [libraryTopic, setLibraryTopic] = useState<string | null>(null);
@@ -147,6 +160,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
 
   // /lab?workbook=<id> and /lab?challenge=<id> (from the Learn page) start a guided lab or a drill.
   useEffect(() => {
+    if (project) return; // project workspaces ignore lab links in the URL
     const params = new URLSearchParams(window.location.search);
     const library = params.get('library');
     if (library === 'all' || library === 'guided' || library === 'scenario' || library === 'assessment') {
@@ -301,7 +315,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
           setTimeout(() => rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 250 }), 100);
         }}
       />}
-      <Toolbar onLabs={() => setLabsOpen(true)} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
+      <Toolbar onLabs={project ? undefined : () => setLabsOpen(true)} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
           if (tools) setTools(null);
           else {
             setTools(useLab.getState().doc?.workbook ? 'labs' : 'audit');
@@ -314,6 +328,10 @@ function Designer({ lab }: { lab: MockLab | null }) {
           {doc.source === 'simulated-lab' ? (
             <>
               <span className="font-medium text-text">Simulated lab.</span> Devices, ports, VLANs, leases and firewall rules are read from the built-in lab, so injected faults show up on the canvas. Consoles are simulated shells.
+            </>
+          ) : project ? (
+            <>
+              <span className="font-medium text-text">Project workspace.</span> Build your own network with the device and cable library. Projects save in this browser, separate from your labs, and have no grading.
             </>
           ) : doc.source === 'blank' ? (
             <>

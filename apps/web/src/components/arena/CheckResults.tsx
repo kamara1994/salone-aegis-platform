@@ -7,7 +7,7 @@ import { itemTree } from '@/lab/arena/grade';
 import { fmtTime } from '@/lab/arena/progress';
 import type { ArenaLab, Attempt, Grade } from '@/lab/arena/types';
 
-type Tab = 'items' | 'tests' | 'debrief';
+type Tab = 'items' | 'tests' | 'questions' | 'debrief';
 
 export function ScoreRing({ pct, size = 76, label }: { pct: number; size?: number; label?: string }) {
   const r = (size - 8) / 2;
@@ -28,7 +28,9 @@ export function ScoreRing({ pct, size = 76, label }: { pct: number; size?: numbe
 
 /** Packet Tracer "Activity Results": score, completion, assessment tree, connectivity tests, then the debrief. */
 export function CheckResults({ open, onClose, lab, grade, attempt, final, mask }: { open: boolean; onClose: () => void; lab: ArenaLab; grade: Grade; attempt?: Attempt; final: boolean; mask?: boolean }) {
-  const [tab, setTab] = useState<Tab>('items');
+  const hasQ = grade.questions.length > 0;
+  const [tab, setTab] = useState<Tab>(hasQ ? 'questions' : 'items');
+  const okQ = grade.questions.filter((q) => q.ok).length;
   const tree = itemTree(grade.items);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const okItems = grade.items.filter((i) => i.ok).length;
@@ -49,18 +51,29 @@ export function CheckResults({ open, onClose, lab, grade, attempt, final, mask }
               <dt className="text-[11.5px] text-muted">Completion</dt>
               <dd className="font-semibold tabular-nums">{grade.completion}%</dd>
             </div>
-            <div>
-              <dt className="text-[11.5px] text-muted">Assessment items</dt>
-              <dd className="font-semibold tabular-nums">
-                {okItems} / {grade.items.length}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[11.5px] text-muted">Connectivity tests</dt>
-              <dd className="font-semibold tabular-nums">
-                {okTests} / {grade.tests.length}
-              </dd>
-            </div>
+            {hasQ ? (
+              <div>
+                <dt className="text-[11.5px] text-muted">Questions correct</dt>
+                <dd className="font-semibold tabular-nums">
+                  {okQ} / {grade.questions.length}
+                </dd>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <dt className="text-[11.5px] text-muted">Assessment items</dt>
+                  <dd className="font-semibold tabular-nums">
+                    {okItems} / {grade.items.length}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11.5px] text-muted">Connectivity tests</dt>
+                  <dd className="font-semibold tabular-nums">
+                    {okTests} / {grade.tests.length}
+                  </dd>
+                </div>
+              </>
+            )}
             {attempt && (
               <>
                 <div>
@@ -84,8 +97,9 @@ export function CheckResults({ open, onClose, lab, grade, attempt, final, mask }
           value={tab}
           onChange={setTab}
           tabs={[
-            { key: 'items', label: `Assessment items (${okItems}/${grade.items.length})` },
-            { key: 'tests', label: `Connectivity tests (${okTests}/${grade.tests.length})` },
+            ...(hasQ ? [{ key: 'questions' as Tab, label: `Questions (${okQ}/${grade.questions.length})` }] : []),
+            ...(grade.items.length ? [{ key: 'items' as Tab, label: `Assessment items (${okItems}/${grade.items.length})` }] : []),
+            ...(grade.tests.length ? [{ key: 'tests' as Tab, label: `Connectivity tests (${okTests}/${grade.tests.length})` }] : []),
             ...(final ? [{ key: 'debrief' as Tab, label: 'Debrief' }] : []),
           ]}
         />
@@ -157,6 +171,47 @@ export function CheckResults({ open, onClose, lab, grade, attempt, final, mask }
               ))}
             </tbody>
           </table>
+        )}
+
+        {tab === 'questions' && (
+          <ol className="max-h-[46vh] space-y-2 overflow-auto pr-1" data-testid="arena-question-results">
+            {grade.questions.map((r, k) => {
+              const q = lab.questions!.find((x) => x.id === r.id)!;
+              const txt = (ids: string[]) => ids.map((id) => `${id.toUpperCase()}. ${q.options.find((o) => o.id === id)?.text ?? id}`).join('; ') || 'No answer';
+              return (
+                <li key={r.id} className="rounded-[6px] border border-line p-2.5" data-ok={r.ok}>
+                  <div className="flex items-start gap-2">
+                    <span className={cx('mt-0.5 grid size-4 shrink-0 place-items-center rounded-full', r.ok ? 'bg-healthy text-white' : 'bg-down/80 text-white')}>{r.ok ? <Check className="size-3" /> : <X className="size-3" />}</span>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="font-medium">
+                        Q{k + 1}. {q.tag ? `${q.tag}: ` : ''}
+                        {q.prompt}
+                      </p>
+                      <p className="text-[12px]">
+                        <span className="text-muted">Your answer: </span>
+                        <span className={r.ok ? 'text-healthy' : 'text-down'}>{txt(r.chosen)}</span>
+                      </p>
+                      {!r.ok && (
+                        <p className="text-[12px]">
+                          <span className="text-muted">Correct: </span>
+                          {txt(q.answer)}
+                        </p>
+                      )}
+                      {final && <p className="text-[12px] leading-relaxed text-muted">{q.explain}</p>}
+                    </div>
+                    {r.hinted && (
+                      <span className="flex items-center gap-0.5 text-[11.5px] text-degraded" title="Hint used: half points">
+                        <Lightbulb className="size-3.5" /> −50%
+                      </span>
+                    )}
+                    <span className="w-14 text-right text-[12px] tabular-nums text-muted">
+                      {r.earned}/{r.points}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
         )}
 
         {tab === 'debrief' && (

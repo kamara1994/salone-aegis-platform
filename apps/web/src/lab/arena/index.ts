@@ -1,6 +1,7 @@
 // Lab Arena catalog: CCNA lab topics in book order. Topics marked 'soon' are listed so the
 // student can see the whole path; their labs ship in later releases.
 import { VLAN_LABS } from './labs-vlans';
+import { VLAN_SIMLETS } from './labs-vlans-simlets';
 import type { ArenaKind, ArenaLab, ArenaTopic } from './types';
 
 export const ARENA_TOPICS: ArenaTopic[] = [
@@ -22,10 +23,10 @@ export const ARENA_TOPICS: ArenaTopic[] = [
   { id: 'ch21-final', chapter: 21, title: 'Final skills assessment', exam: ['all'], status: 'soon', blurb: 'One network, every topic, timed.' },
 ];
 
-export const ARENA_LABS: ArenaLab[] = [...VLAN_LABS];
+export const ARENA_LABS: ArenaLab[] = [...VLAN_LABS, ...VLAN_SIMLETS];
 export const labsFor = (topicId: string) => ARENA_LABS.filter((l) => l.topicId === topicId);
 export const arenaLab = (id: string) => ARENA_LABS.find((l) => l.id === id);
 export const ARENA_PREFIX = 'arena:';
-export const KIND_LABEL: Record<ArenaKind, string> = { guided: 'Guided', skills: 'Skills assessment', troubleshoot: 'Troubleshooting', challenge: 'Timed challenge' };
-export const KIND_ORDER: ArenaKind[] = ['guided', 'skills', 'troubleshoot', 'challenge'];
+export const KIND_LABEL: Record<ArenaKind, string> = { guided: 'Guided', skills: 'Skills assessment', troubleshoot: 'Troubleshooting', challenge: 'Timed challenge', simlet: 'Simlet' };
+export const KIND_ORDER: ArenaKind[] = ['guided', 'skills', 'troubleshoot', 'simlet', 'challenge'];
 export type { ArenaLab, ArenaTopic } from './types';

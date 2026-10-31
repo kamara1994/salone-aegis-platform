@@ -4,8 +4,24 @@
 import type { Ctx, TaskResult } from '../workbooks';
 import type { LabDoc } from '../types';
 
-/** guided: live ticks and hints. skills: build to spec, results on Check. troubleshoot: hidden faults. challenge: timed, no hints. */
-export type ArenaKind = 'guided' | 'skills' | 'troubleshoot' | 'challenge';
+/** guided: live ticks and hints. skills: build to spec, results on Check. troubleshoot: hidden faults. challenge: timed, no hints.
+ * simlet: live network, show and ping only, answer questions about what you find (Cisco exam simlet / TSHOOT ticket). */
+export type ArenaKind = 'guided' | 'skills' | 'troubleshoot' | 'challenge' | 'simlet';
+
+/** A simlet question. Answers are chosen from the options; multi-answer questions are all or nothing, like the exam. */
+export interface SimletQuestion {
+  id: string;
+  /** Ticket-style label, e.g. "Device", "Technology", "Fix" */
+  tag?: string;
+  prompt: string;
+  options: { id: string; text: string }[];
+  answer: string[];
+  points: number;
+  /** Which command to run (costs half the points) */
+  hint: string;
+  /** Shown after submitting: why the answer is right and why the traps are wrong. */
+  explain: string;
+}
 
 export interface AssessmentItem {
   id: string;
@@ -56,6 +72,8 @@ export interface ArenaLab {
   build: () => LabDoc;
   items: AssessmentItem[];
   tests: ConnectivityTest[];
+  /** Simlets: the questions, and the network is read-only (show, ping, traceroute). */
+  questions?: SimletQuestion[];
   /** Troubleshooting labs: what was broken (revealed after submitting). */
   faults?: string[];
   /** Shown after submitting: what a strong answer looked like and why. */
@@ -92,13 +110,25 @@ export interface TestResult {
   ok: boolean;
   detail?: string;
 }
+export interface QuestionResult {
+  id: string;
+  prompt: string;
+  points: number;
+  earned: number;
+  ok: boolean;
+  answered: boolean;
+  chosen: string[];
+  hinted: boolean;
+}
 export interface Grade {
   items: ItemResult[];
   tests: TestResult[];
+  questions: QuestionResult[];
   score: number;
   max: number;
   pct: number;
-  /** Share of items and tests currently correct, ignoring hint penalties (Packet Tracer "Completion"). */
+  /** Share of items and tests currently correct, ignoring hint penalties (Packet Tracer "Completion").
+   * Simlet questions count when answered, not when correct, so the bar never leaks the answer key. */
   completion: number;
 }
 

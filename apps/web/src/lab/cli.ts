@@ -25,6 +25,11 @@ const ABBR: [RegExp, string][] = [
 ];
 
 const dev = (id: string) => deviceById(useLab.getState().doc!, id);
+/** Simlets lock configuration: show, ping and traceroute only, like the exam's investigation items. */
+const locked = () => !!useLab.getState().doc?.workbook?.readOnly;
+export const LOCKED_MSG = '% Configuration is locked in this simlet. Use show, ping and traceroute to investigate.';
+
+const longName = (n: string) => n.replace(/^Gi/, 'GigabitEthernet').replace(/^Te/, 'TenGigabitEthernet');
 
 function resolveIface(d: Device, raw: string): Iface | string {
   const t = raw.replace(/\s+/g, '');
@@ -177,6 +182,7 @@ export class DesignCli {
     if (c === 'hostname') return d.name;
     if (c === 'ipconfig') {
       const sw = (rest[0] ?? '').toLowerCase();
+      if ((sw === '/renew' || sw === '/release') && locked()) return 'The requested operation requires elevation. (Simlet: host settings are locked.)';
       if (sw === '/renew') return this.renew(nic);
       if (sw === '/release') {
         if (!nic) return 'No adapter.';
@@ -192,6 +198,7 @@ export class DesignCli {
     if (c === 'ping') return this.pingCmd(rest, true);
     if (c === 'tracert' || c === 'traceroute') return this.traceCmd(rest[0], true);
     if (c === 'netsh') {
+      if (locked()) return 'The requested operation requires elevation. (Simlet: host settings are locked.)';
       const m = /set address\s+(?:name=)?"?([^"\s]+)"?\s+(static|dhcp|source=dhcp)\s*(\S+)?\s*(\S+)?\s*(\S+)?/i.exec(line);
       if (!m) return 'The syntax supplied for this command is not valid.';
       const target = d.interfaces.find((i) => i.name.toLowerCase() === m[1].toLowerCase());
@@ -280,6 +287,7 @@ export class DesignCli {
     }
     if (this.mode === 'priv') {
       if (is('configure', 'terminal') || is('conf', 't') || lower === 'conf t') {
+        if (locked()) return LOCKED_MSG;
         this.mode = 'config';
         return 'Enter configuration commands, one per line.  End with CNTL/Z.';
       }
@@ -880,6 +888,7 @@ export class DesignCli {
     const is = (...p: string[]) => p.every((x, k) => w[k] !== undefined && x.startsWith(w[k]));
     if (is('ping')) return this.pingCmd(line.split(/\s+/).slice(1), false);
     if (is('traceroute') || is('tracert')) return this.traceCmd(line.split(/\s+/)[1], false);
+    if ((is('write') || is('copy') || is('wr') || is('clear')) && locked()) return LOCKED_MSG;
     if (is('write') || is('copy', 'running-config', 'startup-config') || is('wr')) {
       st.updateDevice(d.id, { startupSaved: runningConfig(d) });
       return 'Building configuration...\r\n[OK]';
@@ -1050,6 +1059,21 @@ export class DesignCli {
       if (d.eigrpProcess || d.interfaces.some((i) => i.eigrp)) lines.push(`Routing Protocol is "eigrp ${d.eigrpProcess?.as ?? ''}"`, `  Automatic Summarization: disabled`, `  Routing for Networks: ${d.interfaces.filter((i) => i.eigrp && i.ip).map((i) => i.ip).join(', ')}`, `  Passive Interface(s): ${d.interfaces.filter((i) => i.eigrp?.passive).map((i) => i.name).join(', ') || 'none'}`, `  Distance: internal 90 external 170`);
       return lines.join('\r\n') || '% No IP routing protocol is running.';
     }
+    if (s('logging')) {
+      const msgs: string[] = [];
+      for (const i of d.interfaces) {
+        const c = cableOnPort(doc, d.id, i.name);
+        const peer = c ? deviceById(doc, c.a.device === d.id ? c.b.device : c.a.device) : undefined;
+        const pp = c && peer ? peer.interfaces.find((x) => x.name === (c.a.device === d.id ? c.b.port : c.a.port)) : undefined;
+        if (!peer || !pp || i.shutdown || pp.shutdown) continue;
+        const myMode = i.dtp ? dtpResult(i, peer, pp) : i.mode;
+        const peerMode = pp.dtp ? dtpResult(pp, d, i) : pp.mode;
+        if (myMode === 'trunk' && peerMode === 'trunk' && (i.nativeVlan ?? 1) !== (pp.nativeVlan ?? 1))
+          msgs.push(`%CDP-4-NATIVE_VLAN_MISMATCH: Native VLAN mismatch discovered on ${longName(i.name)} (${i.nativeVlan ?? 1}), with ${peer.name} ${longName(pp.name)} (${pp.nativeVlan ?? 1}).`);
+        if (i.errDisabled) msgs.push(`%PM-4-ERR_DISABLE: ${i.errDisabled.startsWith('BPDU') ? 'bpduguard' : 'psecure-violation'} error detected on ${longName(i.name)}, putting ${longName(i.name)} in err-disable state`);
+      }
+      return [`Syslog logging: enabled (0 messages dropped, 0 flushes)`, `    Console logging: level debugging`, `    Buffer logging:  level debugging`, ``, `Log Buffer (8192 bytes):`, ...msgs.map((m, k) => `*Mar  1 00:0${Math.min(9, k + 1)}:${String(10 + k * 7).padStart(2, '0')}.${String(100 + k * 37)}: ${m}`)].join('\r\n');
+    }
     if (s('cdp', 'neighbors') || s('lldp', 'neighbors')) {
       const n = cdpNeighbors(doc, d.id);
       return `Capability Codes: R - Router, S - Switch, H - Host, I - IGMP, T - AP\r\nDevice ID        Local Intrfce     Capability  Platform              Port ID\r\n${n.map((x) => `${pad(x.peer, 17)}${pad(x.local, 18)}${pad(x.capability, 12)}${pad(x.platform.slice(0, 21), 22)}${x.peerPort}`).join('\r\n')}`;
@@ -1065,7 +1089,7 @@ export class DesignCli {
 
   private help(): string {
     if (this.mode === 'user' || this.mode === 'priv')
-      return ['enable / disable / configure terminal / write memory', 'show running-config | startup-config | ip interface brief | interfaces status | interfaces <if>', 'show ip route | ip ospf neighbor | standby | ip nat translations | ip dhcp pool', 'show vlan | mac address-table | spanning-tree | etherchannel summary | cdp neighbors | arp | power inline', 'show interfaces trunk | interfaces <if> switchport | interfaces status err-disabled | port-security [interface <if>] | vtp status | monitor', 'show ip dhcp snooping [binding] | ip arp inspection | access-lists | vrrp | glbp | ip eigrp neighbors | ip protocols', 'clear port-security sticky [interface <if>]', 'ping <ip|device> [repeat n]   traceroute <ip|device>'].join('\r\n');
+      return ['enable / disable / configure terminal / write memory', 'show running-config | startup-config | ip interface brief | interfaces status | interfaces <if>', 'show ip route | ip ospf neighbor | standby | ip nat translations | ip dhcp pool', 'show vlan | mac address-table | spanning-tree | etherchannel summary | cdp neighbors | arp | power inline | logging', 'show interfaces trunk | interfaces <if> switchport | interfaces status err-disabled | port-security [interface <if>] | vtp status | monitor', 'show ip dhcp snooping [binding] | ip arp inspection | access-lists | vrrp | glbp | ip eigrp neighbors | ip protocols', 'clear port-security sticky [interface <if>]', 'ping <ip|device> [repeat n]   traceroute <ip|device>'].join('\r\n');
     if (this.mode === 'config') return ['hostname <name>   interface <if> | interface range <if - n>   vlan <id> (name <n>)', 'ip route <net> <mask> <next-hop>   ip default-gateway <ip>   router ospf <pid>', 'spanning-tree vlan 1 priority <n> | root primary   no spanning-tree vlan 1', 'ip nat inside source list 1 interface <if> overload   ip dhcp pool <name>', 'enable secret <pw>   banner motd #text#   crypto key generate rsa   line vty 0 15 (transport input ssh)', 'ip routing (layer 3 switch)   spanning-tree mode rapid-pvst   spanning-tree portfast default | portfast bpduguard default', 'vtp mode server|client|transparent   vtp domain <name>   vtp password <pw>', 'ip dhcp snooping   ip dhcp snooping vlan <list>   ip arp inspection vlan <list>', 'access-list <1-99> permit|deny <src>   access-list <100-199> permit|deny <proto> <src> <dst> [eq <port>]', 'ip access-list standard|extended <name>   ip nat inside source static <local> <global>   router eigrp <as>', 'monitor session <n> source|destination interface <if>'].join('\r\n');
     if (this.mode === 'if') return ['ip address <ip> <mask> | ip address dhcp   [no] shutdown   description <text>', 'switchport mode access|trunk   switchport access vlan <n>   switchport voice vlan <n>   switchport trunk allowed vlan <list|add|remove>', 'switchport trunk native vlan <n>   speed <10|100|1000|auto>   duplex <full|half|auto>   mtu <bytes>', 'channel-group <n> mode active|passive|on|desirable|auto   spanning-tree portfast', 'standby <g> ip <vip> | priority <n> | preempt   ip nat inside|outside   ip helper-address <ip>', 'ip ospf <pid> area <a>   ip ospf cost|hello-interval|dead-interval <n>   encapsulation dot1Q <vlan>', 'switchport mode dynamic auto|desirable   switchport nonegotiate   [no] switchport (routed port)', 'switchport port-security [maximum <n> | violation shutdown|restrict|protect | mac-address sticky|<H.H.H>]', 'spanning-tree bpduguard enable   spanning-tree guard root   ip dhcp snooping trust   ip arp inspection trust', 'ip access-group <acl> in|out   vrrp|glbp <g> ip <vip> | priority <n> | preempt'].join('\r\n');
     if (this.mode === 'router') return this.routerProto === 'eigrp' ? 'network <ip> [wildcard]   passive-interface <if>   no auto-summary   eigrp router-id <ip>' : 'network <ip> <wildcard> area <a>   router-id <ip>   passive-interface <if>   default-information originate';

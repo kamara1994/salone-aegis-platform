@@ -61,6 +61,8 @@ export function startArena(labId: string): boolean {
   const lab = arenaLab(labId);
   if (!lab) return false;
   useLab.getState().startWorkbook(lab.build(), ARENA_PREFIX + lab.id, lab.title);
+  // Simlets lock configuration; every assessed lab hides configuration diagnoses on the canvas.
+  useLab.setState((s) => (s.doc?.workbook ? { doc: { ...s.doc, workbook: { ...s.doc.workbook, readOnly: lab.kind === 'simlet' || undefined, exam: lab.kind !== 'guided' || undefined } } } : {}));
   updateArena((p) => {
     p.active = { labId, startedAt: new Date().toISOString(), hinted: [] };
   });
@@ -86,12 +88,20 @@ export function takeHint(labId: string, itemId: string) {
   });
 }
 
+/** Records a simlet answer for the running attempt. */
+export function setAnswer(labId: string, questionId: string, chosen: string[]) {
+  activeAttempt(labId);
+  updateArena((p) => {
+    if (p.active) p.active.answers = { ...p.active.answers, [questionId]: chosen };
+  });
+}
+
 export function submitArena(labId: string, timedOut = false): { grade: Grade; attempt: Attempt } | null {
   const lab = arenaLab(labId);
   const st = useLab.getState();
   if (!lab || !st.doc) return null;
   const a = activeAttempt(labId);
-  const grade = gradeArena(lab, st.doc, st.log, new Set(a.hinted));
+  const grade = gradeArena(lab, st.doc, st.log, new Set(a.hinted), readArena().active?.answers ?? {});
   const now = new Date();
   const attempt: Attempt = {
     labId,
@@ -103,7 +113,7 @@ export function submitArena(labId: string, timedOut = false): { grade: Grade; at
     pct: grade.pct,
     hints: a.hinted.length,
     timedOut,
-    missed: [...grade.items, ...grade.tests].filter((x) => !x.ok).map((x) => x.id),
+    missed: [...grade.items, ...grade.tests, ...grade.questions].filter((x) => !x.ok).map((x) => x.id),
   };
   updateArena((p) => {
     p.attempts.push(attempt);

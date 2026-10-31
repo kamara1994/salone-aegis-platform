@@ -7,13 +7,13 @@ import { Badge, Button, cx, IconButton, Tabs, useNow } from '@/components/ui';
 import { arenaLab, KIND_LABEL } from '@/lab/arena';
 import { gradeArena, HINT_FACTOR } from '@/lab/arena/grade';
 import { bestFor, fmtTime, useArena } from '@/lab/arena/progress';
-import { activeAttempt, focusTerminal, leaveArena, startArena, submitArena, takeHint, useArenaUi } from '@/lab/arena/session';
-import type { ArenaKind } from '@/lab/arena/types';
+import { activeAttempt, focusTerminal, leaveArena, setAnswer, startArena, submitArena, takeHint, useArenaUi } from '@/lab/arena/session';
+import type { ArenaKind, SimletQuestion } from '@/lab/arena/types';
 import { useLab } from '@/lab/store';
 import { CheckResults } from './CheckResults';
 
 type Tab = 'brief' | 'tasks' | 'addressing';
-export const KIND_TONE: Record<ArenaKind, 'info' | 'good' | 'warn' | 'bad'> = { guided: 'good', skills: 'info', troubleshoot: 'warn', challenge: 'bad' };
+export const KIND_TONE: Record<ArenaKind, 'info' | 'good' | 'warn' | 'bad'> = { guided: 'good', skills: 'info', troubleshoot: 'warn', challenge: 'bad', simlet: 'info' };
 
 export function Pips({ n }: { n: 1 | 2 | 3 }) {
   return (
@@ -43,7 +43,9 @@ export function ArenaPanel({ labId }: { labId: string }) {
     if (!ui.submitted) activeAttempt(labId);
   }, [labId, ui.submitted]);
   const hinted = useMemo(() => new Set(active?.hinted ?? []), [active?.hinted]);
-  const grade = useMemo(() => gradeArena(lab, doc, log, hinted), [lab, doc, log, hinted]);
+  const answers = useMemo(() => active?.answers ?? {}, [active?.answers]);
+  const grade = useMemo(() => gradeArena(lab, doc, log, hinted, answers), [lab, doc, log, hinted, answers]);
+  const simlet = lab.kind === 'simlet';
   const done = !!ui.submitted;
   const started = active ? new Date(active.startedAt).getTime() : now;
   const elapsed = done ? ui.submitted!.attempt.seconds : Math.max(0, Math.floor((now - started) / 1000));
@@ -93,11 +95,11 @@ export function ArenaPanel({ labId }: { labId: string }) {
           <div className="mb-1 flex justify-between text-[11.5px] text-muted">
             <span>Completion</span>
             <span className="tabular-nums" data-testid="arena-completion">
-              {grade.completion}%
+              {done ? ui.submitted!.grade.completion : grade.completion}%
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded bg-pane-2">
-            <div className={cx('h-full transition-[width]', grade.completion === 100 ? 'bg-healthy' : 'bg-action')} style={{ width: `${grade.completion}%` }} />
+            <div className={cx('h-full transition-[width]', (done ? ui.submitted!.grade.completion : grade.completion) === 100 ? 'bg-healthy' : 'bg-action')} style={{ width: `${done ? ui.submitted!.grade.completion : grade.completion}%` }} />
           </div>
         </div>
         {done ? (
@@ -119,7 +121,7 @@ export function ArenaPanel({ labId }: { labId: string }) {
             <Button size="sm" onClick={() => (ui.terms.length ? ui.setTermOpen(!ui.termOpen) : ui.setTermOpen(true))} data-testid="arena-terminal">
               <SquareTerminal className="size-3.5" /> Terminal
             </Button>
-            {lab.kind !== 'challenge' && (
+            {lab.kind !== 'challenge' && !simlet && (
               <Button size="sm" onClick={() => setPractice(true)} data-testid="arena-check">
                 <ClipboardCheck className="size-3.5" /> Check results
               </Button>
@@ -131,7 +133,7 @@ export function ArenaPanel({ labId }: { labId: string }) {
         )}
       </header>
 
-      <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ key: 'brief', label: 'Brief' }, { key: 'tasks', label: `Tasks (${lab.items.length + lab.tests.length})` }, ...(lab.addressing ? [{ key: 'addressing' as Tab, label: 'Addressing' }] : [])]} />
+      <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ key: 'brief', label: 'Brief' }, { key: 'tasks', label: simlet ? `Questions (${lab.questions?.length ?? 0})` : `Tasks (${lab.items.length + lab.tests.length})` }, ...(lab.addressing ? [{ key: 'addressing' as Tab, label: 'Addressing' }] : [])]} />
 
       <div className="min-h-0 flex-1 overflow-auto px-3 py-3 text-[12.5px]">
         {tab === 'brief' && (
@@ -158,11 +160,36 @@ export function ArenaPanel({ labId }: { labId: string }) {
               {lab.kind === 'skills' && 'Skills assessment: build to the spec. Use Check results to see where you stand; only Submit records the attempt.'}
               {lab.kind === 'troubleshoot' && 'Troubleshooting: the faults are hidden. Find them with show commands, ping and traceroute. The debrief reveals them after you submit.'}
               {lab.kind === 'challenge' && 'Timed challenge: no hints, no checks. Your attempt submits itself when the clock reaches zero.'}
+              {simlet && 'Simlet: configuration is locked. Open consoles, run show commands, ping and traceroute, then answer every question. Like the exam, nothing is marked until you submit. Hints cost half the points of that question.'}
             </p>
           </div>
         )}
 
-        {tab === 'tasks' && (
+        {tab === 'tasks' && simlet && lab.questions && (
+          <ol className="space-y-3" data-testid="arena-questions">
+            {lab.questions.map((q, k) => (
+              <Question
+                key={q.id}
+                q={q}
+                n={k + 1}
+                chosen={done ? (ui.submitted!.grade.questions[k]?.chosen ?? []) : (answers[q.id] ?? [])}
+                done={done}
+                hinted={hinted.has(q.id) || !!revealed[q.id]}
+                confirming={confirmHint === q.id}
+                onPick={(ids) => setAnswer(labId, q.id, ids)}
+                onAskHint={() => setConfirmHint(q.id)}
+                onHint={() => {
+                  takeHint(labId, q.id);
+                  setRevealed({ ...revealed, [q.id]: true });
+                  setConfirmHint(null);
+                }}
+                onCancelHint={() => setConfirmHint(null)}
+              />
+            ))}
+          </ol>
+        )}
+
+        {tab === 'tasks' && !simlet && (
           <div className="space-y-3">
             <ol className="space-y-1.5" data-testid="arena-tasks">
               {lab.items.map((it, k) => {
@@ -274,5 +301,63 @@ export function ArenaPanel({ labId }: { labId: string }) {
       {practice && <CheckResults open={practice} onClose={() => (setPractice(false), focusTerminal())} lab={lab} grade={grade} final={false} mask={lab.kind === 'troubleshoot'} />}
       {done && ui.resultsOpen && <CheckResults open onClose={() => (ui.setResultsOpen(false), focusTerminal())} lab={lab} grade={ui.submitted!.grade} attempt={ui.submitted!.attempt} final />}
     </aside>
+  );
+}
+
+/** One simlet question: pick answers while the lab runs; after submitting, see the key and the reasoning. */
+function Question({ q, n, chosen, done, hinted, confirming, onPick, onAskHint, onHint, onCancelHint }: { q: SimletQuestion; n: number; chosen: string[]; done: boolean; hinted: boolean; confirming: boolean; onPick: (ids: string[]) => void; onAskHint: () => void; onHint: () => void; onCancelHint: () => void }) {
+  const multi = q.answer.length > 1;
+  const ok = done && chosen.length === q.answer.length && q.answer.every((a) => chosen.includes(a));
+  const toggle = (id: string) => {
+    if (done) return;
+    if (!multi) return onPick([id]);
+    if (chosen.includes(id)) return onPick(chosen.filter((x) => x !== id));
+    if (chosen.length < q.answer.length) onPick([...chosen, id]);
+  };
+  return (
+    <li className={cx('rounded-[6px] border p-2.5', done ? (ok ? 'border-healthy/50 bg-healthy/5' : 'border-down/40 bg-down/5') : chosen.length ? 'border-action/40' : 'border-line')} data-testid={`arena-q-${q.id}`} data-ok={done ? ok : undefined}>
+      <div className="mb-1.5 flex items-center gap-2">
+        <span className="font-mono text-[11px] text-faint">Q{n}</span>
+        {q.tag && <Badge tone="info">{q.tag}</Badge>}
+        <span className="ml-auto text-[11px] text-muted tabular-nums">{q.points} pts</span>
+        {!done && !hinted && (
+          <button className="text-muted hover:text-degraded" aria-label={`Hint for question ${n}`} onClick={onAskHint}>
+            <Lightbulb className="size-4" />
+          </button>
+        )}
+      </div>
+      <p className="mb-2 font-medium">{q.prompt}</p>
+      <ul className="space-y-1" role={multi ? 'group' : 'radiogroup'} aria-label={`Question ${n} options`}>
+        {q.options.map((o) => {
+          const picked = chosen.includes(o.id);
+          const right = q.answer.includes(o.id);
+          const full = multi && !picked && chosen.length >= q.answer.length;
+          return (
+            <li key={o.id}>
+              <label className={cx('flex cursor-pointer items-start gap-2 rounded px-2 py-1.5', done ? (right ? 'bg-healthy/10' : picked ? 'bg-down/10' : '') : picked ? 'bg-action/10' : 'hover:bg-pane-2', (done || full) && 'cursor-default')}>
+                <input type={multi ? 'checkbox' : 'radio'} name={`q-${q.id}`} className="mt-0.5 accent-[var(--action)]" checked={picked} disabled={done || full} onChange={() => toggle(o.id)} />
+                <span className="font-mono text-[11px] text-faint uppercase">{o.id}.</span>
+                <span className="flex-1">{o.text}</span>
+                {done && right && <Check className="size-3.5 shrink-0 text-healthy" aria-label="Correct answer" />}
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+      {multi && !done && <p className="mt-1 text-[11px] text-muted">Choose {q.answer.length}. Selected {chosen.length}.</p>}
+      {confirming && (
+        <div className="mt-1.5 flex items-center gap-1.5 rounded border border-degraded/50 bg-degraded/10 p-1.5 text-[11.5px]">
+          Hint costs {Math.round(q.points * (1 - HINT_FACTOR))} of {q.points} points.
+          <Button size="sm" className="ml-auto h-6" onClick={onHint}>
+            Show hint
+          </Button>
+          <Button size="sm" variant="ghost" className="h-6" onClick={onCancelHint}>
+            Cancel
+          </Button>
+        </div>
+      )}
+      {hinted && <p className="mt-1.5 rounded bg-pane-2 px-2 py-1 font-mono text-[11px]">{q.hint}</p>}
+      {done && <p className="mt-2 border-t border-line pt-2 text-[12px] leading-relaxed text-muted">{q.explain}</p>}
+    </li>
   );
 }

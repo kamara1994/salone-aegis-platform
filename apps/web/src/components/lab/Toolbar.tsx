@@ -36,7 +36,7 @@ const BACKGROUNDS: Array<{ key: LabBackground; name: string; detail: string; ima
   { key: 'global', name: 'Global network', detail: 'Cloud and WAN topology', image: '/lab/backgrounds/global-network.png' },
 ];
 
-export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStructure, onShortcuts, onNewCable, toolsOpen, onTools }: { onLabs: () => void; paletteOpen: boolean; setPaletteOpen: (v: boolean) => void; onLayouts: () => void; onStructure: () => void; onShortcuts: () => void; onNewCable: () => void; toolsOpen: boolean; onTools: () => void }) {
+export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStructure, onShortcuts, onNewCable, toolsOpen, onTools }: { onLabs?: () => void; paletteOpen: boolean; setPaletteOpen: (v: boolean) => void; onLayouts: () => void; onStructure: () => void; onShortcuts: () => void; onNewCable: () => void; toolsOpen: boolean; onTools: () => void }) {
   const s = useLab();
   const rf = useReactFlow();
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[]; title: string } | null>(null);
@@ -61,9 +61,11 @@ export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStru
       <TB label={paletteOpen ? 'Hide device library' : 'Show device library'} onClick={() => setPaletteOpen(!paletteOpen)}>
         {paletteOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
       </TB>
-      <button type="button" onClick={onLabs} className="inline-flex h-8 items-center gap-1.5 rounded-[5px] bg-action px-2.5 text-[12.5px] font-medium text-action-ink hover:brightness-110" data-testid="tool-labs" title="Pick a lab: VLANs, enterprise builds, SOC, routing…">
-        <FlaskConical className="size-4" /> Labs
-      </button>
+      {onLabs && (
+        <button type="button" onClick={onLabs} className="inline-flex h-8 items-center gap-1.5 rounded-[5px] bg-action px-2.5 text-[12.5px] font-medium text-action-ink hover:brightness-110" data-testid="tool-labs" title="Pick a lab: VLANs, enterprise builds, SOC, routing…">
+          <FlaskConical className="size-4" /> Labs
+        </button>
+      )}
       <Sep />
       <TB label="Select" kbd="V" active={s.tool === 'select'} onClick={() => s.setTool('select')} testid="tool-select">
         <MousePointer2 className="size-4" /> <span className="hidden lg:inline">Select</span>

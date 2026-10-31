@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CertStrip } from '@/components/cert/CertStrip';
 import { dashAccent, sectionOf, SIDE_ITEMS, useDashItem, type DashSection } from '@/components/cert/DashboardSide';
 import { cx, EmptyState } from '@/components/ui';
+import { LabProjectContext } from '@/components/lab/projectContext';
 import { ToolDialog, TOOLS, toolsFor, type ToolId } from '@/components/learn/StudyTools';
 import { allGames } from '@/content';
 import { certById, certTopics, CERTS, dashboardById, type Cert } from '@/content/certs';
@@ -182,6 +183,21 @@ export default function DashboardPage() {
         </h1>
         <div className="h-full" data-testid="playground-labs">
           <LabPage />
+        </div>
+      </div>
+    );
+
+  // Projects is the same designer as Labs, as a blank personal workspace saved per dashboard.
+  if (section === 'projects')
+    return (
+      <div className="h-full" data-testid={`dashboard-${dash.id}`}>
+        <h1 className="sr-only" data-testid="dashboard-title">
+          {dash.title}
+        </h1>
+        <div className="h-full" data-testid="playground-projects">
+          <LabProjectContext.Provider value={dash.id}>
+            <LabPage key={`project-${dash.id}`} />
+          </LabProjectContext.Provider>
         </div>
       </div>
     );
@@ -392,7 +408,7 @@ export default function DashboardPage() {
               <SettingsPage />
             </div>
           )}
-          {(section === 'projects' || section === 'career') && (
+          {section === 'career' && (
             <div className="p-4" data-testid={`playground-${section}`}>
               <EmptyState title={sectionMeta!.label} body={`The ${dash.title} ${sectionMeta!.label.toLowerCase()} space is reserved and will be designed next.`} />
             </div>
