@@ -72,15 +72,13 @@ test('learn with images lists the picture library or says it is coming', async (
   await expect(page.getByTestId('visuals-view')).toBeVisible();
 });
 
-test('Labs picker: lab types, start the enterprise campus build', async ({ page }) => {
+test('Lab library: pick a lab type, start the enterprise campus build', async ({ page }) => {
   await page.goto('/lab');
-  await expect(page.getByTestId('lab-device-SW-ACC-01')).toBeVisible();
-  await page.getByTestId('tool-labs').click();
   await expect(page.getByTestId('lab-picker')).toBeVisible();
-  for (const c of ['getting-started', 'switching', 'routing', 'enterprise-builds', 'security', 'soc-and-monitoring', 'services', 'wireless', 'troubleshooting-tickets']) await expect(page.getByTestId(`lab-cat-${c}`)).toBeVisible();
-  await page.getByTestId('lab-cat-soc-and-monitoring').click();
-  await expect(page.getByTestId('lab-card-soc-investigate')).toBeVisible();
-  await page.getByTestId('lab-cat-enterprise-builds').click();
+  for (const t of ['all', 'guided', 'scenario', 'troubleshooting', 'simlet', 'challenge']) await expect(page.getByTestId(`lab-section-${t}`)).toBeVisible();
+  await page.getByTestId('lab-section-troubleshooting').click();
+  await expect(page.getByTestId('lab-card-vlan-bo-tickets')).toBeVisible();
+  await page.getByTestId('lab-section-guided').click();
   await page.getByTestId('lab-card-enterprise-campus').click();
   await expect(page.getByTestId('lab-device-CORE')).toBeVisible();
   await expect(page.getByTestId('workbook-active')).toContainText('enterprise campus');
@@ -88,6 +86,7 @@ test('Labs picker: lab types, start the enterprise campus build', async ({ page 
 
 test('cables disconnect like Packet Tracer: Disconnect tool, Delete key with undo, device menu', async ({ page }) => {
   await page.goto('/lab');
+  await page.getByTestId('lab-back-to-canvas').click(); // /lab opens on the lab library
   await expect(page.getByTestId('lab-device-SW-ACC-01')).toBeVisible();
   const edges = page.locator('.react-flow__edge');
   const before = await edges.count();

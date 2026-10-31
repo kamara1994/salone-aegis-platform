@@ -164,7 +164,16 @@ interface LabState {
 
 function autosave(s: Pick<LabState, 'scope' | 'doc' | 'layoutName' | 'basis'>) {
   if (!s.doc || typeof window === 'undefined') return;
-  storageSet(keys(s.scope).draft, { savedAt: new Date().toISOString(), doc: s.doc, layoutName: s.layoutName, basis: s.basis });
+  const savedAt = new Date().toISOString();
+  storageSet(keys(s.scope).draft, { savedAt, doc: s.doc, layoutName: s.layoutName, basis: s.basis });
+  // A named Networking project is a live workspace: keep its My Projects entry
+  // current as devices and links change, so reopening it restores the latest work.
+  if (s.scope.startsWith('project:') && s.layoutName) {
+    const layoutsKey = keys(s.scope).layouts;
+    const layouts = storageGet<Record<string, SavedLayout>>(layoutsKey) ?? {};
+    layouts[s.layoutName] = { name: s.layoutName, savedAt, doc: s.doc };
+    storageSet(layoutsKey, layouts);
+  }
 }
 
 function nextName(doc: LabDoc, kind: Device['kind']) {

@@ -1,6 +1,6 @@
 # SOC lesson screenshot attribution
 
-The screenshots in this folder are real Security Onion Console (SOC) screenshots reproduced from the Security Onion 2.4 documentation. They are not generated AEGIS interface mockups. Security Onion documentation is licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/). The screenshots remain unretouched; AEGIS adds numbered arrow overlays and lesson text in the app.
+The Security Onion screenshots in this folder are genuine Security Onion Console (SOC) screenshots reproduced from Security Onion 2.4 documentation. They are not generated AEGIS interface mockups. Security Onion documentation is licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/). The MITRE screenshot is an unretouched capture of the official ATT&CK Navigator Enterprise matrix and contains ATT&CK material governed by [MITRE ATT&CK Terms of Use](https://attack.mitre.org/resources/terms-of-use/). AEGIS adds circle highlights, numbered markers, and lesson text in the app.
 
 ## Screenshot sources
 
@@ -12,7 +12,11 @@ The screenshots in this folder are real Security Onion Console (SOC) screenshots
 | `soc/53_dashboards.png` | [Dashboards](https://docs.securityonion.net/en/2.4/dashboards.html) |
 | `soc/57_0_cases.png` | [Cases](https://docs.securityonion.net/en/2.4/cases.html) |
 | `soc/57_detections.png` | [Detections](https://docs.securityonion.net/en/2.4/detections.html) |
+| `soc/60_detection_nids.png` | [Detections](https://docs.securityonion.net/en/2.4/detections.html) |
 | `soc/60_detection_nids_3_playbook.png` | [Detections](https://docs.securityonion.net/en/2.4/detections.html) |
+| `soc/62_pcap.png` | [PCAP](https://docs.securityonion.net/en/2.4/pcap.html) |
+| `soc/72_jobs.png` | [PCAP](https://docs.securityonion.net/en/2.4/pcap.html) |
+| `soc/mitre_navigator_enterprise.png` | [MITRE ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/v3/enterprise/) (ATT&CK Terms of Use) |
 | `soc/61_actions.png` | [PCAP](https://docs.securityonion.net/en/2.4/pcap.html) |
 | `hunting/screenshots/50_alerts.png` | [Alerts](https://docs.securityonion.net/en/2.4/alerts.html) |
 | `hunting/screenshots/51_alerts_play.png` | [Alerts](https://docs.securityonion.net/en/2.4/alerts.html) |

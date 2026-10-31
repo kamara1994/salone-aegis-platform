@@ -8,6 +8,8 @@ import { forTopic, scenarioQuestions, STAGE_LABEL } from '@/content/scenarioQues
 import type { Topic } from '@/content/topics';
 
 export function ScenarioQuestions({ gameIds, topic }: { gameIds: string[]; topic?: Topic }) {
+  const [level, setLevel] = useState<'beginner' | 'technical'>('beginner');
+  const [lessonStep, setLessonStep] = useState(0);
   const [seed, setSeed] = useState(0);
   const all = useMemo(() => scenarioQuestions(gameIds), [gameIds, seed]); // eslint-disable-line react-hooks/exhaustive-deps
   const matched = useMemo(() => forTopic(all, topic), [all, topic]);
@@ -15,12 +17,32 @@ export function ScenarioQuestions({ gameIds, topic }: { gameIds: string[]; topic
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<Record<string, number>>({});
   const q = list[i];
+  const vlanLesson = topic?.id === 'vlans';
+  const lessonSteps = [
+    { title: 'Why VLANs exist', beginner: 'Imagine an office with one big room. A VLAN is like adding walls to make separate rooms. Teams can share the same switches while their local network traffic stays separated. For example, staff computers and guest Wi-Fi can be placed in different VLANs.', technical: 'A VLAN is a Layer 2 broadcast domain. Switches learn and forward MAC addresses within VLAN context; frames are not bridged between VLANs by default. VLANs commonly map to distinct IP subnets. Inter-VLAN communication requires Layer 3 routing and, in production, policy enforcement at that boundary.' },
+    { title: 'Access ports', beginner: 'An access port is a switch connection assigned to one room (one VLAN). A connected computer usually sends ordinary Ethernet traffic; the switch keeps track of which VLAN that traffic belongs to.', technical: 'An access interface associates ingress untagged frames with one configured access VLAN. Verify the port mode, VLAN assignment, VLAN existence, and operational state when an endpoint lands in the wrong segment.' },
+    { title: 'Trunks and VLAN tags', beginner: 'A trunk is a shared connection between network devices that carries traffic for several rooms. Labels on the traffic tell the receiving switch which VLAN it belongs to.', technical: 'An IEEE 802.1Q trunk carries multiple VLANs using VLAN tags. Validate the allowed VLAN list and ensure both ends agree on trunk and native VLAN settings. A native VLAN mismatch can cause unexpected classification of untagged frames.' },
+    { title: 'Inter-VLAN routing', beginner: 'The walls keep rooms separate. When a device in one room needs to reach another, traffic must pass through a controlled doorway: a router or Layer 3 switch.', technical: 'Hosts in different VLAN subnets require a Layer 3 gateway, commonly an SVI per VLAN or router subinterfaces over an 802.1Q trunk. Confirm gateway addressing, routing, ACL or firewall policy, and the return path.' },
+    { title: 'Verify and troubleshoot', beginner: 'Check the path in order: is the device connected, in the right VLAN, and can that VLAN cross the switch links? If the destination is in another VLAN, check the gateway too.', technical: 'Check endpoint addressing and gateway; access VLAN and link state; VLAN presence; trunk state and allowed VLANs end to end; MAC learning in the expected VLAN; SVI state; routes and policy; then interface counters and neighbor discovery.' },
+  ];
   const answered = Object.keys(picked).filter((k) => list.some((x) => x.id === k));
   const right = answered.filter((k) => list.find((x) => x.id === k)!.answer === picked[k]).length;
   if (!all.length) return <p className="text-[13px] text-muted">No scenario cases are linked to this dashboard yet.</p>;
   const done = i >= list.length;
   return (
     <div className="max-w-[760px] space-y-3" data-testid="scenario-questions">
+      {vlanLesson && (
+        <section className="space-y-3 rounded-[6px] border border-line bg-pane p-4" data-testid="vlan-learning-lesson">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div><p className="text-[11px] uppercase tracking-wide text-muted">Networking · CCNA / CompTIA practice</p><h2 className="text-[17px] font-semibold">VLANs</h2></div>
+            <div className="flex gap-1" role="group" aria-label="Explanation level">
+              {(['beginner', 'technical'] as const).map((value) => <button key={value} onClick={() => setLevel(value)} aria-pressed={level === value} className={cx('rounded border px-2.5 py-1.5 text-[12px]', level === value ? 'border-action text-action' : 'border-line text-muted')}>{value === 'beginner' ? 'Beginner' : 'Technical / Advanced'}</button>)}
+            </div>
+          </div>
+          <div className="space-y-2"><div className="flex items-center justify-between text-[12px] text-muted"><span>Step {lessonStep + 1} of {lessonSteps.length}</span><span>{lessonSteps[lessonStep].title}</span></div><div className="h-1 rounded bg-ink"><div className="h-1 rounded bg-action transition-all" style={{ width: `${((lessonStep + 1) / lessonSteps.length) * 100}%` }} /></div><p className="text-[13.5px] leading-relaxed" data-testid="vlan-lesson-explanation">{level === 'beginner' ? lessonSteps[lessonStep].beginner : lessonSteps[lessonStep].technical}</p><div className="flex justify-between"><Button size="sm" variant="ghost" disabled={lessonStep === 0} onClick={() => setLessonStep(lessonStep - 1)}>Previous</Button><Button size="sm" variant="primary" onClick={() => setLessonStep((lessonStep + 1) % lessonSteps.length)}>{lessonStep === lessonSteps.length - 1 ? 'Review again' : 'Next'}</Button></div></div>
+          <p className="text-[11.5px] text-muted">After the lesson, answer the ticket questions below to practise diagnosis and fixes.</p>
+        </section>
+      )}
       <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
         <Badge tone="info">{list.length} questions</Badge>
         <span className="text-muted">

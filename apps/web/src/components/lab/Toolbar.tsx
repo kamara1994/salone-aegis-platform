@@ -62,8 +62,8 @@ export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStru
         {paletteOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
       </TB>
       {onLabs && (
-        <button type="button" onClick={onLabs} className="inline-flex h-8 items-center gap-1.5 rounded-[5px] bg-action px-2.5 text-[12.5px] font-medium text-action-ink hover:brightness-110" data-testid="tool-labs" title="Pick a lab: VLANs, enterprise builds, SOC, routing…">
-          <FlaskConical className="size-4" /> Labs
+        <button type="button" onClick={onLabs} className="inline-flex h-8 items-center gap-1.5 rounded-[5px] bg-action px-2.5 text-[12.5px] font-medium text-action-ink hover:brightness-110" data-testid="tool-labs" title="Back to the lab library">
+          <FlaskConical className="size-4" /> Lab library
         </button>
       )}
       <Sep />
