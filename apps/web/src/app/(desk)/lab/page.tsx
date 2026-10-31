@@ -248,9 +248,6 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   // Every Arena lab (and every restart) opens with the whole topology in view.
   const arenaStart = doc.workbook?.startedAt;
   useEffect(() => {
-    if (arenaId) setPalette(false);
-  }, [arenaId]);
-  useEffect(() => {
     if (!arenaId) return;
     const t = [150, 700].map((ms) => setTimeout(() => rf.fitView({ padding: 0.12, duration: 250 }), ms));
     return () => t.forEach(clearTimeout);
@@ -338,7 +335,6 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           setTimeout(() => rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 250 }), 100);
         }}
       />}
-      <div className={cx('flex min-h-0 flex-1 flex-col', labsOpen && 'hidden')} data-testid="lab-workspace">
       <Toolbar onLabs={project ? undefined : () => setLabsOpen(true)} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
           if (tools) setTools(null);
           else {
@@ -347,7 +343,7 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
             if (s.tool === 'simulate') s.setTool('select');
           }
         }} />
-      {!hideSource && !doc.workbook && (
+      {!hideSource && (
         <Banner onClose={() => setHideSource(true)}>
           {doc.source === 'simulated-lab' ? (
             <>
@@ -433,7 +429,6 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           <ToolsPanel tab={tools} setTab={setTools} onClose={() => setTools(null)} />
         </div>
       )}
-      </div>
       {layouts && <LayoutsDialog open projectMode={!!project} onClose={() => setLayouts(false)} />}
       {project && <>
         <Dialog open={newProjectOpen} onClose={() => setNewProjectOpen(false)} title="Create a new project">

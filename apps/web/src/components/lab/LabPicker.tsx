@@ -1,77 +1,97 @@
 'use client';
 
-import { ArrowLeft, BookOpen, ChevronRight, Clock3, Code2, GraduationCap, Headphones, Layers, ListChecks, Network, PanelsTopLeft, Play, Search, Sparkles, Timer, TrendingUp, Wrench, X } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import { BookOpen, Clock3, Search, Sparkles, Wrench, Code2, Network, Timer, Headphones, PanelsTopLeft, GraduationCap, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, cx, Dialog } from '@/components/ui';
-import { certById } from '@/content/certs';
-import { topicById } from '@/content/topics';
-import { ARENA_LABS, ARENA_TOPICS, KIND_LABEL } from '@/lab/arena';
-import { bestFor, useArena } from '@/lab/arena/progress';
+import { Badge, Button, cx, Dialog } from '@/components/ui';
+import { certById, certTopics } from '@/content/certs';
+import { ALL_TOPICS, COURSES, topicById } from '@/content/topics';
+import { ARENA_LABS, ARENA_TOPICS, KIND_LABEL, labsFor } from '@/lab/arena';
+import { topicMastery, useArena } from '@/lab/arena/progress';
+import type { ArenaKind } from '@/lab/arena/types';
 import type { ChallengeDef } from '@/lab/challenges';
 import { CHALLENGES } from '@/lab/challenges';
-import { WORKBOOKS } from '@/lab/workbooks';
-import { useLab } from '@/lab/store';
+import { labCategory, WORKBOOKS } from '@/lab/workbooks';
 import { useUi } from '@/state/ui';
-
+import { useLab } from '@/lab/store';
+import dynamic from 'next/dynamic';
 const ArenaHome = dynamic(() => import('@/components/arena/ArenaHome').then((module) => module.ArenaHome));
 
 type LibraryKind = 'all' | 'guided' | 'scenario' | 'assessment';
-type SectionId = 'guided' | 'scenario' | 'troubleshooting' | 'simlet' | 'automation' | 'gui' | 'interview' | 'challenge';
+type SectionId = 'guided' | 'scenario' | 'troubleshooting' | 'simlet' | 'automation' | 'gui' | 'interview' | 'challenge' | 'playground';
 type ViewMode = 'type' | 'topic';
-type Level = 'Beginner' | 'Intermediate' | 'Advanced';
 type Entry = {
   id: string;
   title: string;
   topic: string;
+  legacyCategory: string;
   kind: 'workbook' | 'arena' | 'challenge';
   section: SectionId;
   subtype: string;
-  level: Level;
+  goal: string;
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  category: Exclude<LibraryKind, 'all'>;
   badge: string;
   description: string;
   minutes?: number;
   tasks?: number;
+  difficulty?: number;
   onSelect: () => void;
 };
 
-/** Lab types, in the order a student meets them. `soon` types are listed so the path is visible. */
-const SECTIONS: { id: SectionId; label: string; short: string; description: string; icon: typeof BookOpen; tone: string; soon?: boolean }[] = [
-  { id: 'guided', label: 'Guided labs', short: 'Guided', description: 'Learn step by step. Tasks tick off live and hints are available.', icon: Sparkles, tone: 'text-healthy' },
-  { id: 'scenario', label: 'Scenario labs', short: 'Scenario', description: 'Build a network to a design document, then submit for grading.', icon: Network, tone: 'text-action' },
-  { id: 'troubleshooting', label: 'Troubleshooting', short: 'Troubleshoot', description: 'Something is broken. Find the faults and restore service.', icon: Wrench, tone: 'text-degraded' },
-  { id: 'simlet', label: 'Simlets', short: 'Simlet', description: 'Read-only network. Investigate with show and ping, then answer questions, like the exam.', icon: Search, tone: 'text-action' },
-  { id: 'challenge', label: 'Timed challenges', short: 'Timed', description: 'Exam conditions: a countdown, no hints, automatic submit.', icon: Timer, tone: 'text-down' },
-  { id: 'automation', label: 'Automation', short: 'Automation', description: 'JSON, REST APIs and configuration as code.', icon: Code2, tone: 'text-muted', soon: true },
-  { id: 'gui', label: 'GUI labs', short: 'GUI', description: 'Configure a wireless controller through its web interface.', icon: PanelsTopLeft, tone: 'text-muted', soon: true },
-  { id: 'interview', label: 'Interview labs', short: 'Interview', description: 'Explain your config and troubleshoot out loud with an AI interviewer.', icon: Headphones, tone: 'text-muted', soon: true },
+const KIND_TONE: Record<string, 'neutral' | 'info' | 'warn' | 'good' | 'bad'> = {
+  Foundations: 'good', CCNA: 'neutral', CCNP: 'warn', Security: 'bad', SOC: 'info', Enterprise: 'info', Ops: 'neutral',
+  Guided: 'good', 'Skills assessment': 'info', Troubleshooting: 'warn', 'Timed challenge': 'bad',
+};
+const SECTIONS: { id: SectionId; label: string; description: string; icon: typeof BookOpen; available: boolean }[] = [
+  { id: 'guided', label: 'Guided & Basic Labs', description: 'Learn step by step with live checks and hints.', icon: Sparkles, available: true },
+  { id: 'scenario', label: 'Scenario Labs', description: 'Build from a specification, complete a partial network, or plan a design.', icon: Network, available: true },
+  { id: 'troubleshooting', label: 'Troubleshooting Labs', description: 'Find faults, work tickets, and restore service.', icon: Wrench, available: true },
+  { id: 'simlet', label: 'Simlet Labs', description: 'Read command output and packet evidence, then explain what happened.', icon: Search, available: true },
+  { id: 'automation', label: 'Automation Labs', description: 'Work with JSON, mock APIs, and configuration as code.', icon: Code2, available: false },
+  { id: 'gui', label: 'GUI Labs', description: 'Configure network services through a controller interface.', icon: PanelsTopLeft, available: false },
+  { id: 'interview', label: 'Interview Labs', description: 'Explain decisions, troubleshoot aloud, and design on a whiteboard.', icon: Headphones, available: false },
+  { id: 'challenge', label: 'Challenge Mode', description: 'Timed attempts with no hints and automatic submission.', icon: Timer, available: true },
+  { id: 'playground', label: 'Open Playground', description: 'Free practice on a blank canvas with no grading.', icon: GraduationCap, available: true },
 ];
-const sectionOf = (id: SectionId) => SECTIONS.find((s) => s.id === id)!;
+const SUBTYPES: Partial<Record<SectionId, string[]>> = {
+  guided: ['Step-by-step build'],
+  scenario: ['Build to Spec', 'Fill-the-Gap', 'Change Request', 'Design Lab', 'Capstone'],
+  troubleshooting: ['Fault Hunt', 'Ticket Queue', 'Outage / On-Call', 'Inherited Network'],
+  simlet: ['Show-Command Questions', 'Rapid-Fire Output', 'Packet Analysis'],
+  automation: ['JSON Read/Fix', 'REST API', 'Config as Code'],
+  gui: ['Wireless Controller'],
+  interview: ['Explain Your Config', 'Live Troubleshoot Interview', 'Whiteboard Interview'],
+  challenge: ['Timed challenge'],
+};
+const ARENA_KIND_CATEGORY: Record<ArenaKind, Entry['category']> = {
+  guided: 'guided', skills: 'assessment', troubleshoot: 'scenario', challenge: 'assessment', simlet: 'assessment',
+};
 
-function workbookFormat(title: string): Pick<Entry, 'section' | 'subtype'> {
-  if (/^timed challenge/i.test(title)) return { section: 'challenge', subtype: 'Timed challenge' };
-  if (/^skills assessment/i.test(title)) return { section: 'scenario', subtype: 'Build to spec' };
-  if (/^troubleshoot/i.test(title)) return { section: 'troubleshooting', subtype: /three tickets|ticket queue/i.test(title) ? 'Ticket queue' : /new switch|inherited/i.test(title) ? 'Inherited network' : 'Fault hunt' };
-  return { section: 'guided', subtype: 'Step by step' };
+function workbookFormat(title: string): Pick<Entry, 'section' | 'subtype' | 'category'> {
+  if (/^timed challenge/i.test(title)) return { section: 'challenge', subtype: 'Timed challenge', category: 'assessment' };
+  if (/^skills assessment/i.test(title)) return { section: 'scenario', subtype: 'Build to Spec', category: 'assessment' };
+  if (/^troubleshoot/i.test(title)) return { section: 'troubleshooting', subtype: /three tickets|ticket queue/i.test(title) ? 'Ticket Queue' : /new switch|inherited/i.test(title) ? 'Inherited Network' : 'Fault Hunt', category: 'scenario' };
+  return { section: 'guided', subtype: 'Step-by-step build', category: 'guided' };
 }
+
 function challengeTopic(challenge: ChallengeDef) {
   if (/vlan|trunk|port|switch/i.test(challenge.id + challenge.title)) return 'Switching and VLANs';
   if (/gateway|mask|ip|address|dhcp|dns|route/i.test(challenge.id + challenge.title)) return 'IP addressing and routing';
   return 'Troubleshooting fundamentals';
 }
-const arenaTopic = (id: string) => {
-  const t = ARENA_TOPICS.find((item) => item.id === id);
-  return t ? `Ch ${t.chapter} · ${t.title}` : 'Network operations';
-};
-const workbookTopic = (topic: string) => (/vlan|trunk/i.test(topic) ? 'Ch 8 · VLANs and trunking' : /stp|etherchannel/i.test(topic) ? 'Ch 9 · Spanning Tree, EtherChannel and edge ports' : topic);
-const chapterNo = (topic: string) => Number(/^Ch (\d+)/.exec(topic)?.[1] ?? 999);
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-/**
- * The lab library: one page, three choices. Lab type on the left, topic chips on top, labs as cards.
- * Picking a card loads that lab into the canvas; the library closes so the canvas gets the whole screen.
- */
-export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlayground, initialFilter = 'all', initialTopic = null, initialProgress = false, inline = false }: {
+function arenaTopic(id: string) {
+  const topic = ARENA_TOPICS.find((item) => item.id === id);
+  return topic ? `Ch ${topic.chapter} · ${topic.title}` : 'Network operations';
+}
+function workbookTopic(topic: string) {
+  if (/vlan|trunk/i.test(topic)) return 'Ch 8 · VLANs and trunking';
+  if (/stp|etherchannel/i.test(topic)) return 'Ch 9 · Spanning Tree and EtherChannel';
+  return topic;
+}
+
+/** One topic-first library for every lab that opens in the network designer. */
+export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlayground, initialFilter = 'all', initialView = 'type', initialTopic = null, initialProgress = false, inline = false }: {
   open: boolean;
   onClose: () => void;
   onStart: (id: string) => void;
@@ -85,328 +105,262 @@ export function LabPicker({ open, onClose, onStart, onChallenge, onArena, onPlay
   inline?: boolean;
 }) {
   const cert = certById(useUi((s) => s.certId));
+  const studyTopics = useMemo(() => cert ? certTopics(cert) : ALL_TOPICS, [cert]);
+  const studyTopicGroups = useMemo(() => {
+    const groups = new Map<string, typeof studyTopics>();
+    for (const topic of studyTopics) {
+      const course = COURSES.find((item) => item.id === topic.course)?.title.replace(/ \(.*\)$/, '') ?? topic.course;
+      const group = `${course} · ${topic.unit}`;
+      groups.set(group, [...(groups.get(group) ?? []), topic]);
+    }
+    return [...groups.entries()];
+  }, [studyTopics]);
   const active = useLab((s) => s.doc?.workbook?.id);
-  const activeTitle = active ? (ARENA_LABS.find((l) => `arena:${l.id}` === active)?.title ?? WORKBOOKS.find((w) => w.id === active)?.title) : undefined;
-  const progress = useArena();
-  const [type, setType] = useState<SectionId | 'all'>('all');
-  const [subtype, setSubtype] = useState('all');
-  const [topic, setTopic] = useState('all');
+  const arenaProgress = useArena();
+  const [filter, setFilter] = useState<LibraryKind>(initialFilter);
   const [query, setQuery] = useState('');
+  const [topicFilter, setTopicFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('topic');
+  const [sectionFilter, setSectionFilter] = useState<SectionId | 'all'>('all');
+  const [subtypeFilter, setSubtypeFilter] = useState('all');
   const [showProgress, setShowProgress] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [studyTopicId, setStudyTopicId] = useState('');
 
   const entries = useMemo<Entry[]>(() => {
-    const level = (d: number): Level => (d <= 1 ? 'Beginner' : d === 2 ? 'Intermediate' : 'Advanced');
-    const workbooks: Entry[] = WORKBOOKS.map((w) => ({
-      ...workbookFormat(w.title),
-      id: w.id,
-      title: w.title,
-      topic: workbookTopic(w.topic),
-      kind: 'workbook',
-      level: w.level === 'Foundations' ? 'Beginner' : w.level === 'CCNP' ? 'Advanced' : 'Intermediate',
-      badge: w.level,
-      description: w.intro,
-      minutes: w.minutes,
-      tasks: w.tasks.length,
-      onSelect: () => onStart(w.id),
+    const workbooks = WORKBOOKS.map((workbook) => ({
+      ...workbookFormat(workbook.title),
+      id: workbook.id,
+      title: workbook.title,
+      topic: workbookTopic(workbook.topic),
+      legacyCategory: labCategory(workbook),
+      kind: 'workbook' as const,
+      goal: workbook.level === 'CCNP' ? 'Interview' : workbook.level === 'SOC' || workbook.level === 'Security' ? 'Job Ready' : 'CCNA Exam',
+      level: (workbook.level === 'Foundations' ? 'Beginner' : workbook.level === 'CCNP' ? 'Advanced' : 'Intermediate') as Entry['level'],
+      badge: workbook.level,
+      description: workbook.intro,
+      minutes: workbook.minutes,
+      tasks: workbook.tasks.length,
+      onSelect: () => onStart(workbook.id),
     }));
-    const arena: Entry[] = ARENA_LABS.map((lab) => ({
+    const arena = ARENA_LABS.map((lab) => ({
       id: lab.id,
-      title: lab.title.replace(/^(Simlet|Ticket|Timed challenge): (.)/, (_m, _k, c: string) => c.toUpperCase()),
+      title: lab.title,
       topic: arenaTopic(lab.topicId),
-      kind: 'arena',
+      legacyCategory: arenaTopic(lab.topicId),
+      kind: 'arena' as const,
       section: ({ guided: 'guided', skills: 'scenario', troubleshoot: 'troubleshooting', challenge: 'challenge', simlet: 'simlet' } as const)[lab.kind],
-      subtype: lab.kind === 'simlet' ? (lab.questions?.some((q) => q.tag) ? 'Ticket (device, technology, fix)' : 'Show-command questions') : lab.kind === 'guided' ? 'Step by step' : lab.kind === 'skills' ? 'Build to spec' : lab.kind === 'challenge' ? 'Timed challenge' : /tickets/i.test(lab.title) ? 'Ticket queue' : /new switch|inherited/i.test(lab.title) ? 'Inherited network' : 'Fault hunt',
-      level: level(lab.difficulty),
+      subtype: lab.kind === 'simlet' ? 'Show-Command Questions' : lab.kind === 'guided' ? 'Step-by-step build' : lab.kind === 'skills' ? 'Build to Spec' : lab.kind === 'challenge' ? 'Timed challenge' : /three tickets|tickets/i.test(lab.title) ? 'Ticket Queue' : /new switch|inherited/i.test(lab.title) ? 'Inherited Network' : 'Fault Hunt',
+      goal: lab.kind === 'challenge' || lab.kind === 'skills' || lab.kind === 'simlet' ? 'CCNA Exam' : 'Job Ready',
+      level: (lab.difficulty === 1 ? 'Beginner' : lab.difficulty === 2 ? 'Intermediate' : 'Advanced') as Entry['level'],
+      category: ARENA_KIND_CATEGORY[lab.kind],
       badge: KIND_LABEL[lab.kind],
-      description: lab.brief.split('\n').find((line) => line.length > 40) ?? lab.brief,
+      description: lab.brief.split('\n')[0],
       minutes: lab.timeLimit ?? lab.minutes,
       tasks: lab.items.length + lab.tests.length + (lab.questions?.length ?? 0),
+      difficulty: lab.difficulty,
       onSelect: () => onArena(lab.id),
     }));
-    const challenges: Entry[] = CHALLENGES.map((c) => ({
-      id: c.id,
-      title: c.title,
-      topic: challengeTopic(c),
-      kind: 'challenge',
-      section: 'troubleshooting',
-      subtype: 'Fault hunt',
-      level: c.level === 'CCNP' ? 'Advanced' : 'Intermediate',
-      badge: `${c.level} ticket`,
-      description: 'A fault is hidden in the current design. Find it with the canvas, device consoles and packet tools.',
-      onSelect: () => onChallenge(c.id),
+    const challenges = CHALLENGES.map((challenge) => ({
+      id: challenge.id,
+      title: challenge.title,
+      topic: challengeTopic(challenge),
+      legacyCategory: 'Troubleshooting tickets',
+      kind: 'challenge' as const,
+      section: 'troubleshooting' as const,
+      subtype: 'Fault Hunt',
+      goal: challenge.level === 'CCNP' ? 'Interview' : 'Job Ready',
+      level: (challenge.level === 'CCNP' ? 'Advanced' : 'Intermediate') as Entry['level'],
+      category: 'scenario' as const,
+      badge: `${challenge.level} scenario`,
+      description: 'A fault is hidden in the current design. Diagnose it with the canvas, device terminals and packet tools.',
+      onSelect: () => onChallenge(challenge.id),
     }));
-    const recommended = new Set(cert?.labs ?? []);
-    return [...workbooks, ...arena, ...challenges].sort((a, b) => Number(recommended.has(b.id)) - Number(recommended.has(a.id)) || chapterNo(a.topic) - chapterNo(b.topic) || a.topic.localeCompare(b.topic) || a.title.localeCompare(b.title));
+    const certIds = new Set(cert?.labs ?? []);
+    const all = [...workbooks, ...arena, ...challenges];
+    // Keep all labs browsable; certification-recommended items are ordered first in the list.
+    return all.sort((a, b) => Number(certIds.has(b.id)) - Number(certIds.has(a.id)) || a.topic.localeCompare(b.topic) || a.title.localeCompare(b.title));
   }, [cert, onArena, onChallenge, onStart]);
 
-  // Deep links: /lab?library=guided&topic=<learn topic id>&progress=1
+  const topics = useMemo(() => [...new Set(entries.map((entry) => entry.topic))].sort((a, b) => a.localeCompare(b)), [entries]);
+  const topicsRef = useRef(topics);
+  topicsRef.current = topics;
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
   useEffect(() => {
     if (!open) return;
-    setType(initialFilter === 'guided' ? 'guided' : initialFilter === 'scenario' ? 'scenario' : 'all');
-    setSubtype('all');
+    setViewMode(initialView);
     setShowProgress(initialProgress);
-    setNotice(null);
-    if (!initialTopic) return setTopic('all');
-    const study = topicById(initialTopic);
-    const linked = study?.lab?.workbook ?? study?.lab?.challenge;
-    const fromLink = linked ? entriesRef.current.find((e) => e.id === linked)?.topic : undefined;
-    const chapter = initialTopic.match(/ch-?(\d+)/i)?.[1];
-    const fromName = entriesRef.current.find((e) => slug(e.topic) === slug(initialTopic) || (chapter && chapterNo(e.topic) === Number(chapter)))?.topic;
-    const match = fromLink ?? fromName;
-    setTopic(match ?? 'all');
-    if (!match && study) setNotice(`No lab is linked to “${study.title}” yet, so every lab is shown.`);
-  }, [open, initialFilter, initialTopic, initialProgress]);
-
-  const q = query.trim().toLowerCase();
-  const matchesText = (e: Entry) => !q || `${e.title} ${e.topic} ${e.description} ${e.subtype}`.toLowerCase().includes(q);
-  const inType = (e: Entry) => type === 'all' || e.section === type;
-  const shown = entries.filter((e) => inType(e) && (subtype === 'all' || e.subtype === subtype) && (topic === 'all' || e.topic === topic) && matchesText(e));
-  const typeCount = (id: SectionId) => entries.filter((e) => e.section === id && (topic === 'all' || e.topic === topic) && matchesText(e)).length;
-  const topics = useMemo(() => [...new Set(entries.map((e) => e.topic))].sort((a, b) => chapterNo(a) - chapterNo(b) || a.localeCompare(b)), [entries]);
-  const topicCount = (t: string) => entries.filter((e) => inType(e) && e.topic === t && matchesText(e)).length;
-  const subtypes = type === 'all' ? [] : [...new Set(entries.filter((e) => e.section === type).map((e) => e.subtype))];
-  const filtered = type !== 'all' || subtype !== 'all' || topic !== 'all' || !!q;
-  const reset = () => {
-    setType('all');
-    setSubtype('all');
-    setTopic('all');
+    if (initialTopic) {
+      const studyTopic = topicById(initialTopic);
+      setStudyTopicId(studyTopic ? initialTopic : '');
+      const linkedLabId = studyTopic?.lab?.workbook ?? studyTopic?.lab?.challenge;
+      const linkedLab = linkedLabId ? entriesRef.current.find((entry) => entry.id === linkedLabId) : undefined;
+      const chapter = initialTopic.match(/ch-?(\d+)/i)?.[1];
+      const normalized = initialTopic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const currentTopics = topicsRef.current;
+      const match = currentTopics.find((topic) => topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === normalized)
+        ?? (chapter ? currentTopics.find((topic) => new RegExp(`^ch\\s*${chapter}\\b`, 'i').test(topic)) : undefined);
+      setTopicFilter(linkedLab?.topic ?? match ?? (studyTopic ? '__selected_topic__' : 'all'));
+    }
+    setSectionFilter('all');
+    setSubtypeFilter('all');
+  }, [open, initialView, initialTopic, initialProgress]);
+  const chooseStudyTopic = (id: string) => {
+    setStudyTopicId(id);
     setQuery('');
-    setNotice(null);
+    if (!id) {
+      setTopicFilter('all');
+      return;
+    }
+    const studyTopic = topicById(id);
+    const linkedLabId = studyTopic?.lab?.workbook ?? studyTopic?.lab?.challenge;
+    const linkedLab = linkedLabId ? entriesRef.current.find((entry) => entry.id === linkedLabId) : undefined;
+    setTopicFilter(linkedLab?.topic ?? '__selected_topic__');
   };
-  const pickType = (id: SectionId | 'all') => {
-    setShowProgress(false);
-    setType(id);
-    setSubtype('all');
-  };
-
-  const card = (e: Entry) => {
-    const sec = sectionOf(e.section);
-    const running = active === e.id || active === `arena:${e.id}`;
-    const best = e.kind === 'arena' ? bestFor(progress, e.id) : undefined;
-    const Icon = sec.icon;
+  const filtered = entries.filter((entry) => {
+    const text = `${entry.title} ${entry.topic} ${entry.description} ${entry.badge}`.toLowerCase();
+    return (filter === 'all' || entry.category === filter)
+      && (topicFilter === 'all' || entry.topic === topicFilter)
+      && (sectionFilter === 'all' || entry.section === sectionFilter)
+      && (subtypeFilter === 'all' || entry.subtype === subtypeFilter)
+      && (!query.trim() || text.includes(query.trim().toLowerCase()));
+  });
+  const grouped = new Map<string, Entry[]>();
+  for (const entry of filtered) grouped.set(entry.topic, [...(grouped.get(entry.topic) ?? []), entry]);
+  const groupedSections = new Map<SectionId, Entry[]>();
+  for (const entry of filtered) groupedSections.set(entry.section, [...(groupedSections.get(entry.section) ?? []), entry]);
+  const sectionCounts = (id: SectionId) => entries.filter((entry) => entry.section === id).length;
+  const renderLabCard = (lab: Entry) => {
+    const inProgress = active === lab.id || active === `arena:${lab.id}`;
     return (
-      <li key={`${e.kind}:${e.id}`}>
-        <button
-          type="button"
-          onClick={e.onSelect}
-          className={cx('group flex h-full w-full flex-col rounded-[10px] border bg-pane p-3.5 text-left transition-colors hover:border-action focus-visible:outline-2 focus-visible:outline-action', running ? 'border-action' : 'border-line')}
-          data-testid={`lab-card-${e.id}`}
-        >
-          <span className="flex items-center gap-2 text-[11.5px]">
-            <span className={cx('inline-flex items-center gap-1 font-medium', sec.tone)}>
-              <Icon className="size-3.5" aria-hidden />
-              {e.subtype}
-            </span>
-            <span className="text-faint">·</span>
-            <span className="text-muted">{e.level}</span>
-            {running ? <span className="ml-auto rounded-full bg-action/15 px-2 py-0.5 text-[10.5px] font-medium text-action">In progress</span> : best ? <span className={cx('ml-auto rounded-full px-2 py-0.5 text-[10.5px] font-medium tabular-nums', best.pct >= 80 ? 'bg-healthy/15 text-healthy' : 'bg-degraded/15 text-degraded')}>Best {best.pct}%</span> : null}
+      <li key={`${lab.kind}:${lab.id}`}>
+        <button type="button" className={cx('group flex h-full w-full flex-col rounded-xl border p-3 text-left transition-all hover:-translate-y-0.5 hover:border-action hover:shadow-lg hover:shadow-action/5 focus-visible:outline-2 focus-visible:outline-action', inProgress ? 'border-action bg-action/10' : 'border-line bg-pane-2/50')} onClick={lab.onSelect} data-testid={`lab-card-${lab.id}`}>
+          <span className="flex flex-wrap items-center gap-1.5">
+            <Badge tone={KIND_TONE[lab.subtype] ?? 'info'}>{lab.subtype}</Badge>
+            <Badge tone={KIND_TONE[lab.badge] ?? 'neutral'}>{lab.badge}</Badge>
+            <Badge tone="neutral">{lab.level}</Badge>
+            {inProgress && <Badge tone="info">In progress</Badge>}
+            {lab.difficulty && <span className="ml-auto text-[10.5px] text-faint" aria-label={`Difficulty ${lab.difficulty} of 3`}>{'●'.repeat(lab.difficulty)}{'○'.repeat(3 - lab.difficulty)}</span>}
           </span>
-          <span className="mt-2 text-[14px] leading-snug font-semibold text-balance group-hover:text-action">{e.title}</span>
-          <span className="mt-1 line-clamp-2 flex-1 text-[12.5px] leading-relaxed text-muted">{e.description}</span>
-          <span className="mt-3 flex items-center gap-3 border-t border-line pt-2.5 text-[11.5px] text-muted">
-            <span className="min-w-0 truncate">{e.topic}</span>
-            {e.minutes !== undefined && (
-              <span className="inline-flex shrink-0 items-center gap-1">
-                <Clock3 className="size-3.5" aria-hidden />
-                {e.minutes} min
-              </span>
-            )}
-            {e.tasks !== undefined && (
-              <span className="inline-flex shrink-0 items-center gap-1">
-                <ListChecks className="size-3.5" aria-hidden />
-                {e.tasks}
-              </span>
-            )}
-            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5 font-medium text-action">
-              {running ? 'Resume' : 'Start'} <ChevronRight className="size-3.5" aria-hidden />
-            </span>
+          <span className="mt-2 block text-[13px] leading-snug font-semibold group-hover:text-action">{lab.title}</span>
+          <span className="mt-1 line-clamp-3 flex-1 text-[11.5px] leading-relaxed text-muted">{lab.description}</span>
+          <span className="mt-2 flex flex-wrap gap-1 text-[10px] text-faint"><span className="rounded border border-line px-1.5 py-0.5">Goal · {lab.goal}</span><span className="rounded border border-line px-1.5 py-0.5">Topic · {lab.topic}</span></span>
+          <span className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-2 text-[10.5px] text-faint">
+            {lab.tasks !== undefined && <span className="inline-flex items-center gap-1"><Wrench className="size-3" />{lab.tasks} checks</span>}
+            {lab.minutes !== undefined && <span className="inline-flex items-center gap-1"><Clock3 className="size-3" />{lab.minutes} min</span>}
+            <span className="ml-auto inline-flex items-center gap-1 text-action">Open playground <span aria-hidden>→</span></span>
           </span>
         </button>
       </li>
     );
   };
-  const grid = (list: Entry[]) => <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">{list.map(card)}</ul>;
 
-  const typeButton = (id: SectionId | 'all', label: string, Icon: typeof BookOpen, count: number, soon = false) => (
-    <button
-      key={id}
-      type="button"
-      disabled={soon}
-      onClick={() => pickType(id)}
-      aria-current={type === id && !showProgress ? 'true' : undefined}
-      className={cx('flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-left text-[13px] transition-colors disabled:cursor-default', type === id && !showProgress ? 'bg-action/15 font-medium text-text' : soon ? 'text-faint' : 'text-muted hover:bg-pane-2 hover:text-text')}
-      data-testid={`lab-section-${id}`}
-    >
-      <Icon className="size-4 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className={cx('text-[11px] tabular-nums', soon ? 'rounded bg-pane-2 px-1.5 py-0.5 text-[10px]' : 'text-faint')}>{soon ? 'Soon' : count}</span>
-    </button>
-  );
-
-  const content = (
-    <div className={cx('mx-auto w-full max-w-[1440px]', inline && 'p-4 sm:p-5')} data-testid="lab-picker">
-      {/* Header: what this page is, and the two ways out of it */}
-      <header className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
-          <h2 className="text-[19px] font-semibold">Lab library</h2>
-          <p className="text-[12.5px] text-muted">Pick a lab type, narrow it by topic if you want, then start. The lab opens in the canvas.</p>
-        </div>
-        <Button variant="secondary" onClick={onPlayground} data-testid="lab-open-playground">
-          <GraduationCap className="size-4" /> Open playground
-        </Button>
-        {inline && (
-          <Button variant={activeTitle ? 'primary' : 'secondary'} onClick={onClose} data-testid="lab-back-to-canvas">
-            <ArrowLeft className="size-4" /> {activeTitle ? 'Back to my lab' : 'Back to canvas'}
-          </Button>
-        )}
-        {!inline && (
-          <Button variant="ghost" onClick={onClose} aria-label="Close lab library">
-            <X className="size-4" />
-          </Button>
-        )}
-      </header>
-
-      {activeTitle && (
-        <button type="button" onClick={onClose} className="mb-4 flex w-full items-center gap-3 rounded-[10px] border border-action/40 bg-action/10 px-3.5 py-2.5 text-left hover:border-action" data-testid="lab-continue">
-          <Play className="size-4 shrink-0 text-action" aria-hidden />
-          <span className="min-w-0 flex-1 text-[13px]">
-            <span className="text-muted">Continue: </span>
-            <span className="font-medium">{activeTitle}</span>
-          </span>
-          <ChevronRight className="size-4 text-action" aria-hidden />
-        </button>
-      )}
-
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[232px_minmax(0,1fr)]">
-        {/* Lab types: a column on wide screens, a scrolling row on phones */}
-        <nav aria-label="Lab types" className="min-w-0 lg:sticky lg:top-0 lg:self-start">
-          <div className="flex gap-1 overflow-x-auto pb-1 lg:hidden">
-            {[{ id: 'all' as const, short: 'All labs' }, ...SECTIONS.filter((s) => !s.soon)].map((s) => (
-              <button key={s.id} type="button" onClick={() => pickType(s.id)} className={cx('shrink-0 rounded-full border px-3 py-1.5 text-[12.5px]', type === s.id && !showProgress ? 'border-action bg-action/15 text-text' : 'border-line text-muted')}>
-                {s.short}
-              </button>
-            ))}
-            <button type="button" onClick={() => setShowProgress(true)} className={cx('shrink-0 rounded-full border px-3 py-1.5 text-[12.5px]', showProgress ? 'border-action bg-action/15 text-text' : 'border-line text-muted')}>
-              My progress
-            </button>
+  const libraryContent = (
+      <div className="space-y-4" data-testid="lab-picker">
+        {inline && <header className="flex items-center justify-between border-b border-line pb-2"><div><h2 className="text-[15px] font-semibold">Lab Library</h2><p className="text-[11px] text-muted">Choose a topic or lab type, then select a lab to open its playground.</p></div><Button size="sm" variant="ghost" onClick={onClose} aria-label="Hide lab library"><X className="mr-1 size-4" />Hide</Button></header>}
+        <header className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-action/25 bg-gradient-to-r from-action/10 via-pane to-pane px-4 py-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-action">Build · practise · prove</p>
+            <h2 className="mt-1 text-[17px] font-semibold">{topicById(studyTopicId || initialTopic || '') ? `Choose a lab for ${topicById(studyTopicId || initialTopic || '')!.title}` : 'Choose a lab, then work in the canvas'}</h2>
+            <p className="mt-1 max-w-[72ch] text-[12.5px] text-muted">{viewMode === 'topic' ? 'Choose a topic, then choose a lab type below it. The matching labs appear here; select one to open its playground.' : 'Choose a lab type and optionally narrow it to a topic. Select a lab to open its playground and task panel.'}</p>
           </div>
-          <div className="hidden space-y-0.5 rounded-[10px] border border-line bg-pane p-1.5 lg:block">
-            {typeButton('all', 'All labs', Layers, SECTIONS.reduce((n, s) => n + typeCount(s.id), 0))}
-            <div className="my-1.5 h-px bg-line" />
-            {SECTIONS.filter((s) => !s.soon).map((s) => typeButton(s.id, s.label, s.icon, typeCount(s.id)))}
-            <p className="px-2.5 pt-2 pb-1 text-[10.5px] font-semibold tracking-wide text-faint uppercase">Coming next</p>
-            {SECTIONS.filter((s) => s.soon).map((s) => typeButton(s.id, s.label, s.icon, 0, true))}
-            <div className="my-1.5 h-px bg-line" />
-            <button type="button" onClick={() => setShowProgress(true)} aria-current={showProgress ? 'true' : undefined} className={cx('flex w-full items-center gap-2.5 rounded-[7px] px-2.5 py-2 text-left text-[13px]', showProgress ? 'bg-action/15 font-medium text-text' : 'text-muted hover:bg-pane-2 hover:text-text')} data-testid="lab-progress">
-              <TrendingUp className="size-4" aria-hidden /> My progress
-            </button>
-          </div>
-        </nav>
+          {cert && <Badge tone="info">Suggested for {cert.short}</Badge>}
+        </header>
 
-        <div className="min-w-0" aria-live="polite">
-          {showProgress ? (
-            <div>
-              <Button variant="ghost" size="sm" className="mb-2" onClick={() => setShowProgress(false)}>
-                <ArrowLeft className="size-3.5" /> Back to labs
-              </Button>
-              <ArenaHome embedded onLaunch={onArena} />
-            </div>
+        <div className="flex flex-wrap items-end gap-2 rounded-xl border border-line bg-pane-2/50 p-2" data-testid="lab-browse-controls">
+          <div className="flex items-center gap-1 rounded-lg border border-line bg-ink p-1" role="tablist" aria-label="Browse labs by">
+            <button type="button" role="tab" aria-selected={!showProgress && viewMode === 'topic'} onClick={() => { setShowProgress(false); setViewMode('topic'); setSectionFilter('all'); setSubtypeFilter('all'); }} className={cx('rounded-md px-3 py-1.5 text-[12px] font-medium', !showProgress && viewMode === 'topic' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-topic">By topic</button>
+            <button type="button" role="tab" aria-selected={!showProgress && viewMode === 'type'} onClick={() => { setShowProgress(false); setViewMode('type'); setSubtypeFilter('all'); }} className={cx('rounded-md px-3 py-1.5 text-[12px] font-medium', !showProgress && viewMode === 'type' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-type">By lab type</button>
+          </div>
+          {viewMode === 'topic' ? (
+            <>
+              <label className="space-y-0.5"><span className="block text-[10px] font-semibold uppercase tracking-wide text-muted">Choose a topic</span><select className="h-8 min-w-[220px] max-w-[min(72vw,360px)] rounded-[5px] border border-line-strong bg-ink px-2 text-[12px]" value={studyTopicId} onChange={(event) => chooseStudyTopic(event.target.value)} data-testid="lab-topic-picker"><option value="">All topics in {cert?.short ?? 'the course'}</option>{studyTopicGroups.map(([group, topics]) => <optgroup key={group} label={group}>{topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</optgroup>)}</select></label>
+              <label className="space-y-0.5"><span className="block text-[10px] font-semibold uppercase tracking-wide text-muted">Choose a lab type</span><select className="h-8 min-w-[190px] rounded-[5px] border border-line-strong bg-ink px-2 text-[12px]" value={sectionFilter} onChange={(event) => { const id = event.target.value as SectionId | 'all'; if (id === 'playground') { onPlayground(); return; } setSectionFilter(id); setSubtypeFilter('all'); }} data-testid="lab-type-picker"><option value="all">All lab types</option>{SECTIONS.map((section) => <option key={section.id} value={section.id}>{section.label}{!section.available ? ' · planned' : ''}</option>)}</select></label>
+            </>
           ) : (
             <>
-              {/* Search and topic chips */}
-              <div className="mb-4 space-y-2.5">
-                <label className="relative block max-w-[520px]">
-                  <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" aria-hidden />
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search labs: VLAN, OSPF, DHCP, ticket…" aria-label="Search labs" className="h-10 w-full rounded-[8px] border border-line-strong bg-ink pr-3 pl-9 text-[13.5px] focus:border-action" data-testid="lab-picker-search" />
-                </label>
-                <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Topics">
-                  {['all', ...topics].map((t) => {
-                    const n = t === 'all' ? null : topicCount(t);
-                    if (n === 0 && topic !== t) return null;
-                    return (
-                      <button key={t} type="button" onClick={() => setTopic(t)} aria-pressed={topic === t} className={cx('shrink-0 rounded-full border px-3 py-1 text-[12px] transition-colors', topic === t ? 'border-action bg-action/15 text-text' : 'border-line text-muted hover:border-line-strong hover:text-text')} data-testid={`lab-topic-${slug(t)}`}>
-                        {t === 'all' ? 'All topics' : t}
-                        {n !== null && <span className="ml-1.5 text-faint tabular-nums">{n}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-                {notice && <p className="text-[12px] text-degraded">{notice}</p>}
-              </div>
-
-              {/* What you are looking at */}
-              <div className="mb-3 flex flex-wrap items-end gap-2">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[15px] font-semibold">{type === 'all' ? 'All labs' : sectionOf(type).label}</h3>
-                  <p className="text-[12px] text-muted">{type === 'all' ? 'Every lab, grouped by type.' : sectionOf(type).description}</p>
-                </div>
-                <span className="text-[12px] text-muted tabular-nums">{shown.length} lab{shown.length === 1 ? '' : 's'}</span>
-                {filtered && (
-                  <Button size="sm" variant="ghost" onClick={reset}>
-                    Clear filters
-                  </Button>
-                )}
-              </div>
-              {subtypes.length > 1 && (
-                <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Lab formats">
-                  {['all', ...subtypes].map((st) => (
-                    <button key={st} type="button" onClick={() => setSubtype(st)} aria-pressed={subtype === st} className={cx('rounded-[6px] border px-2.5 py-1 text-[12px]', subtype === st ? 'border-action bg-action/10 text-text' : 'border-line text-muted hover:text-text')} data-testid={`lab-subtype-${slug(st)}`}>
-                      {st === 'all' ? 'All formats' : st}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {shown.length === 0 ? (
-                <div className="grid min-h-48 place-items-center rounded-[10px] border border-dashed border-line-strong p-6 text-center">
-                  <div>
-                    <BookOpen className="mx-auto size-6 text-faint" aria-hidden />
-                    <p className="mt-2 text-[13.5px] font-medium">No labs match</p>
-                    <p className="mt-1 text-[12.5px] text-muted">Try another topic or lab type.</p>
-                    <Button size="sm" className="mt-3" onClick={reset}>
-                      Show all labs
-                    </Button>
-                  </div>
-                </div>
-              ) : type === 'all' ? (
-                <div className="space-y-6" data-testid="lab-library-results">
-                  {SECTIONS.filter((s) => !s.soon).map((s) => {
-                    const list = shown.filter((e) => e.section === s.id);
-                    if (!list.length) return null;
-                    return (
-                      <section key={s.id} aria-label={s.label} data-testid={`lab-group-${s.id}`}>
-                        <div className="mb-2 flex items-center gap-2">
-                          <s.icon className={cx('size-4', s.tone)} aria-hidden />
-                          <h4 className="text-[13.5px] font-semibold">{s.label}</h4>
-                          <span className="text-[12px] text-faint tabular-nums">{list.length}</span>
-                          {list.length > 6 && (
-                            <button type="button" onClick={() => pickType(s.id)} className="ml-auto inline-flex items-center gap-0.5 text-[12px] text-action hover:underline">
-                              See all <ChevronRight className="size-3.5" aria-hidden />
-                            </button>
-                          )}
-                        </div>
-                        {grid(list.slice(0, 6))}
-                      </section>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div data-testid="lab-library-results">{grid(shown)}</div>
-              )}
+              <label className="space-y-0.5"><span className="block text-[10px] font-semibold uppercase tracking-wide text-muted">Choose a lab type</span><select className="h-8 min-w-[220px] rounded-[5px] border border-line-strong bg-ink px-2 text-[12px]" value={sectionFilter} onChange={(event) => { const id = event.target.value as SectionId | 'all'; if (id === 'playground') { onPlayground(); return; } setSectionFilter(id); setSubtypeFilter('all'); }} data-testid="lab-type-picker"><option value="all">All lab types</option>{SECTIONS.map((section) => <option key={section.id} value={section.id}>{section.label}{!section.available ? ' · planned' : ''}</option>)}</select></label>
+              <label className="space-y-0.5"><span className="block text-[10px] font-semibold uppercase tracking-wide text-muted">Filter by topic</span><select className="h-8 min-w-[220px] max-w-[min(72vw,360px)] rounded-[5px] border border-line-strong bg-ink px-2 text-[12px]" value={studyTopicId} onChange={(event) => chooseStudyTopic(event.target.value)} data-testid="lab-topic-picker"><option value="">All topics in {cert?.short ?? 'the course'}</option>{studyTopicGroups.map(([group, topics]) => <optgroup key={group} label={group}>{topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</optgroup>)}</select></label>
             </>
           )}
+          <div className="ml-auto"><Button size="sm" variant={showProgress ? 'primary' : 'secondary'} onClick={() => setShowProgress((value) => !value)} data-testid="lab-progress">{showProgress ? 'Back to lab library' : 'Lab progress'}</Button></div>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <aside className="max-h-[min(62vh,680px)] space-y-3 overflow-y-auto pr-1">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted" aria-hidden />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search topics or labs…" aria-label="Search topics or labs" className="h-9 w-full rounded-lg border border-line-strong bg-ink pr-2 pl-9 text-[13px] focus:border-action" data-testid="lab-picker-search" />
+            </label>
+            <div className="border-t border-line pt-2" aria-label="Explore lab formats">
+              <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted">Explore labs</p>
+              {SECTIONS.map(({ id, label, icon: Icon, available }) => (
+                <button key={id} type="button" onClick={() => { if (id === 'playground') { onPlayground(); return; } setStudyTopicId(''); setViewMode('type'); setSectionFilter(id); setSubtypeFilter('all'); setTopicFilter('all'); }} className={cx('flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[11.5px] transition-colors', sectionFilter === id && viewMode === 'type' ? 'bg-action/15 text-text' : 'text-muted hover:bg-pane-2 hover:text-text')} data-testid={`lab-section-${id}`}>
+                  <Icon className="size-3.5 shrink-0" aria-hidden /><span className="min-w-0 flex-1 truncate">{label}</span>
+                  {id === 'playground' ? <span className="text-[10px] text-action">Open</span> : <span className="text-[10px] tabular-nums text-faint">{sectionCounts(id) || (!available ? 'Soon' : '0')}</span>}
+                </button>
+              ))}
+            </div>
+            <div className="rounded-lg border border-line bg-pane-2/60 p-2.5 text-[11.5px] leading-relaxed text-muted">
+              <p className="font-medium text-text">Your playground</p>
+              <p className="mt-1">Selecting a lab loads its topology into the canvas. Tasks, checks and results appear beside or below the canvas so you can build while you learn.</p>
+            </div>
+          </aside>
+
+          <div className="min-w-0 space-y-4" aria-live="polite">
+            {showProgress ? <ArenaHome embedded onLaunch={onArena} /> : <>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
+              <div>
+                <h3 className="text-[14px] font-semibold">{viewMode === 'topic' ? (sectionFilter === 'all' ? 'Labs by topic' : `${SECTIONS.find((item) => item.id === sectionFilter)?.label} by topic`) : sectionFilter === 'all' ? 'Browse by lab type' : SECTIONS.find((item) => item.id === sectionFilter)?.label}</h3>
+                <p className="text-[11.5px] text-muted">{filtered.length} available · select a lab to open the canvas and task panel</p>
+              </div>
+              {(query || topicFilter !== 'all' || studyTopicId || sectionFilter !== 'all' || subtypeFilter !== 'all' || filter !== 'all') && <Button size="sm" variant="ghost" onClick={() => { setQuery(''); setStudyTopicId(''); setTopicFilter('all'); setSectionFilter('all'); setSubtypeFilter('all'); setFilter('all'); }}>Clear filters</Button>}
+            </div>
+
+            {filtered.length || (viewMode === 'topic' && topicFilter !== 'all') ? (
+              <div className="max-h-[min(58vh,620px)] space-y-5 overflow-y-auto pr-1" data-testid="lab-library-results">
+                {(viewMode === 'topic'
+                  ? (topicFilter === 'all' ? [...grouped.entries()].map(([topic, labs]) => ({ id: topic, label: topic, labs })) : [{ id: topicFilter, label: topicFilter === '__selected_topic__' ? topicById(studyTopicId || initialTopic || '')?.title ?? 'Selected topic' : topicFilter, labs: grouped.get(topicFilter) ?? [] }])
+                  : (sectionFilter === 'all' ? SECTIONS.filter((item) => item.id !== 'playground') : SECTIONS.filter((item) => item.id === sectionFilter)).map((section) => ({ id: section.id, label: section.label, labs: groupedSections.get(section.id) ?? [] }))
+                ).map(({ id, label, labs }) => (
+                  <section key={id} aria-label={`${label} labs`} data-testid={`lab-group-${String(id).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
+                    <h4 className="sticky top-0 z-[1] mb-2 flex items-center gap-2 bg-pane py-1.5 text-[12px] font-semibold uppercase tracking-wide text-muted">
+                      <span className="h-px flex-1 bg-line" />{label}<span className="h-px flex-1 bg-line" />
+                    </h4>
+                    {viewMode === 'topic' && (() => { const topicDef = ARENA_TOPICS.find((topic) => arenaTopic(topic.id) === label); return topicDef ? <p className="mb-2 text-[11px] text-action">Topic mastery: {topicMastery(arenaProgress, labsFor(topicDef.id)).pct}%</p> : null; })()}
+                    {viewMode === 'type' && <p className="mb-2 text-[11px] text-muted">{SECTIONS.find((item) => item.id === id)?.description}</p>}
+                    {viewMode === 'type' && sectionFilter === id && SUBTYPES[id as SectionId] && <div className="mb-3 flex flex-wrap gap-1.5" aria-label={`${label} subtypes`}>
+                      {SUBTYPES[id as SectionId]!.map((subtype) => {
+                        const count = entries.filter((entry) => entry.subtype === subtype && entry.section === id).length;
+                        return <button key={subtype} type="button" onClick={() => setSubtypeFilter(subtypeFilter === subtype ? 'all' : subtype)} aria-pressed={subtypeFilter === subtype} className={cx('rounded-full border px-2.5 py-1 text-[10.5px] transition-colors', subtypeFilter === subtype ? 'border-action bg-action/15 text-text' : 'border-line text-muted hover:border-action hover:text-text')} data-testid={`lab-subtype-${subtype.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>{subtype} <span className="ml-1 text-faint">{count || 'Planned'}</span></button>;
+                      })}
+                    </div>}
+                    {!labs.length && <p className="mb-2 rounded-lg border border-dashed border-line px-3 py-4 text-[12px] text-muted">{SECTIONS.find((item) => item.id === id)?.available ? 'No labs in this format are available yet.' : 'Planned format · labs will appear here when ready.'}</p>}
+                    {viewMode === 'topic' ? (
+                      <div className="space-y-4">
+                        {SECTIONS.filter((section) => section.id !== 'playground' && (sectionFilter === 'all' || section.id === sectionFilter)).map((section) => {
+                          const sectionLabs = labs.filter((lab) => lab.section === section.id);
+                          return <div key={section.id} data-testid={`lab-topic-section-${section.id}`}>
+                            <h5 className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted"><span>{section.label}</span><span className="rounded-full bg-pane-2 px-1.5 py-0.5 text-[10px] tabular-nums">{sectionLabs.length}</span><span className="h-px flex-1 bg-line" /></h5>
+                            {sectionLabs.length ? <ul className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">{sectionLabs.map(renderLabCard)}</ul> : <p className="rounded-lg border border-dashed border-line px-3 py-2 text-[11px] text-muted">{section.available ? 'No labs in this format are linked to this topic yet.' : 'Planned format · labs will appear here when ready.'}</p>}
+                          </div>;
+                        })}
+                      </div>
+                    ) : <ul className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">{labs.map(renderLabCard)}</ul>}
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className="grid min-h-48 place-items-center rounded-xl border border-dashed border-line-strong p-6 text-center">
+                <div><BookOpen className="mx-auto size-6 text-faint" /><p className="mt-2 text-[13px] font-medium">No labs match this topic yet</p><p className="mt-1 text-[12px] text-muted">Try another topic or choose All labs to see the full library.</p></div>
+              </div>
+            )}
+            <p className="text-[11px] text-faint">Labs run in the simulated designer and grade the network design. Starting a lab saves your current design as a layout first.</p>
+            </>}
+          </div>
         </div>
       </div>
-    </div>
   );
-
-  if (inline) return open ? <section className="min-h-0 flex-1 overflow-y-auto bg-ink" aria-label="Lab library">{content}</section> : null;
-  return (
-    <Dialog open={open} onClose={onClose} title="Lab library" wide>
-      {content}
-    </Dialog>
-  );
+  if (inline) return open ? <section className="max-h-[min(52vh,620px)] shrink-0 overflow-y-auto border-b border-line bg-pane p-3 sm:p-4" aria-label="Lab Library">{libraryContent}</section> : null;
+  return <Dialog open={open} onClose={onClose} title="Lab Library" wide>{libraryContent}</Dialog>;
 }

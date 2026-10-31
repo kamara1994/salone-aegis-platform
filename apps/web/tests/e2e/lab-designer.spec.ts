@@ -5,7 +5,6 @@ import { expect, test, type Page } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
   await page.goto('/lab');
-  await page.getByTestId('lab-back-to-canvas').click(); // /lab opens on the lab library
   await expect(page.getByTestId('lab-device-SW-ACC-01')).toBeVisible();
 });
 

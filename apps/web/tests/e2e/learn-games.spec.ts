@@ -124,7 +124,6 @@ test('triage game: queue, hints only on request, scoring and lab link', async ({
 
 test('lab: arrow annotation, VLAN search, SVG export, background upload', async ({ page }) => {
   await page.goto('/lab');
-  await page.getByTestId('lab-back-to-canvas').click(); // /lab opens on the lab library
   await expect(page.getByTestId('lab-device-SW-ACC-01')).toBeVisible();
   await page.getByTestId('tool-note').click();
   const note = page.locator('[data-testid^="note-"]').last();
@@ -157,7 +156,6 @@ test('lab: arrow annotation, VLAN search, SVG export, background upload', async 
 test('hover card falls back to a labelled placeholder when pictures are missing, and closes on leave', async ({ page }) => {
   await page.route(/\.(png|svg|webp|jpg)(\?.*)?$/, (r) => (r.request().resourceType() === 'image' ? r.fulfill({ status: 404, body: '' }) : r.continue()));
   await page.goto('/lab');
-  await page.getByTestId('lab-back-to-canvas').click(); // /lab opens on the lab library
   const sw = page.getByTestId('lab-device-SW-ACC-01');
   await expect(sw).toBeVisible();
   await sw.hover({ position: { x: 64, y: 30 } });

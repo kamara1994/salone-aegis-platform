@@ -6,7 +6,6 @@ import fs from 'node:fs';
 test.beforeEach(async ({ page }) => {
   await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
   await page.goto('/lab');
-  await page.getByTestId('lab-back-to-canvas').click(); // /lab opens on the lab library
   await expect(page.getByTestId('lab-device-SW-ACC-01')).toBeVisible();
 });
 
@@ -82,6 +81,5 @@ test('a draft saved by an older version still opens', async ({ page, context }) 
   }, key);
   const p2 = await context.newPage();
   await p2.goto('/lab');
-  await p2.getByTestId('lab-back-to-canvas').click(); // /lab opens on the lab library
   await expect(p2.getByTestId('lab-device-Router0')).toBeVisible();
 });
