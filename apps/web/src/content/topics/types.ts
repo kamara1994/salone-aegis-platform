@@ -25,6 +25,13 @@ export interface Topic {
   /** Design choices, edge cases, commands, what professionals watch for */
   advanced: string;
   terms: [string, string][];
+  /** Optional tutor guidance supplied by a topic author. */
+  prerequisites?: string[];
+  ai?: {
+    commonConfusions?: string[];
+    analogiesUsed?: string[];
+    checkQuestions?: string[];
+  };
   example?: { title: string; code: string };
   mistakes?: string[];
   quiz: TopicQuestion[];

@@ -1,6 +1,6 @@
 'use client';
 
-import { Award, BookOpenText, BrainCircuit, Calculator, ChevronDown, Compass, History, Images, Joystick, Layers, ListChecks, MessagesSquare, MousePointerClick, PanelLeftClose, PanelLeftOpen, Route, ScrollText, Settings2, Siren, Tags, Timer, TrendingUp, Wrench, type LucideIcon } from 'lucide-react';
+import { Award, BookOpenText, BrainCircuit, Calculator, ChevronDown, Compass, History, Images, Joystick, Layers, ListChecks, MessagesSquare, MousePointerClick, PanelLeftClose, PanelLeftOpen, Route, ScrollText, Settings2, Siren, Sparkles, Tags, Timer, TrendingUp, Wrench, type LucideIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -31,6 +31,7 @@ const LabDrills = dynamic(() => import('@/components/learn/Practice').then((modu
 const Practice = dynamic(() => import('@/components/learn/Practice').then((module) => module.Practice), { loading: SectionLoading });
 const Subnetting = dynamic(() => import('@/components/learn/Practice').then((module) => module.Subnetting), { loading: SectionLoading });
 const ScenarioQuestions = dynamic(() => import('@/components/learn/ScenarioQuestions').then((module) => module.ScenarioQuestions), { loading: SectionLoading });
+const AITutor = dynamic(() => import('@/components/learn/AITutor').then((module) => module.AITutor), { loading: SectionLoading });
 const TopicPlayground = dynamic(() => import('@/components/learn/Topics').then((module) => module.TopicPlayground), { loading: SectionLoading });
 const TracksView = dynamic(() => import('@/components/learn/Tracks').then((module) => module.TracksView), { loading: SectionLoading });
 const VisualsView = dynamic(() => import('@/components/learn/Visuals').then((module) => module.VisualsView), { loading: SectionLoading });
@@ -49,6 +50,7 @@ const LEARN_PARTS: Part[] = [
   { key: 'scenario-questions', label: 'Scenario questions', hint: 'Real tickets: cause, fix, escalate', icon: ScrollText, hue: HUE.real },
   { key: 'interview', label: 'Interview mode', hint: 'Answer out loud, get feedback', icon: MessagesSquare, hue: HUE.talk },
   { key: 'ai', label: 'AI practice questions', hint: 'Fresh questions on weak spots', icon: BrainCircuit, hue: HUE.ai },
+  { key: 'ai-tutor', label: 'AI Tutor', hint: 'Ask about this topic', icon: Sparkles, hue: HUE.ai },
   { key: 'subnetting', label: 'Subnetting drills', hint: 'Quick address maths', icon: Calculator, hue: HUE.math },
   { key: 'tracks', label: 'Tracks', hint: 'Step-by-step study path', icon: Route, hue: HUE.path },
   { key: 'lessons', label: 'Interactive lessons', hint: 'Guided walk-throughs', icon: Compass, hue: HUE.read },
@@ -345,6 +347,28 @@ export default function DashboardPage() {
               )}
               {part === 'interview' && <Interview key={mode} initialLevel={mode === 'simple' ? 'entry' : 'senior'} />}
               {part === 'ai' && <Practice key={focus.aiTrack} initialTrack={focus.aiTrack as Track | undefined} />}
+              {part === 'ai-tutor' && (
+                <div className="grid min-h-[70vh] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.72fr)]" data-testid="ai-tutor-workspace">
+                  <div className="min-w-0 rounded-xl border border-line bg-pane p-4 sm:p-5" data-testid="ai-tutor-reading-page">
+                    {topic ? (
+                      <TopicPlayground key={topic.id} topicId={topic.id} list={topics} scopeLabel={dash.short} level={mode} onTopic={pickTopic} onOpenLesson={(l) => setLesson(l)} />
+                    ) : (
+                      <div className="grid min-h-[55vh] place-items-center text-center text-muted">
+                        <div><Tags className="mx-auto mb-2 size-8 opacity-50" /><p className="text-[14px]">Choose a topic from the picker above to read alongside the tutor.</p></div>
+                      </div>
+                    )}
+                  </div>
+                  <AITutor
+                    key={focus.id}
+                    bookId={focus.id}
+                    bookTitle={focus.name}
+                    topic={topic}
+                    mode={mode}
+                    topics={topics}
+                    onTopic={pickTopic}
+                  />
+                </div>
+              )}
               {part === 'subnetting' && <Subnetting />}
               {part === 'tracks' && (
                 <TracksView
