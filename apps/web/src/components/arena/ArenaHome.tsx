@@ -51,7 +51,7 @@ function LabCard({ lab, onLaunch }: { lab: ArenaLab; onLaunch: () => void }) {
 }
 
 /** Lab Arena: assessed, Packet Tracer style labs organised by CCNA topic, with a running record. */
-export function ArenaHome({ embedded }: { embedded?: boolean }) {
+export function ArenaHome({ embedded, onLaunch }: { embedded?: boolean; onLaunch?: (id: string) => void }) {
   const router = useRouter();
   const prog = useArena();
   const ready = ARENA_TOPICS.filter((t) => t.status === 'ready');
@@ -64,7 +64,7 @@ export function ArenaHome({ embedded }: { embedded?: boolean }) {
     const secs = all.reduce((n, a) => n + a.seconds, 0);
     return { attempts: all.length, labsDone, hours: (secs / 3600).toFixed(1), mastery: topicMastery(prog, ARENA_LABS).pct };
   }, [prog]);
-  const launch = (id: string) => router.push(`/lab?arena=${encodeURIComponent(id)}`);
+  const launch = (id: string) => onLaunch ? onLaunch(id) : router.push(`/lab?arena=${encodeURIComponent(id)}`);
   const history = [...prog.attempts].reverse().slice(0, 12);
 
   return (

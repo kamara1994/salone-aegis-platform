@@ -65,6 +65,7 @@ export function Glossed({ text, terms }: { text: string; terms: [string, string]
 const sel = 'h-9 rounded-[5px] border border-line-strong bg-ink px-2 text-[13px]';
 
 function labLink(t: Topic) {
+  if (t.lab?.workbook === 'vlans-trunking') return { href: '/lab?library=all&view=topic&chapter=8', label: 'Practice Ch 8 labs', icon: FlaskConical };
   if (t.lab?.workbook) return { href: `/lab?workbook=${t.lab.workbook}`, label: 'Open the guided lab', icon: FlaskConical };
   if (t.lab?.challenge) return { href: `/lab?challenge=${t.lab.challenge}`, label: 'Fix a broken network in the Lab', icon: FlaskConical };
   if (t.lab?.game) return { href: `/games?template=${t.lab.game}`, label: 'Play a scenario', icon: Gamepad2 };

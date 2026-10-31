@@ -15,8 +15,9 @@ import type { ToolKey } from '@/components/lab/ToolsPanel';
 import { Button, cx, ErrorState, IconButton, Loading, relTime } from '@/components/ui';
 import { ARENA_PREFIX } from '@/lab/arena';
 import { startArena, useArenaUi } from '@/lab/arena/session';
+import { updateArena } from '@/lab/arena/progress';
 import { prepareChallenge } from '@/lab/challenges';
-import { buildDoc } from '@/lab/inventory';
+import { buildDoc, emptyDoc } from '@/lab/inventory';
 import { setFresh, useLab } from '@/lab/store';
 import type { CableEnd, LabDoc } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
@@ -39,8 +40,8 @@ const ArenaPanel = dynamic(() => import('@/components/arena/ArenaPanel').then((m
 const TerminalDock = dynamic(() => import('@/components/arena/TerminalDock').then((module) => module.TerminalDock), { ssr: false });
 const LabPicker = dynamic(() => import('@/components/lab/LabPicker').then((module) => module.LabPicker), { loading: PanelLoading });
 
-function loadWorkbook(id: string) {
-  void import('@/components/lab/WorkbooksTab').then(({ startWorkbookById }) => startWorkbookById(id));
+function loadWorkbook(id: string, fit?: () => void) {
+  void import('@/components/lab/WorkbooksTab').then(({ startWorkbookById }) => startWorkbookById(id, fit));
 }
 
 function liveBaseline(fresh: LabDoc): LabDoc {
@@ -110,6 +111,10 @@ function Designer({ lab }: { lab: MockLab | null }) {
   const [simOpen, setSimOpenRaw] = useState(false);
   const [tools, setTools] = useState<ToolKey | null>(null);
   const [labsOpen, setLabsOpen] = useState(false);
+  const [libraryFilter, setLibraryFilter] = useState<'all' | 'guided' | 'scenario' | 'assessment'>('all');
+  const [libraryView, setLibraryView] = useState<'type' | 'topic'>('type');
+  const [libraryTopic, setLibraryTopic] = useState<string | null>(null);
+  const [libraryProgress, setLibraryProgress] = useState(false);
   const setSimOpen = (v: boolean) => {
     setSimOpenRaw(v);
     if (v) setTools(null);
@@ -121,9 +126,9 @@ function Designer({ lab }: { lab: MockLab | null }) {
       window.sessionStorage.setItem('aegis.lab.hideSourceBanner', v ? '1' : '0');
     } catch {}
   };
-  // Small screens: start with the library closed so the canvas has room; remember a dismissed banner for this session.
+  // Narrow screens: start with the device library closed so the canvas has room; remember a dismissed banner for this session.
   useEffect(() => {
-    if (window.innerWidth < 1024) setPalette(false);
+    if (window.innerWidth < 1280) setPalette(false);
     try {
       if (window.sessionStorage.getItem('aegis.lab.hideSourceBanner') === '1') setHideSourceState(true);
     } catch {}
@@ -143,6 +148,16 @@ function Designer({ lab }: { lab: MockLab | null }) {
   // /lab?workbook=<id> and /lab?challenge=<id> (from the Learn page) start a guided lab or a drill.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const library = params.get('library');
+    if (library === 'all' || library === 'guided' || library === 'scenario' || library === 'assessment') {
+      setLibraryView(params.get('view') === 'topic' ? 'topic' : 'type');
+      setLibraryTopic(params.get('topic') ?? (params.get('chapter') ? `ch${params.get('chapter')}` : null));
+      setLibraryProgress(params.get('progress') === '1');
+      window.history.replaceState(null, '', window.location.pathname);
+      setLibraryFilter(library);
+      setLabsOpen(true);
+      return;
+    }
     const arena = params.get('arena');
     if (arena) {
       window.history.replaceState(null, '', window.location.pathname);
@@ -237,6 +252,10 @@ function Designer({ lab }: { lab: MockLab | null }) {
             <>
               <span className="font-medium text-text">Simulated lab.</span> Devices, ports, VLANs, leases and firewall rules are read from the built-in lab, so injected faults show up on the canvas. Consoles are simulated shells.
             </>
+          ) : doc.source === 'blank' ? (
+            <>
+              <span className="font-medium text-text">Open playground.</span> Start from a blank canvas, add devices, connect ports and build your own network. This design autosaves in your browser and has no grading.
+            </>
           ) : (
             <>
               <span className="font-medium text-text">Live back end.</span> Devices and links come from GET /topology. That contract has no ports, MACs or routes, so cable ports are inferred and MACs show as not reported. Edits stay in this design and do not change the lab. Terminals and VM consoles open real sessions through the back end, or say why they cannot.
@@ -253,13 +272,13 @@ function Designer({ lab }: { lab: MockLab | null }) {
           </Button>
         </Banner>
       )}
-      <div className="relative flex min-h-0 flex-1">
+      <div className={cx('relative flex min-h-0 flex-1', arenaId && 'max-xl:flex-col')}>
         {palette && (
-          <aside className="w-[196px] shrink-0 border-r border-line bg-pane max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:z-20 max-lg:shadow-xl">
+          <aside className="w-[196px] shrink-0 border-r border-line bg-pane max-xl:absolute max-xl:inset-y-0 max-xl:left-0 max-xl:z-20 max-xl:shadow-xl">
             <Palette />
           </aside>
         )}
-        <main className="relative min-w-0 flex-1" aria-label="Canvas">
+        <main className={cx('relative min-w-0 flex-1', arenaId && 'max-xl:h-[min(56vh,560px)] max-xl:min-h-[360px] max-xl:flex-none')} aria-label="Canvas">
           <LabCanvas actions={actions} />
           {arenaId && <TerminalDock />}
         </main>
@@ -314,10 +333,14 @@ function Designer({ lab }: { lab: MockLab | null }) {
       {shortcuts && <ShortcutsDialog open onClose={() => setShortcuts(false)} />}
       {labsOpen && <LabPicker
         open
+        initialFilter={libraryFilter}
         onClose={() => setLabsOpen(false)}
+        initialView={libraryView}
+        initialTopic={libraryTopic}
+        initialProgress={libraryProgress}
         onStart={(id) => {
           setLabsOpen(false);
-          loadWorkbook(id);
+          loadWorkbook(id, () => rf.fitView({ padding: 0.15, duration: 250 }));
           setTools('labs');
           setSimOpenRaw(false);
         }}
@@ -330,7 +353,40 @@ function Designer({ lab }: { lab: MockLab | null }) {
           const p = cur.doc ? prepareChallenge(cur.doc, id) : null;
           if (p) cur.startChallenge({ title: p.def.title, brief: p.brief, fault: p.fault }, p.apply);
           else cur.setError({ title: 'This ticket needs a design with a PC on a switch. Reset to the built-in lab and try again.', issues: [], tone: 'error' });
+          if (p) setTimeout(() => rf.fitView({ padding: 0.15, duration: 250 }), 150);
           setTools('challenge');
+        }}
+        onArena={(id) => {
+          setLabsOpen(false);
+          if (startArena(id)) {
+            setTools(null);
+            setSimOpenRaw(false);
+            if (s.tool === 'simulate') s.setTool('select');
+          }
+        }}
+        onPlayground={() => {
+          setLabsOpen(false);
+          const st = useLab.getState();
+          if (st.doc?.devices.length) st.saveLayout(`Before open playground · ${new Date().toLocaleString()}`.slice(0, 60));
+          if (st.doc?.workbook) st.endWorkbook();
+          if (useLab.getState().doc?.challenge) useLab.getState().endChallenge();
+          updateArena((progress) => { progress.active = undefined; });
+          useLab.getState().commit('Open playground', (doc) => {
+            for (const key of Object.keys(doc) as (keyof LabDoc)[]) if (key !== 'version') delete (doc as Partial<LabDoc>)[key];
+            Object.assign(doc, emptyDoc());
+          });
+          const blank = useLab.getState();
+          blank.clearSelection();
+          blank.setTool('select');
+          blank.setCompare(false);
+          blank.clearTraces();
+          blank.closeInspector();
+          blank.setError(null);
+          useArenaUi.setState({ terms: [], activeTerm: null, termOpen: false, resultsOpen: false, submitted: null });
+          setTools(null);
+          setSimOpenRaw(false);
+          setPalette(true);
+          setTimeout(() => rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 250 }), 100);
         }}
       />}
       {newCable && <NewCableDialog open onClose={() => setNewCable(null)} initial={newCable} />}

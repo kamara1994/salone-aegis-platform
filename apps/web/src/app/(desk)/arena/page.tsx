@@ -1,7 +1,7 @@
 'use client';
 
-import { ArenaHome } from '@/components/arena/ArenaHome';
+import { redirect } from 'next/navigation';
 
 export default function ArenaPage() {
-  return <ArenaHome />;
+  redirect('/lab?library=all&progress=1');
 }

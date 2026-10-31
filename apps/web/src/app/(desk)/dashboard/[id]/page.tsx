@@ -1,6 +1,6 @@
 'use client';
 
-import { Award, BookOpenText, BrainCircuit, Calculator, ChevronDown, Compass, History, Images, Joystick, Layers, ListChecks, MessagesSquare, MousePointerClick, PanelLeftClose, PanelLeftOpen, Route, ScrollText, Settings2, Siren, Sparkles, Tags, Timer, TrendingUp, Wrench, type LucideIcon } from 'lucide-react';
+import { Award, BookOpenText, BrainCircuit, Calculator, ChevronDown, Compass, History, Images, Joystick, Layers, MessagesSquare, MousePointerClick, PanelLeftClose, PanelLeftOpen, Route, ScrollText, Settings2, Sparkles, Tags, Timer, TrendingUp, Wrench, type LucideIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -27,7 +27,6 @@ const TimedExam = dynamic(() => import('@/components/learn/Exams').then((module)
 const LessonLibrary = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonLibrary), { loading: SectionLoading });
 const LessonReader = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonReader), { loading: SectionLoading });
 const Interview = dynamic(() => import('@/components/learn/Practice').then((module) => module.Interview), { loading: SectionLoading });
-const LabDrills = dynamic(() => import('@/components/learn/Practice').then((module) => module.LabDrills), { loading: SectionLoading });
 const Practice = dynamic(() => import('@/components/learn/Practice').then((module) => module.Practice), { loading: SectionLoading });
 const Subnetting = dynamic(() => import('@/components/learn/Practice').then((module) => module.Subnetting), { loading: SectionLoading });
 const ScenarioQuestions = dynamic(() => import('@/components/learn/ScenarioQuestions').then((module) => module.ScenarioQuestions), { loading: SectionLoading });
@@ -35,8 +34,6 @@ const AITutor = dynamic(() => import('@/components/learn/AITutor').then((module)
 const TopicPlayground = dynamic(() => import('@/components/learn/Topics').then((module) => module.TopicPlayground), { loading: SectionLoading });
 const TracksView = dynamic(() => import('@/components/learn/Tracks').then((module) => module.TracksView), { loading: SectionLoading });
 const VisualsView = dynamic(() => import('@/components/learn/Visuals').then((module) => module.VisualsView), { loading: SectionLoading });
-const ArenaHome = dynamic(() => import('@/components/arena/ArenaHome').then((module) => module.ArenaHome), { loading: SectionLoading });
-const ScenarioLibrary = dynamic(() => import('@/components/scenarios/ScenarioLibrary').then((module) => module.ScenarioLibrary), { loading: SectionLoading });
 
 type Part = { key: string; label: string; hint?: string; icon: LucideIcon; hue: string };
 
@@ -63,18 +60,9 @@ const MODES: { key: TeachLevel; label: string; hint: string }[] = [
   { key: 'technical', label: 'Technical / Expert', hint: 'Expert terms, commands, design choices, and edge cases' },
 ];
 
-/** Scenario library filter that suits each dashboard (the library's tags combine with AND). */
-const SCENARIO_TAGS: Record<string, string[]> = { networking: ['ccna'], security: ['security-plus'], soc: ['soc'], 'it-support': ['it-support'] };
-
 /** The parts listed in the side panel for each section. Labs has its own panel (devices and cables). */
 function partsFor(section: DashSection, focus: Cert): Part[] {
   if (section === 'learn') return LEARN_PARTS;
-  if (section === 'scenario-lab')
-    return [
-      { key: 'arena', label: 'Lab Arena', hint: 'Graded labs by CCNA topic', icon: Award, hue: HUE.test },
-      { key: 'faults', label: 'Fault scenarios', hint: 'Inject a fault, fix it, debrief', icon: Siren, hue: HUE.real },
-      { key: 'drills', label: 'Guided lab drills', hint: 'Workbooks and troubleshooting', icon: ListChecks, hue: HUE.path },
-    ];
   if (section === 'games') {
     const games = allGames().filter((g) => focus.games.includes(g.id));
     return [{ key: 'all', label: 'All games', hint: `${games.length} for this area`, icon: Joystick, hue: HUE.play }, ...games.map((g) => ({ key: g.id, label: g.title, hint: `${g.cases.length} tickets`, icon: Joystick, hue: HUE.play }))];
@@ -125,7 +113,7 @@ export default function DashboardPage() {
     if (dash && useUi.getState().certId !== dash.id) useUi.getState().setCert(dash.id);
     const p = new URLSearchParams(window.location.search);
     const it = p.get('item');
-    const moved: Record<string, string> = { exam: 'learn/exam', flashcards: 'learn/flashcards', scenarios: 'scenario-lab', 'learn/drills': 'scenario-lab/drills' };
+    const moved: Record<string, string> = { exam: 'learn/exam', flashcards: 'learn/flashcards', scenarios: 'labs', 'learn/drills': 'labs', 'scenario-lab': 'labs', 'scenario-lab/arena': 'labs', 'scenario-lab/faults': 'labs', 'scenario-lab/drills': 'labs' };
     useDashItem.setState({ item: !it || it.startsWith('topic:') ? null : (moved[it] ?? it) });
     setTopicId(p.get('topic') ?? '');
     if (window.innerWidth < 768) setPanel(false);
@@ -382,17 +370,6 @@ export default function DashboardPage() {
                 />
               )}
               {part === 'lessons' && (lesson ? <LessonReader key={lesson} lessonId={lesson} onClose={() => setLesson(null)} /> : <LessonLibrary onOpen={(l) => setLesson(l)} />)}
-            </div>
-          )}
-          {section === 'scenario-lab' && (
-            <div data-testid="playground-scenario-lab">
-              {part === 'arena' && <ArenaHome embedded />}
-              {part === 'faults' && <ScenarioLibrary key={dash.id} initialTags={SCENARIO_TAGS[dash.id]} />}
-              {part === 'drills' && (
-                <div className="p-4">
-                  <LabDrills />
-                </div>
-              )}
             </div>
           )}
           {section === 'games' && (

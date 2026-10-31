@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Award, BriefcaseBusiness, FolderGit2, GraduationCap, Joystick, Network, Settings2, Siren, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Award, BriefcaseBusiness, FolderGit2, GraduationCap, Joystick, Network, Settings2, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { create } from 'zustand';
@@ -26,7 +26,6 @@ export const useDashItem = create<{ item: string | null; setItem: (item: string 
 export const SIDE_ITEMS = [
   { item: 'learn', label: 'Learn', icon: GraduationCap },
   { item: 'labs', label: 'Labs', icon: Network },
-  { item: 'scenario-lab', label: 'Scenario lab', icon: Siren },
   { item: 'games', label: 'Games', icon: Joystick },
   { item: 'projects', label: 'Projects', icon: FolderGit2 },
   { item: 'skills', label: 'Skills', icon: Award },
@@ -37,7 +36,11 @@ export const SIDE_ITEMS = [
 
 export type DashSection = (typeof SIDE_ITEMS)[number]['item'];
 
-export const sectionOf = (item: string | null) => (item ? (item.split('/')[0] as DashSection) : null);
+export const sectionOf = (item: string | null): DashSection | null => {
+  if (!item) return null;
+  const section = item.split('/')[0];
+  return (section === 'scenario-lab' ? 'labs' : section) as DashSection;
+};
 
 export function dashAccent(id: string) {
   const dash = dashboardById(id);

@@ -60,16 +60,16 @@ export function ArenaPanel({ labId }: { labId: string }) {
 
   if (collapsed)
     return (
-      <aside className="flex w-11 shrink-0 flex-col items-center gap-2 border-l border-line bg-pane py-2" aria-label="Lab activity">
+      <aside className="flex w-11 shrink-0 flex-col items-center gap-2 border-l border-line bg-pane py-2 max-xl:h-10 max-xl:w-full max-xl:flex-row max-xl:justify-center max-xl:border-l-0 max-xl:border-t max-xl:py-1" aria-label="Lab activity">
         <IconButton label="Show lab activity" onClick={() => setCollapsed(false)}>
           <PanelRightOpen className="size-4" />
         </IconButton>
-        <span className="text-[11px] font-semibold tabular-nums [writing-mode:vertical-rl]">{grade.completion}%</span>
+        <span className="text-[11px] font-semibold tabular-nums [writing-mode:vertical-rl] max-xl:[writing-mode:horizontal-tb]">{grade.completion}% complete</span>
       </aside>
     );
 
   return (
-    <aside className="flex w-[380px] shrink-0 flex-col border-l border-line bg-pane max-xl:absolute max-xl:inset-y-0 max-xl:right-0 max-xl:z-20 max-xl:w-[min(380px,100%)] max-xl:shadow-xl" aria-label="Lab activity" data-testid="arena-panel">
+    <aside className="flex w-[380px] shrink-0 flex-col border-l border-line bg-pane max-xl:relative max-xl:inset-auto max-xl:z-auto max-xl:h-[min(42vh,380px)] max-xl:max-h-[42vh] max-xl:w-full max-xl:border-l-0 max-xl:border-t max-xl:shadow-none" aria-label="Lab activity" data-testid="arena-panel">
       <header className="space-y-2 border-b border-line px-3 pt-3 pb-2">
         <div className="flex items-center gap-2">
           <Trophy className="size-4 text-action" aria-hidden />
@@ -260,8 +260,8 @@ export function ArenaPanel({ labId }: { labId: string }) {
       </div>
 
       <footer className="flex items-center gap-2 border-t border-line px-3 py-2 text-[12px]">
-        <Link href="/arena" className="text-muted hover:text-text">
-          All Arena labs
+        <Link href="/lab?library=all" className="text-muted hover:text-text">
+          Lab library
         </Link>
         <Button size="sm" variant="ghost" className="ml-auto" onClick={() => startArena(labId)} data-testid="arena-restart">
           <RotateCcw className="size-3.5" /> Restart

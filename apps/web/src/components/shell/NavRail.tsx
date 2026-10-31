@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, BarChart3, Cable, BookOpen, Gamepad2, GraduationCap, History, LayoutDashboard, Network, School, Settings, ShieldAlert, Ticket, Trophy } from 'lucide-react';
+import { Activity, BarChart3, Cable, BookOpen, Gamepad2, GraduationCap, History, LayoutDashboard, Network, School, Settings, ShieldAlert, Ticket } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAlerts, useTickets } from '@/api/hooks';
@@ -13,9 +13,8 @@ export const NAV = [
   { href: '/tickets', label: 'Tickets', icon: Ticket },
   { href: '/topology', label: 'Map', icon: Network },
   { href: '/lab', label: 'Lab', icon: Cable },
-  { href: '/arena', label: 'Arena', icon: Trophy },
   { href: '/soc', label: 'SOC', icon: ShieldAlert },
-  { href: '/scenarios', label: 'Scenarios', icon: BookOpen },
+  { href: '/scenarios', label: 'Ticket scenarios', icon: BookOpen },
   { href: '/learn', label: 'Learn', icon: School },
   { href: '/games', label: 'Games', icon: Gamepad2 },
   { href: '/skills', label: 'Skills', icon: GraduationCap },
