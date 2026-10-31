@@ -8,8 +8,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
 import type { Topology } from '@/api/types';
 import { useRuntime } from '@/components/providers';
-import { certById, certTopics } from '@/content/certs';
-import { ALL_TOPICS, COURSES } from '@/content/topics';
 import { LabCanvas, LabFlowProvider, type CanvasActions } from '@/components/lab/LabCanvas';
 import { Palette } from '@/components/lab/Palette';
 import { Toolbar } from '@/components/lab/Toolbar';
@@ -24,7 +22,6 @@ import { setFresh, useLab } from '@/lab/store';
 import type { CableEnd, LabDoc } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
 import { initialLab, type LabState as MockLab } from '@/mock/lab';
-import { useUi } from '@/state/ui';
 
 const BASELINE_KEY = 'aegis.lab.baseline.v1:live-topology';
 const PanelLoading = () => <div className="grid min-h-24 place-items-center text-[12px] text-muted" role="status">Loading…</div>;
@@ -103,18 +100,6 @@ function Designer({ lab }: { lab: MockLab | null }) {
   const rt = useRuntime();
   const rf = useReactFlow();
   const s = useLab();
-  const certId = useUi((state) => state.certId);
-  const studyCert = certById(certId);
-  const studyTopics = useMemo(() => studyCert ? certTopics(studyCert) : ALL_TOPICS, [studyCert]);
-  const studyTopicGroups = useMemo(() => {
-    const groups = new Map<string, typeof studyTopics>();
-    for (const topic of studyTopics) {
-      const course = COURSES.find((item) => item.id === topic.course)?.title.replace(/ \(.*\)$/, '') ?? topic.course;
-      const group = `${course} · ${topic.unit}`;
-      groups.set(group, [...(groups.get(group) ?? []), topic]);
-    }
-    return [...groups.entries()];
-  }, [studyTopics]);
   const doc = s.doc!;
   const [palette, setPalette] = useState(true);
   const [layouts, setLayouts] = useState(false);
@@ -125,11 +110,10 @@ function Designer({ lab }: { lab: MockLab | null }) {
   const [vmFor, setVmFor] = useState<string | null>(null);
   const [simOpen, setSimOpenRaw] = useState(false);
   const [tools, setTools] = useState<ToolKey | null>(null);
-  const [labsOpen, setLabsOpen] = useState(false);
+  const [labsOpen, setLabsOpen] = useState(true);
   const [libraryFilter, setLibraryFilter] = useState<'all' | 'guided' | 'scenario' | 'assessment'>('all');
-  const [libraryView, setLibraryView] = useState<'type' | 'topic'>('type');
+  const [libraryView, setLibraryView] = useState<'type' | 'topic'>('topic');
   const [libraryTopic, setLibraryTopic] = useState<string | null>(null);
-  const [studyTopicId, setStudyTopicId] = useState('');
   const [libraryProgress, setLibraryProgress] = useState(false);
   const setSimOpen = (v: boolean) => {
     setSimOpenRaw(v);
@@ -176,12 +160,14 @@ function Designer({ lab }: { lab: MockLab | null }) {
     }
     const arena = params.get('arena');
     if (arena) {
+      setLabsOpen(false);
       window.history.replaceState(null, '', window.location.pathname);
       if (useLab.getState().doc?.workbook?.id !== ARENA_PREFIX + arena) startArena(arena);
       return;
     }
     const wb = params.get('workbook');
     if (wb) {
+      setLabsOpen(false);
       window.history.replaceState(null, '', window.location.pathname);
       if (useLab.getState().doc?.workbook?.id !== wb) loadWorkbook(wb);
       setTools('labs');
@@ -189,6 +175,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
     }
     const pack = params.get('pack');
     if (pack) {
+      setLabsOpen(false);
       window.history.replaceState(null, '', window.location.pathname);
       const lab = loadPacks().find((p) => p.name === pack)?.labs?.[Number(params.get('lab') ?? 0)];
       const d = lab?.doc as LabDoc | undefined;
@@ -197,6 +184,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
     }
     const id = params.get('challenge');
     if (!id) return;
+    setLabsOpen(false);
     window.history.replaceState(null, '', window.location.pathname);
     const st = useLab.getState();
     if (!st.doc || st.doc.challenge) {
@@ -254,36 +242,66 @@ function Designer({ lab }: { lab: MockLab | null }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="lab-designer">
-      <div className="flex flex-wrap items-end gap-2 border-b border-line bg-pane-2/70 px-3 py-2" data-testid="lab-study-path">
-        <label className="space-y-0.5">
-          <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted">Topic</span>
-          <select
-            className="h-8 min-w-[260px] max-w-[min(78vw,440px)] rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]"
-            value={studyTopicId}
-            aria-label="Choose a topic for a lab"
-            data-testid="lab-topic-picker"
-            onChange={(event) => {
-              const topicId = event.target.value;
-              setStudyTopicId(topicId);
-              if (!topicId) return;
-              setLibraryTopic(topicId);
-              setLibraryView('topic');
-              setLibraryFilter('all');
-              setLibraryProgress(false);
-              setLabsOpen(true);
-            }}
-          >
-            <option value="">Choose a topic from {studyCert?.short ?? 'the course'}…</option>
-            {studyTopicGroups.map(([group, topics]) => (
-              <optgroup key={group} label={group}>
-                {topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        <p className="pb-1 text-[11.5px] text-muted">Choose a topic first. Its lab types and available labs will open below.</p>
-      </div>
-      <Toolbar onLabs={() => { setLibraryTopic(null); setLibraryView('type'); setLabsOpen(true); }} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
+      {labsOpen && <LabPicker
+        open
+        inline
+        initialFilter={libraryFilter}
+        onClose={() => setLabsOpen(false)}
+        initialView={libraryView}
+        initialTopic={libraryTopic}
+        initialProgress={libraryProgress}
+        onStart={(id) => {
+          setLabsOpen(false);
+          loadWorkbook(id, () => rf.fitView({ padding: 0.15, duration: 250 }));
+          setTools('labs');
+          setSimOpenRaw(false);
+        }}
+        onChallenge={(id) => {
+          setLabsOpen(false);
+          const st = useLab.getState();
+          if (st.doc?.workbook) st.endWorkbook();
+          const cur = useLab.getState();
+          if (cur.doc?.challenge) return setTools('challenge');
+          const p = cur.doc ? prepareChallenge(cur.doc, id) : null;
+          if (p) cur.startChallenge({ title: p.def.title, brief: p.brief, fault: p.fault }, p.apply);
+          else cur.setError({ title: 'This ticket needs a design with a PC on a switch. Reset to the built-in lab and try again.', issues: [], tone: 'error' });
+          if (p) setTimeout(() => rf.fitView({ padding: 0.15, duration: 250 }), 150);
+          setTools('challenge');
+        }}
+        onArena={(id) => {
+          setLabsOpen(false);
+          if (startArena(id)) {
+            setTools(null);
+            setSimOpenRaw(false);
+            if (s.tool === 'simulate') s.setTool('select');
+          }
+        }}
+        onPlayground={() => {
+          setLabsOpen(false);
+          const st = useLab.getState();
+          if (st.doc?.devices.length) st.saveLayout(`Before open playground · ${new Date().toLocaleString()}`.slice(0, 60));
+          if (st.doc?.workbook) st.endWorkbook();
+          if (useLab.getState().doc?.challenge) useLab.getState().endChallenge();
+          updateArena((progress) => { progress.active = undefined; });
+          useLab.getState().commit('Open playground', (doc) => {
+            for (const key of Object.keys(doc) as (keyof LabDoc)[]) if (key !== 'version') delete (doc as Partial<LabDoc>)[key];
+            Object.assign(doc, emptyDoc());
+          });
+          const blank = useLab.getState();
+          blank.clearSelection();
+          blank.setTool('select');
+          blank.setCompare(false);
+          blank.clearTraces();
+          blank.closeInspector();
+          blank.setError(null);
+          useArenaUi.setState({ terms: [], activeTerm: null, termOpen: false, resultsOpen: false, submitted: null });
+          setTools(null);
+          setSimOpenRaw(false);
+          setPalette(true);
+          setTimeout(() => rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 250 }), 100);
+        }}
+      />}
+      <Toolbar onLabs={() => setLabsOpen(true)} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
           if (tools) setTools(null);
           else {
             setTools(useLab.getState().doc?.workbook ? 'labs' : 'audit');
@@ -376,64 +394,7 @@ function Designer({ lab }: { lab: MockLab | null }) {
       {layouts && <LayoutsDialog open onClose={() => setLayouts(false)} />}
       {structure && <StructureDialog open onClose={() => setStructure(false)} />}
       {shortcuts && <ShortcutsDialog open onClose={() => setShortcuts(false)} />}
-      {labsOpen && <LabPicker
-        open
-        initialFilter={libraryFilter}
-        onClose={() => setLabsOpen(false)}
-        initialView={libraryView}
-        initialTopic={libraryTopic}
-        initialProgress={libraryProgress}
-        onStart={(id) => {
-          setLabsOpen(false);
-          loadWorkbook(id, () => rf.fitView({ padding: 0.15, duration: 250 }));
-          setTools('labs');
-          setSimOpenRaw(false);
-        }}
-        onChallenge={(id) => {
-          setLabsOpen(false);
-          const st = useLab.getState();
-          if (st.doc?.workbook) st.endWorkbook();
-          const cur = useLab.getState();
-          if (cur.doc?.challenge) return setTools('challenge');
-          const p = cur.doc ? prepareChallenge(cur.doc, id) : null;
-          if (p) cur.startChallenge({ title: p.def.title, brief: p.brief, fault: p.fault }, p.apply);
-          else cur.setError({ title: 'This ticket needs a design with a PC on a switch. Reset to the built-in lab and try again.', issues: [], tone: 'error' });
-          if (p) setTimeout(() => rf.fitView({ padding: 0.15, duration: 250 }), 150);
-          setTools('challenge');
-        }}
-        onArena={(id) => {
-          setLabsOpen(false);
-          if (startArena(id)) {
-            setTools(null);
-            setSimOpenRaw(false);
-            if (s.tool === 'simulate') s.setTool('select');
-          }
-        }}
-        onPlayground={() => {
-          setLabsOpen(false);
-          const st = useLab.getState();
-          if (st.doc?.devices.length) st.saveLayout(`Before open playground · ${new Date().toLocaleString()}`.slice(0, 60));
-          if (st.doc?.workbook) st.endWorkbook();
-          if (useLab.getState().doc?.challenge) useLab.getState().endChallenge();
-          updateArena((progress) => { progress.active = undefined; });
-          useLab.getState().commit('Open playground', (doc) => {
-            for (const key of Object.keys(doc) as (keyof LabDoc)[]) if (key !== 'version') delete (doc as Partial<LabDoc>)[key];
-            Object.assign(doc, emptyDoc());
-          });
-          const blank = useLab.getState();
-          blank.clearSelection();
-          blank.setTool('select');
-          blank.setCompare(false);
-          blank.clearTraces();
-          blank.closeInspector();
-          blank.setError(null);
-          useArenaUi.setState({ terms: [], activeTerm: null, termOpen: false, resultsOpen: false, submitted: null });
-          setTools(null);
-          setSimOpenRaw(false);
-          setPalette(true);
-          setTimeout(() => rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 250 }), 100);
-        }}
-      />}
+
       {newCable && <NewCableDialog open onClose={() => setNewCable(null)} initial={newCable} />}
       {replace && <ReplaceCableDialog cableId={replace} onClose={() => setReplace(null)} />}
       {vmDevice && <VmDialog device={vmDevice} open onClose={() => setVmFor(null)} />}
