@@ -12,7 +12,7 @@ import { CableTypeSelect, IssueList } from './Pickers';
 
 const sel = 'h-8 w-full rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]';
 
-export function LayoutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function LayoutsDialog({ open, onClose, projectMode = false }: { open: boolean; onClose: () => void; projectMode?: boolean }) {
   const st = useLab();
   const [name, setName] = useState('');
   const [list, setList] = useState<SavedLayout[]>([]);
@@ -25,7 +25,7 @@ export function LayoutsDialog({ open, onClose }: { open: boolean; onClose: () =>
     }
   }, [open, st]);
   return (
-    <Dialog open={open} onClose={onClose} title="Saved lab layouts" wide>
+    <Dialog open={open} onClose={onClose} title={projectMode ? 'My Projects' : 'Saved lab layouts'} wide>
       <div className="space-y-4">
         <form
           className="flex items-end gap-2"
@@ -37,11 +37,11 @@ export function LayoutsDialog({ open, onClose }: { open: boolean; onClose: () =>
             setList(st.layouts());
           }}
         >
-          <Field label="Save the current canvas as">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="HQ redesign v2" aria-label="Layout name" data-testid="layout-name" />
+          <Field label={projectMode ? 'Save current project as' : 'Save the current canvas as'}>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={projectMode ? 'Branch office network' : 'HQ redesign v2'} aria-label={projectMode ? 'Project name' : 'Layout name'} data-testid="layout-name" />
           </Field>
           <Button type="submit" variant="primary" disabled={!name.trim()} data-testid="layout-save">
-            Save layout
+            {projectMode ? 'Save project' : 'Save layout'}
           </Button>
         </form>
         {msg && (
@@ -49,7 +49,7 @@ export function LayoutsDialog({ open, onClose }: { open: boolean; onClose: () =>
             {msg}
           </p>
         )}
-        <p className="text-[12px] text-muted">Layouts keep every device, cable, setting and position. They are stored in this browser; the lab API has no layout endpoint yet, so they do not follow you to another computer.</p>
+        <p className="text-[12px] text-muted">{projectMode ? 'Projects keep every device, cable, setting and position. They are stored in this browser, so they are available on this computer.' : 'Layouts keep every device, cable, setting and position. They are stored in this browser; the lab API has no layout endpoint yet, so they do not follow you to another computer.'}</p>
         {list.length ? (
           <ul className="divide-y divide-line rounded border border-line" data-testid="layout-list">
             {list.map((l) => (
@@ -70,7 +70,7 @@ export function LayoutsDialog({ open, onClose }: { open: boolean; onClose: () =>
                   }}
                   data-testid={`layout-load-${l.name}`}
                 >
-                  Load
+                  {projectMode ? 'Open project' : 'Load'}
                 </Button>
                 <IconButton
                   label={`Delete layout ${l.name}`}

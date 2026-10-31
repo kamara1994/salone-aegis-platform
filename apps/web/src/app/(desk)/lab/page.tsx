@@ -3,7 +3,7 @@
 import { useReactFlow } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { loadPacks } from '@/content/progress';
-import { X } from 'lucide-react';
+import { ChartNoAxesCombined, FolderOpen, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
 import type { Topology } from '@/api/types';
@@ -12,7 +12,7 @@ import { LabCanvas, LabFlowProvider, type CanvasActions } from '@/components/lab
 import { Palette } from '@/components/lab/Palette';
 import { Toolbar } from '@/components/lab/Toolbar';
 import type { ToolKey } from '@/components/lab/ToolsPanel';
-import { Button, cx, ErrorState, IconButton, Loading, relTime } from '@/components/ui';
+import { Button, cx, Dialog, ErrorState, Field, IconButton, Input, Loading, relTime } from '@/components/ui';
 import { ARENA_PREFIX } from '@/lab/arena';
 import { startArena, useArenaUi } from '@/lab/arena/session';
 import { updateArena } from '@/lab/arena/progress';
@@ -109,6 +109,41 @@ function Banner({ tone = 'info', children, onClose }: { tone?: 'info' | 'warn'; 
   );
 }
 
+function ProjectProgressDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const state = useLab();
+  const doc = state.doc;
+  const projects = state.layouts();
+  const linkedDevices = new Set(doc?.cables.flatMap((cable) => [cable.a.device, cable.b.device]) ?? []);
+  return (
+    <Dialog open={open} onClose={onClose} title="Project Progress" wide>
+      <div className="space-y-4" data-testid="project-progress-overview">
+        <div>
+          <h3 className="text-[14px] font-semibold">{state.layoutName ?? 'Current project draft'}</h3>
+          <p className="text-[12px] text-muted">Track the shape of your network designs and return to saved projects when you are ready.</p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-4">
+          {[
+            ['Devices placed', doc?.devices.length ?? 0],
+            ['Cable connections', doc?.cables.length ?? 0],
+            ['Devices connected', linkedDevices.size],
+            ['Saved projects', projects.length],
+          ].map(([label, value]) => <div key={label} className="rounded-lg border border-line bg-pane-2/60 p-3"><p className="text-[11px] text-muted">{label}</p><p className="mt-1 text-[20px] font-semibold tabular-nums">{value}</p></div>)}
+        </div>
+        <section className="space-y-2" aria-label="Saved project progress">
+          <h4 className="text-[12px] font-semibold">Saved project snapshots</h4>
+          {projects.length ? <ul className="divide-y divide-line rounded-lg border border-line" data-testid="project-progress-list">
+            {projects.map((item) => <li key={item.name} className="flex flex-wrap items-center gap-2 px-3 py-2 text-[12px]">
+              <span className="min-w-0 flex-1 font-medium">{item.name}</span>
+              <span className="text-muted">{item.doc.devices.length} devices · {item.doc.cables.length} connections</span>
+              <span className="text-faint">{relTime(item.savedAt)}</span>
+            </li>)}
+          </ul> : <p className="rounded-lg border border-dashed border-line px-3 py-4 text-[12px] text-muted">No saved projects yet. Create a project and save a snapshot from My Projects as you make progress.</p>}
+        </section>
+      </div>
+    </Dialog>
+  );
+}
+
 function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const rt = useRuntime();
   const rf = useReactFlow();
@@ -116,6 +151,10 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const doc = s.doc!;
   const [palette, setPalette] = useState(true);
   const [layouts, setLayouts] = useState(false);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [projectProgressOpen, setProjectProgressOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [projectMessage, setProjectMessage] = useState('');
   const [structure, setStructure] = useState(false);
   const [shortcuts, setShortcuts] = useState(false);
   const [newCable, setNewCable] = useState<{ a?: CableEnd } | null>(null);
@@ -256,6 +295,15 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="lab-designer">
+      {project && <section className="flex flex-wrap items-center gap-3 border-b border-line bg-pane-2/60 px-3 py-2" aria-label="Networking project workspace" data-testid="project-workspace-nav">
+        <div className="mr-auto min-w-40">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-action">Networking · CCNA · CCNP</p>
+          <h2 className="text-[13px] font-semibold">Project workspace</h2>
+        </div>
+        <Button size="sm" variant="secondary" onClick={() => setLayouts(true)} data-testid="project-my-projects"><FolderOpen className="mr-1.5 size-4" />My Projects</Button>
+        <Button size="sm" variant="primary" onClick={() => { setNewProjectName(''); setProjectMessage(''); setNewProjectOpen(true); }} data-testid="project-new"><Plus className="mr-1.5 size-4" />New Project</Button>
+        <Button size="sm" variant="secondary" onClick={() => setProjectProgressOpen(true)} data-testid="project-progress"><ChartNoAxesCombined className="mr-1.5 size-4" />Project Progress</Button>
+      </section>}
       {labsOpen && <LabPicker
         open
         inline
@@ -409,7 +457,59 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           <ToolsPanel tab={tools} setTab={setTools} onClose={() => setTools(null)} />
         </div>
       )}
-      {layouts && <LayoutsDialog open onClose={() => setLayouts(false)} />}
+      {layouts && <LayoutsDialog open projectMode={!!project} onClose={() => setLayouts(false)} />}
+      {project && <>
+        <Dialog open={newProjectOpen} onClose={() => setNewProjectOpen(false)} title="Create a new project">
+          <form className="space-y-4" onSubmit={(event) => {
+            event.preventDefault();
+            const name = newProjectName.trim();
+            const st = useLab.getState();
+            if (!name) return;
+            if (st.layouts().some((item) => item.name.toLowerCase() === name.toLowerCase())) {
+              setProjectMessage('A project with that name already exists. Choose another name or open it from My Projects.');
+              return;
+            }
+            const hasWork = !!st.doc && (
+              st.doc.devices.length > 0 || st.doc.cables.length > 0 || st.doc.sites.length > 0 || st.doc.racks.length > 0
+              || st.doc.vlans.length > 0 || st.doc.subnets.length > 0 || st.doc.groups.length > 0
+              || !!st.doc.annotations?.length || !!st.doc.goals?.length || !!st.doc.challenge || !!st.doc.workbook
+            );
+            if (hasWork) {
+              const snapshotName = st.layoutName || `Autosaved project · ${new Date().toLocaleString()}`.slice(0, 60);
+              if (!st.saveLayout(snapshotName)) {
+                setProjectMessage('The current project could not be saved. Free browser storage before starting another project.');
+                return;
+              }
+            }
+            st.commit('Create project', (next) => {
+              for (const key of Object.keys(next) as (keyof LabDoc)[]) if (key !== 'version') delete (next as Partial<LabDoc>)[key];
+              Object.assign(next, emptyDoc());
+            });
+            const fresh = useLab.getState();
+            fresh.clearSelection();
+            fresh.setTool('select');
+            fresh.clearTraces();
+            fresh.closeInspector();
+            fresh.setError(null);
+            useArenaUi.setState({ terms: [], activeTerm: null, termOpen: false, resultsOpen: false, submitted: null });
+            if (!fresh.saveLayout(name)) {
+              setProjectMessage('A blank workspace opened, but the project could not be saved. Check browser storage.');
+              return;
+            }
+            setTools(null);
+            setSimOpenRaw(false);
+            setPalette(true);
+            setNewProjectOpen(false);
+            setTimeout(() => rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 250 }), 100);
+          }}>
+            <Field label="Project name"><Input autoFocus value={newProjectName} onChange={(event) => setNewProjectName(event.target.value)} placeholder="Branch office network" aria-label="New project name" data-testid="new-project-name" /></Field>
+            {projectMessage && <p role="alert" className="text-[12px] text-down">{projectMessage}</p>}
+            <p className="text-[12px] text-muted">Your project opens on a blank canvas and saves in this browser. Existing work is saved before a new project starts.</p>
+            <div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={() => setNewProjectOpen(false)}>Cancel</Button><Button type="submit" variant="primary" disabled={!newProjectName.trim()} data-testid="new-project-create">Create project</Button></div>
+          </form>
+        </Dialog>
+        <ProjectProgressDialog open={projectProgressOpen} onClose={() => setProjectProgressOpen(false)} />
+      </>}
       {structure && <StructureDialog open onClose={() => setStructure(false)} />}
       {shortcuts && <ShortcutsDialog open onClose={() => setShortcuts(false)} />}
 
