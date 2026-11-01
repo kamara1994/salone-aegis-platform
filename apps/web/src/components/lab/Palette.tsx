@@ -3,7 +3,7 @@
 import { useReactFlow } from '@xyflow/react';
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
-import { Box, Cable as CableGlyph, Cloud, Cpu, Laptop, Monitor, Network, PanelLeftClose, PanelLeftOpen, Router, Server, Shield, Wifi, type LucideIcon } from 'lucide-react';
+import { Box, Cable as CableGlyph, Cloud, Cpu, Laptop, Monitor, Network, PanelLeftClose, PanelLeftOpen, Pin, Router, Server, Shield, Wifi, type LucideIcon } from 'lucide-react';
 import { cx } from '@/components/ui';
 import { CABLE_INFO } from '@/lab/cables';
 import { CATALOG, KIND_LABEL, type DeviceModel } from '@/lab/catalog';
@@ -154,7 +154,7 @@ export function PaletteStrip({ onOpen }: { onOpen: (focus: PaletteFocus) => void
 }
 
 /** Device library. Drag a device onto the canvas, or focus it and press Enter to place it in the middle of the view. */
-export function Palette({ onCollapse, focus = null }: { onCollapse?: () => void; focus?: PaletteFocus } = {}) {
+export function Palette({ onCollapse, onPin, focus = null }: { onCollapse?: () => void; onPin?: () => void; focus?: PaletteFocus } = {}) {
   const [tab, setTab] = useState<'devices' | 'cables'>(focus === 'cables' ? 'cables' : 'devices');
   useEffect(() => {
     if (focus === 'cables') setTab('cables');
@@ -177,6 +177,11 @@ export function Palette({ onCollapse, focus = null }: { onCollapse?: () => void;
             {label}
           </button>
         ))}
+        {onPin && (
+          <button type="button" onClick={onPin} className="grid w-7 place-items-center text-muted hover:text-text" title="Keep the library open" aria-label="Keep the device library open" data-testid="palette-pin">
+            <Pin className="size-3.5" />
+          </button>
+        )}
         {onCollapse && (
           <button type="button" onClick={onCollapse} className="grid w-7 place-items-center text-muted hover:text-text" title="Collapse the library" aria-label="Collapse the device library" data-testid="palette-collapse">
             <PanelLeftClose className="size-3.5" />

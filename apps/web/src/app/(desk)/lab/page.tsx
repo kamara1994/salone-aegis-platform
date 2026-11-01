@@ -205,6 +205,8 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const doc = s.doc!;
   const [palette, setPalette] = useState(true);
   const [paletteFocus, setPaletteFocus] = useState<PaletteFocus>(null);
+  const [libPeek, setLibPeek] = useState(false);
+  const libPeekTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [layouts, setLayouts] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -485,13 +487,32 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
             </div>
           </aside>
         ) : (
-          <aside className="w-11 shrink-0 border-r border-line bg-pane max-md:hidden">
+          <aside
+            className="relative w-11 shrink-0 border-r border-line bg-pane max-md:hidden"
+            onMouseEnter={() => {
+              clearTimeout(libPeekTimer.current);
+              libPeekTimer.current = setTimeout(() => setLibPeek(true), 120);
+            }}
+            onMouseLeave={() => {
+              clearTimeout(libPeekTimer.current);
+              libPeekTimer.current = setTimeout(() => setLibPeek(false), 200);
+            }}
+            onDragEnd={() => setLibPeek(false)}
+            data-testid="palette-strip-wrap"
+          >
             <PaletteStrip
               onOpen={(f) => {
                 setPaletteFocus(f);
+                setLibPeek(false);
                 setPalette(true);
               }}
             />
+            {/* Hovering the strip slides the full library out over the canvas; it folds back when the mouse leaves. */}
+            {libPeek && (
+              <div className="absolute inset-y-0 left-full z-30 w-[216px] border-r border-line bg-pane shadow-2xl" data-testid="palette-peek">
+                <Palette onPin={() => { setLibPeek(false); setPalette(true); }} />
+              </div>
+            )}
           </aside>
         )}
         <main className={cx('relative min-w-0 flex-1', arenaId && 'max-xl:h-[min(56vh,560px)] max-xl:min-h-[360px] max-xl:flex-none')} aria-label="Canvas">
