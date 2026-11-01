@@ -4,8 +4,8 @@ import { AegisProvider } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'AEGIS cockpit', template: '%s · AEGIS' },
-  description: 'Operator cockpit for the SALONE AEGIS simulated enterprise lab',
+  title: { default: 'AEGIS', template: '%s · AEGIS' },
+  description: 'AEGIS certification study app: labs, learning and practice for networking and security exams',
 };
 export const viewport: Viewport = { themeColor: '#0b1826', width: 'device-width', initialScale: 1 };
 

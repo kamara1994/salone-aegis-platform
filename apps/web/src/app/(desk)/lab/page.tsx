@@ -215,6 +215,41 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const [vmFor, setVmFor] = useState<string | null>(null);
   const [simOpen, setSimOpenRaw] = useState(false);
   const [tools, setTools] = useState<ToolKey | null>(null);
+  // Bottom tools panel: drag its top edge to resize, or fold it to a one-line strip. Remembered per browser.
+  const [toolsH, setToolsHRaw] = useState(240);
+  const [toolsMin, setToolsMinRaw] = useState(false);
+  useEffect(() => {
+    try {
+      const h = Number(window.localStorage.getItem('aegis.lab.toolsH'));
+      if (h >= 120) setToolsHRaw(h);
+      if (window.localStorage.getItem('aegis.lab.toolsMin') === '1') setToolsMinRaw(true);
+    } catch {}
+  }, []);
+  const setToolsH = (h: number) => {
+    setToolsHRaw(h);
+    try {
+      window.localStorage.setItem('aegis.lab.toolsH', String(Math.round(h)));
+    } catch {}
+  };
+  const setToolsMin = (v: boolean) => {
+    setToolsMinRaw(v);
+    try {
+      window.localStorage.setItem('aegis.lab.toolsMin', v ? '1' : '0');
+    } catch {}
+  };
+  const startResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const y0 = e.clientY;
+    const h0 = toolsH;
+    const move = (ev: PointerEvent) => setToolsH(Math.min(window.innerHeight * 0.7, Math.max(140, h0 + y0 - ev.clientY)));
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    if (toolsMin) setToolsMin(false);
+  };
   const setSimOpen = (v: boolean) => {
     setSimOpenRaw(v);
     if (v) setTools(null);
@@ -294,6 +329,14 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // Keep the network filling the canvas when the tools panel or library opens, closes or resizes.
+  const fitKey = `${doc.workbook?.id ?? ''}|${tools ?? ''}|${toolsMin}|${palette}`;
+  useEffect(() => {
+    if (!doc.devices.length) return;
+    const t = setTimeout(() => rf.fitView({ padding: 0.1, duration: 200, maxZoom: 1.6 }), 160);
+    return () => clearTimeout(t);
+  }, [fitKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const actions: CanvasActions = {
     openTerminal: (id) => {
       if (arenaId) {
@@ -360,6 +403,8 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
         s.closeInspector();
       }} onLaunch={(item) => {
         setFocus(true);
+        // A lab that arrives built needs configuring, not placing: start with the library folded to its strip.
+        setTimeout(() => setPalette((useLab.getState().doc?.devices.length ?? 0) === 0), 0);
         if (item.kind === 'workbook') {
           loadWorkbook(item.id, () => rf.fitView({ padding: 0.15, duration: 250 }));
           setTools('labs');
@@ -498,8 +543,9 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
         </div>
       )}
       {tools && !simOpen && (
-        <div className="h-[320px] shrink-0 max-md:h-[55vh]">
-          <ToolsPanel tab={tools} setTab={setTools} onClose={() => setTools(null)} />
+        <div className="relative shrink-0 max-md:!h-[55vh]" style={{ height: toolsMin ? 'auto' : toolsH }}>
+          {!toolsMin && <div role="separator" aria-orientation="horizontal" aria-label="Resize the tools panel" title="Drag to resize" onPointerDown={startResize} className="absolute inset-x-0 -top-1 z-10 h-2 cursor-row-resize hover:bg-action/40" data-testid="tools-resize" />}
+          <ToolsPanel tab={tools} setTab={setTools} onClose={() => setTools(null)} minimized={toolsMin} onMinimize={() => setToolsMin(!toolsMin)} />
         </div>
       )}
       {layouts && <LayoutsDialog open projectMode={!!project} onClose={() => setLayouts(false)} />}

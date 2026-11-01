@@ -1,7 +1,7 @@
 'use client';
 
 import { labToSvg } from '@/lab/svgExport';
-import { Download, Play, Plus, Trash, Upload, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Play, Plus, Trash, Upload, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { Badge, Button, cx, IconButton, Input, Tabs } from '@/components/ui';
 import { auditDoc, auditScore, type Finding } from '@/lab/audit';
@@ -15,7 +15,7 @@ import { useLab } from '@/lab/store';
 import type { Goal, LabDoc } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
 import { DECISION_COLOR } from './PacketLayer';
-import { WorkbooksTab } from './WorkbooksTab';
+import { WorkbookStrip, WorkbooksTab } from './WorkbooksTab';
 
 export type ToolKey = 'labs' | 'audit' | 'goals' | 'challenge' | 'matrix' | 'capture' | 'export';
 
@@ -458,7 +458,7 @@ function ExportTab({ doc }: { doc: LabDoc }) {
   );
 }
 
-export function ToolsPanel({ tab, setTab, onClose }: { tab: ToolKey; setTab: (t: ToolKey) => void; onClose: () => void }) {
+export function ToolsPanel({ tab, setTab, onClose, minimized = false, onMinimize }: { tab: ToolKey; setTab: (t: ToolKey) => void; onClose: () => void; minimized?: boolean; onMinimize?: () => void }) {
   const doc = useLab((s) => s.doc)!;
   return (
     <section className="flex h-full min-h-0 flex-col border-t border-line bg-pane" aria-label="Engineering tools" data-testid="tools-panel">
@@ -478,10 +478,20 @@ export function ToolsPanel({ tab, setTab, onClose }: { tab: ToolKey; setTab: (t:
           ]}
         />
         <span className="flex-1" />
+        {onMinimize && (
+          <IconButton label={minimized ? 'Expand the tools panel' : 'Fold the tools panel to one line'} onClick={onMinimize} data-testid="tools-minimize">
+            {minimized ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          </IconButton>
+        )}
         <IconButton label="Close tools" onClick={onClose}>
           <X className="size-4" />
         </IconButton>
       </header>
+      {minimized ? (
+        <div className="px-3 py-1.5" data-testid="tools-strip">
+          {tab === 'labs' && doc.workbook ? <WorkbookStrip doc={doc} onExpand={onMinimize} /> : <button type="button" className="text-[12px] text-muted hover:text-text" onClick={onMinimize}>Folded. Click to expand.</button>}
+        </div>
+      ) : (
       <div className="min-h-0 flex-1 overflow-hidden p-3">
         {tab === 'labs' && <WorkbooksTab doc={doc} />}
         {tab === 'audit' && <AuditTab doc={doc} />}
@@ -491,6 +501,7 @@ export function ToolsPanel({ tab, setTab, onClose }: { tab: ToolKey; setTab: (t:
         {tab === 'capture' && <CaptureTab doc={doc} />}
         {tab === 'export' && <ExportTab doc={doc} />}
       </div>
+      )}
     </section>
   );
 }

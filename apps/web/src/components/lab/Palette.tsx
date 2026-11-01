@@ -250,7 +250,7 @@ function DeviceLibrary() {
   );
   const recentModels = recent.map((key) => CATALOG.find((m) => m.key === key)).filter((m): m is DeviceModel => !!m);
   return (
-    <nav aria-label="Device library" className="h-full overflow-auto p-2" data-testid="palette">
+    <nav aria-label="Device library" className="h-full overflow-auto p-2 select-none" data-testid="palette">
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search devices: PoE, 10G, Cisco…" aria-label="Search the device library" data-testid="palette-search" className="mb-2 h-8 w-full rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px] focus:border-action" />
       <p className="mb-2 px-1 text-[11px] text-muted">Drag onto the canvas, or tap to add.</p>
       {needle && !shown.length && <p className="px-1 text-[12px] text-muted">No device matches “{q}”.</p>}

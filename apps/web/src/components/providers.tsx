@@ -156,8 +156,8 @@ export function AegisProvider({ children }: { children: ReactNode }) {
     useUi.getState().hydrate();
     getRuntime().then(setRt, (e) => setFailed(errorText(e)));
   }, []);
-  if (failed) return <div className="p-8 text-down">Could not start the cockpit: {failed}</div>;
-  if (!rt) return <div className="grid h-screen place-items-center text-muted">Starting the cockpit…</div>;
+  if (failed) return <div className="p-8 text-down">Could not start AEGIS: {failed}</div>;
+  if (!rt) return <div className="grid h-screen place-items-center text-muted">Starting AEGIS…</div>;
   return (
     <RuntimeCtx.Provider value={rt}>
       <QueryClientProvider client={qcRef.current}>

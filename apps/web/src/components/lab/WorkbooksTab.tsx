@@ -1,7 +1,7 @@
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
-import { Check, ChevronRight, Lightbulb, RotateCcw, X } from 'lucide-react';
+import { Check, ChevronRight, Lightbulb, RotateCcw, SquareTerminal, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { updateProgress } from '@/content/progress';
 import { Badge, Button, cx } from '@/components/ui';
@@ -50,6 +50,63 @@ function Catalog() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/** Devices a task names, by hostname, so the student can open their terminals straight from the task. */
+function devicesIn(text: string, doc: LabDoc) {
+  return doc.devices.filter((d) => d.name && new RegExp(`(^|[^A-Za-z0-9-])${d.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^A-Za-z0-9-])`).test(text) && (d.kind === 'router' || d.kind === 'switch' || d.kind === 'firewall' || d.kind === 'pc' || d.kind === 'laptop' || d.kind === 'server'));
+}
+
+function openTerminal(id: string) {
+  const st = useLab.getState();
+  st.select({ devices: [id], cables: [] });
+  st.openInspector('terminal');
+}
+
+function TerminalButtons({ text, doc }: { text: string; doc: LabDoc }) {
+  const devs = devicesIn(text, doc);
+  if (!devs.length) return null;
+  return (
+    <span className="mt-1 flex flex-wrap gap-1">
+      {devs.map((d) => (
+        <button key={d.id} type="button" onClick={() => openTerminal(d.id)} className="inline-flex h-6 items-center gap-1 rounded border border-line-strong px-1.5 font-mono text-[11px] text-muted hover:border-action hover:text-text" title={`Open the ${d.name} terminal`} data-testid={`task-term-${d.name}`}>
+          <SquareTerminal className="size-3" /> {d.name}
+        </button>
+      ))}
+    </span>
+  );
+}
+
+/** The folded tools panel: the next task, its status and terminal shortcuts on one line. */
+export function WorkbookStrip({ doc, onExpand }: { doc: LabDoc; onExpand?: () => void }) {
+  const log = useLab((s) => s.log);
+  const wb = WORKBOOKS.find((w) => w.id === doc.workbook?.id);
+  const results = useMemo(() => (wb ? gradeWorkbook(wb, doc, log) : []), [wb, doc, log]);
+  if (!wb) return null;
+  const done = results.filter((r) => r.ok).length;
+  const next = wb.tasks.findIndex((_, k) => !results[k]?.ok);
+  const pct = Math.round((done / wb.tasks.length) * 100);
+  return (
+    <div className="flex min-w-0 items-center gap-3 text-[12.5px]">
+      <button type="button" onClick={onExpand} className="shrink-0 font-medium hover:text-action" data-testid="strip-progress">
+        {next < 0 ? 'All tasks done' : `Task ${next + 1} of ${wb.tasks.length}`} · {pct}%
+      </button>
+      <div className="h-1.5 w-24 shrink-0 overflow-hidden rounded bg-pane-2">
+        <div className={cx('h-full', pct === 100 ? 'bg-healthy' : 'bg-action')} style={{ width: `${pct}%` }} />
+      </div>
+      {next >= 0 && (
+        <>
+          <span className="min-w-0 flex-1 truncate" title={wb.tasks[next].text}>
+            {wb.tasks[next].text}
+            {results[next]?.detail && <span className="ml-2 text-degraded">Not yet: {results[next].detail}</span>}
+          </span>
+          <span className="shrink-0 [&>span]:mt-0">
+            <TerminalButtons text={wb.tasks[next].text} doc={doc} />
+          </span>
+        </>
+      )}
     </div>
   );
 }
@@ -110,6 +167,7 @@ function Active({ wb, doc }: { wb: Workbook; doc: LabDoc }) {
                 <div className="min-w-0 flex-1">
                   <p>{t.text}</p>
                   {!r.ok && r.detail && <p className="mt-0.5 text-[11.5px] text-degraded">Not yet: {r.detail}</p>}
+                  {!r.ok && <TerminalButtons text={t.text} doc={doc} />}
                   {hints[t.id] && <p className="mt-1 rounded bg-pane-2 px-2 py-1 font-mono text-[11px]">{t.hint}</p>}
                 </div>
                 {!r.ok && (

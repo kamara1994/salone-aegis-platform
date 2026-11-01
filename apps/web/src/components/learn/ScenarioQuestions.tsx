@@ -6,8 +6,12 @@ import { useMemo, useState } from 'react';
 import { Badge, Button, cx } from '@/components/ui';
 import { forTopic, scenarioQuestions, STAGE_LABEL } from '@/content/scenarioQuestions';
 import type { Topic } from '@/content/topics';
+import { CCNA_FOCUS_BRIEFS } from '@/content/ccnaFocus';
 
-export function ScenarioQuestions({ gameIds, topic }: { gameIds: string[]; topic?: Topic }) {
+export function ScenarioQuestions({ gameIds, topic, ccnaFocus = false }: { gameIds: string[]; topic?: Topic; ccnaFocus?: boolean }) {
+  const [focusView, setFocusView] = useState<'focus' | 'practice'>('focus');
+  const [focusBriefId, setFocusBriefId] = useState(CCNA_FOCUS_BRIEFS[0]?.id ?? '');
+  const focusBrief = CCNA_FOCUS_BRIEFS.find((brief) => brief.id === focusBriefId) ?? CCNA_FOCUS_BRIEFS[0];
   const [level, setLevel] = useState<'beginner' | 'technical'>('beginner');
   const [lessonStep, setLessonStep] = useState(0);
   const [seed, setSeed] = useState(0);
@@ -27,10 +31,36 @@ export function ScenarioQuestions({ gameIds, topic }: { gameIds: string[]; topic
   ];
   const answered = Object.keys(picked).filter((k) => list.some((x) => x.id === k));
   const right = answered.filter((k) => list.find((x) => x.id === k)!.answer === picked[k]).length;
-  if (!all.length) return <p className="text-[13px] text-muted">No scenario cases are linked to this dashboard yet.</p>;
+  if (ccnaFocus && focusView === 'focus') return (
+    <div className="max-w-4xl space-y-4" data-testid="ccna-focus-scenario-questions">
+      <header className="space-y-1 rounded-[6px] border border-action/40 bg-action/5 p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-action">CCNA Focus · Learn</p>
+        <h2 className="text-[18px] font-semibold">Scenario questions</h2>
+        <p className="text-[13px] leading-relaxed text-muted">Study the reasoning behind each network situation here. For the hands-on work, open Lab → CCNA Focus Lab and follow its instructions.</p>
+      </header>
+      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Scenario question set">
+        <button role="tab" aria-selected={focusView === 'focus'} className="rounded border border-action bg-action px-3 py-1.5 text-[12px] text-white">CCNA Focus</button>
+        <button role="tab" aria-selected={false} onClick={() => setFocusView('practice')} className="rounded border border-line px-3 py-1.5 text-[12px] text-muted hover:text-text">Ticket practice</button>
+        <label className="ml-auto text-xs text-muted" htmlFor="ccna-focus-question-topic">Choose topic</label>
+        <select id="ccna-focus-question-topic" value={focusBrief?.id ?? ''} onChange={(event) => setFocusBriefId(event.target.value)} className="h-9 max-w-full rounded border border-line-strong bg-ink px-2 text-[13px]" data-testid="ccna-focus-question-topic">
+          {CCNA_FOCUS_BRIEFS.map((brief) => <option key={brief.id} value={brief.id}>{brief.domain} · {brief.topic}</option>)}
+        </select>
+      </div>
+      {focusBrief ? <article className="space-y-4 rounded-[6px] border border-line bg-pane p-4" data-testid="ccna-focus-question-brief">
+        <div><p className="text-[11px] uppercase tracking-wide text-muted">{focusBrief.domain} · {focusBrief.topic}</p><h3 className="mt-1 text-[16px] font-semibold">{focusBrief.title}</h3><p className="mt-2 text-[13px] leading-relaxed">{focusBrief.scenario}</p></div>
+        <section className="space-y-2"><h4 className="text-[13px] font-semibold">Questions to think through</h4><ol className="list-decimal space-y-2 pl-5 text-[13px] leading-relaxed">{focusBrief.questions.map((question) => <li key={question}>{question}</li>)}</ol></section>
+        <details className="rounded border border-line p-3"><summary className="cursor-pointer text-[13px] font-semibold">What a strong response should cover</summary><ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] leading-relaxed text-muted">{focusBrief.evidence.map((item) => <li key={item}>{item}</li>)}</ul></details>
+      </article> : <p className="text-[13px] text-muted">No CCNA Focus questions are available yet.</p>}
+    </div>
+  );
+  if (!all.length) return <div className="max-w-[760px] space-y-3" data-testid="scenario-questions">
+    {ccnaFocus && <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Scenario question set"><button role="tab" aria-selected={focusView === 'focus'} onClick={() => setFocusView('focus')} className="rounded border border-line px-3 py-1.5 text-[12px]">CCNA Focus</button><button role="tab" aria-selected={focusView === 'practice'} className="rounded border border-action bg-action px-3 py-1.5 text-[12px] text-white">Ticket practice</button></div>}
+    <p className="text-[13px] text-muted">No scenario cases are linked to this dashboard yet.</p>
+  </div>;
   const done = i >= list.length;
   return (
     <div className="max-w-[760px] space-y-3" data-testid="scenario-questions">
+      {ccnaFocus && <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Scenario question set"><button role="tab" aria-selected={focusView === 'focus'} onClick={() => setFocusView('focus')} className="rounded border border-line px-3 py-1.5 text-[12px]">CCNA Focus</button><button role="tab" aria-selected={focusView === 'practice'} className="rounded border border-action bg-action px-3 py-1.5 text-[12px] text-white">Ticket practice</button></div>}
       {vlanLesson && (
         <section className="space-y-3 rounded-[6px] border border-line bg-pane p-4" data-testid="vlan-learning-lesson">
           <div className="flex flex-wrap items-center justify-between gap-2">

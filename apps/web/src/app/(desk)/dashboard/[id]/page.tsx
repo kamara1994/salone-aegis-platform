@@ -27,6 +27,7 @@ const Flashcards = dynamic(() => import('@/components/learn/Exams').then((module
 const TimedExam = dynamic(() => import('@/components/learn/Exams').then((module) => module.TimedExam), { loading: SectionLoading });
 const LessonLibrary = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonLibrary), { loading: SectionLoading });
 const LessonReader = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonReader), { loading: SectionLoading });
+const CCNABook = dynamic(() => import('@/components/learn/CCNABook').then((module) => module.CCNABook), { loading: SectionLoading });
 const Interview = dynamic(() => import('@/components/learn/Practice').then((module) => module.Interview), { loading: SectionLoading });
 const Practice = dynamic(() => import('@/components/learn/Practice').then((module) => module.Practice), { loading: SectionLoading });
 const Subnetting = dynamic(() => import('@/components/learn/Practice').then((module) => module.Subnetting), { loading: SectionLoading });
@@ -138,6 +139,9 @@ export default function DashboardPage() {
   const section = sectionOf(item);
   const parts = section ? partsFor(section, focus) : [];
   const part = item?.split('/').slice(1).join('/') || parts[0]?.key;
+  // The complete CCNA book is the Networking dashboard's Learn by topic experience.
+  // Keep other Learn tools available as their own side-panel destinations.
+  const useCcnabookAsTopics = (dash.id === 'networking' || dash.id === 'ccna') && section === 'learn' && part === 'topics';
   const open = (s: DashSection, p?: string) => setItem(p ? `${s}/${p}` : s);
   const pickTopic = (t: string) => {
     setTopicId(t);
@@ -223,10 +227,12 @@ export default function DashboardPage() {
         )}
         {section === 'learn' && (
           <>
-            <TopicTools topic={topic} tools={toolsFor(dash.id)} onPick={setTool} />
-            <Sep />
+            {!useCcnabookAsTopics && <>
+              <TopicTools topic={topic} tools={toolsFor(dash.id)} onPick={setTool} />
+              <Sep />
+            </>}
             <div className="flex flex-wrap items-center gap-1.5" data-testid="dash-topic-mode">
-            <div className="relative" data-testid="dash-topic-picker">
+            {!useCcnabookAsTopics && <div className="relative" data-testid="dash-topic-picker">
               <Tags className="pointer-events-none absolute top-2 left-2 z-10 size-3.5 text-faint" aria-hidden />
               <input
                 type="search"
@@ -256,7 +262,7 @@ export default function DashboardPage() {
                   {topicQuery.trim() && <p className="px-2 py-1 text-[10.5px] text-[#b8c8da]" aria-live="polite">{filteredUnits.reduce((n, u) => n + u.list.length, 0)} matches</p>}
                 </div>
               )}
-            </div>
+            </div>}
             <div className="flex items-center gap-1" role="radiogroup" aria-label="Learning mode" data-testid="dash-mode">
               <span className="hidden pr-0.5 text-[11.5px] text-faint lg:inline">Mode</span>
               <div className="flex rounded-[6px] border border-line-strong p-0.5">
@@ -286,6 +292,8 @@ export default function DashboardPage() {
                     <button
                       onClick={() => {
                         setLesson(null);
+                        setTopicPickerOpen(false);
+                        setTopicQuery('');
                         open(section, p.key);
                       }}
                       aria-current={on ? 'page' : undefined}
@@ -322,7 +330,7 @@ export default function DashboardPage() {
           )}
           {section === 'learn' && (
             <div className="p-4" data-testid="playground-learn">
-              {part === 'topics' &&
+              {part === 'topics' && (useCcnabookAsTopics ? <CCNABook /> :
                 (lesson ? (
                   <LessonReader key={lesson} lessonId={lesson} onClose={() => setLesson(null)} />
                 ) : topic ? (
@@ -334,7 +342,7 @@ export default function DashboardPage() {
                       <p className="text-[14px]">Choose a topic from the drop-down at the top to start learning.</p>
                     </div>
                   </div>
-                ))}
+                )))}
               {part === 'images' && <VisualsView onTopic={pickTopic} scope={topics} topicId={topicId} />}
               {part === 'exam' && (
                 <div data-testid="playground-exam">
@@ -348,7 +356,7 @@ export default function DashboardPage() {
               )}
               {part === 'scenario-questions' && (
                 <div data-testid="playground-scenario-questions">
-                  <ScenarioQuestions key={topicId} gameIds={focus.games} topic={topic} />
+                  <ScenarioQuestions key={topicId} gameIds={focus.games} topic={topic} ccnaFocus={dash.id === 'networking'} />
                 </div>
               )}
               {part === 'interview' && <Interview key={mode} initialLevel={mode === 'simple' ? 'entry' : 'senior'} />}

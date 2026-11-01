@@ -14,12 +14,12 @@ function LoginInner() {
       <div className="w-full max-w-sm space-y-6">
         <div>
           <p className="text-[28px] font-semibold tracking-tight">AEGIS</p>
-          <p className="text-muted">Operator cockpit for the SALONE AEGIS lab</p>
+          <p className="text-muted">Certification labs, learning and practice</p>
         </div>
         <div className="space-y-3 rounded-[8px] border border-line bg-pane p-5">
-          <p className="text-[13.5px]">{API_MODE === 'live' ? 'Sign in with your lab identity. Multi-factor authentication is required.' : 'This cockpit is running the built-in simulated lab. No sign-in is needed.'}</p>
+          <p className="text-[13.5px]">{API_MODE === 'live' ? 'Sign in with your lab identity. Multi-factor authentication is required.' : 'AEGIS is running the built-in simulated lab. No sign-in is needed.'}</p>
           <Button variant="primary" className="w-full" busy={busy} onClick={() => { setBusy(true); void signIn(returnTo); }}>
-            {API_MODE === 'live' ? 'Sign in with Keycloak' : 'Open the cockpit'}
+            {API_MODE === 'live' ? 'Sign in with Keycloak' : 'Open AEGIS'}
           </Button>
           <p className="text-[12px] text-faint">Reachable only over the management VPN or the jump host. Sessions end when you close the tab.</p>
         </div>

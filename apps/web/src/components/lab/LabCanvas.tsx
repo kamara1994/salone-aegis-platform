@@ -623,7 +623,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
       >
         <Background id="minor" variant={BackgroundVariant.Dots} gap={GRID} size={1} color="var(--line)" />
         <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 8} lineWidth={0.5} color="var(--line)" />
-        {miniMap && <MiniMap pannable zoomable ariaLabel="Mini map" style={{ width: 168, height: 112 }} nodeStrokeWidth={2} nodeColor={(n) => (n.type !== 'device' ? 'transparent' : (n.data as DeviceNodeData).device.power === 'stopped' || (n.data as DeviceNodeData).device.health === 'down' ? '#e5484d' : (n.data as DeviceNodeData).device.health === 'degraded' ? '#e5a23a' : '#2fb36a')} maskColor="color-mix(in srgb, var(--ink) 55%, transparent)" className="!bg-pane/90 rounded-[6px] border border-line" />}
+        {miniMap && <MiniMap pannable zoomable ariaLabel="Mini map" style={{ width: 120, height: 76 }} nodeStrokeWidth={2} nodeColor={(n) => (n.type !== 'device' ? 'transparent' : (n.data as DeviceNodeData).device.power === 'stopped' || (n.data as DeviceNodeData).device.health === 'down' ? '#e5484d' : (n.data as DeviceNodeData).device.health === 'degraded' ? '#e5a23a' : '#2fb36a')} maskColor="color-mix(in srgb, var(--ink) 55%, transparent)" className="!bg-pane/90 rounded-[6px] border border-line" />}
         <Controls showInteractive={false}>
           <ControlButton onClick={() => setMiniMap(!miniMap)} title={miniMap ? 'Hide mini map' : 'Show mini map'} aria-label={miniMap ? 'Hide mini map' : 'Show mini map'} aria-pressed={miniMap} data-testid="toggle-minimap">
             <MapIcon />
