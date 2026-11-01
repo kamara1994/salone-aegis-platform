@@ -36,7 +36,7 @@ describe('simlet config lock', () => {
     expect(new DesignCli('s1').exec('ping 10.20.10.12')).toMatch(/Received = 4/);
   });
   it('a normal lab is not locked', () => {
-    startArena('vlan-first');
+    startArena('vlan-bo-tickets');
     expect(cli('sw1', 'conf t')).toMatch(/Enter configuration commands/);
   });
 });

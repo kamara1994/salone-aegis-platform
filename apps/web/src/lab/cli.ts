@@ -7,6 +7,7 @@ import { ciscoMac, ipToInt, isIp, maskToPrefix, prefixToMask } from './net';
 import { bpduGuardOn, dtpResult, macsBehind, portSecurityState } from './l2features';
 import { arpTable, cdpNeighbors, controlPlane, dhcpLease, macTable, poeUsage } from './protocols';
 import { aclEntryText, isRouter, l3Ifaces, ping, primaryIp, traceroute } from './simulate';
+import { ambiguousFirstWord, applyPipe, completeLine, contextHelp } from './iosGrammar';
 import { useLab } from './store';
 import type { Acl, AclEntry, Device, Iface, Route } from './types';
 import { cableOnPort, cableStatus, deviceById } from './validate';
@@ -137,6 +138,7 @@ export class DesignCli {
   private aclName = '';
   private routerProto: 'ospf' | 'eigrp' = 'ospf';
   private eigrpAs = 1;
+  private history: string[] = [];
   constructor(private deviceId: string) {
     this.node = dev(deviceId)?.name ?? 'device';
   }
@@ -158,11 +160,35 @@ export class DesignCli {
     return { user: `${n}>`, priv: `${n}#`, config: `${n}(config)#`, if: `${n}(config-if${this.ifs.length > 1 ? '-range' : ''})#`, router: `${n}(config-router)#`, vlan: `${n}(config-vlan)#`, line: `${n}(config-line)#`, dhcp: `${n}(dhcp-config)#`, acl: `${n}(config-${this.d.acls?.find((a) => a.name === this.aclName)?.type === 'standard' ? 'std' : 'ext'}-nacl)#` }[this.mode] + ' ';
   }
 
+  /** IOS "?" for what has been typed so far (the terminal calls this the moment ? is pressed). */
+  contextHelp(typed: string): string {
+    if (!this.d) return '';
+    if (this.host) return this.hostCmd('help');
+    // In configuration modes, "do <exec command> ?" helps with the EXEC command.
+    const viaDo = this.mode !== 'user' && this.mode !== 'priv' ? /^\s*do\s+(.*)$/i.exec(typed) : null;
+    return (viaDo ? contextHelp('priv', viaDo[1]) : contextHelp(this.mode, typed)).replace(/\n/g, '\r\n');
+  }
+
+  /** Tab completion of the last word, or null when it is not unique (the terminal then rings the bell). */
+  tabComplete(typed: string): string | null {
+    if (!this.d || this.host) return null;
+    const lead = typed.match(/^\s*/)?.[0] ?? '';
+    const isDo = this.mode !== 'user' && this.mode !== 'priv' && /^\s*do\s+\S/i.test(typed);
+    const done = isDo ? completeLine('priv', typed.replace(/^\s*do\s+/i, '')) : completeLine(this.mode, typed);
+    return done === null ? null : lead + (isDo ? 'do ' : '') + done;
+  }
+
   exec(lineRaw: string): string {
     const line = lineRaw.trim();
     if (!line) return '';
     if (!this.d) return '% Device no longer exists.';
+    this.history.push(line);
+    if (this.history.length > 20) this.history.shift();
     try {
+      if (!this.host && line.endsWith('?')) return this.contextHelp(line.slice(0, -1));
+      // Output filters: show ... | include/exclude/begin/section <regex>
+      const pipe = !this.host && /^(do\s+)?sh/i.test(line) ? line.indexOf('|') : -1;
+      if (pipe > 0) return applyPipe(this.iosCmd(line.slice(0, pipe).trim()), line.slice(pipe + 1));
       return this.host ? this.hostCmd(line) : this.iosCmd(line);
     } catch (e) {
       return `% Error: ${(e as Error).message}`;
@@ -269,7 +295,12 @@ export class DesignCli {
     const is = (...prefixes: string[]) => prefixes.every((p, k) => words[k] !== undefined && p.startsWith(words[k]));
     if (words[0] === 'do' && this.mode !== 'user' && this.mode !== 'priv') return this.privCmd(raw.slice(1).join(' '));
     if (line === '?' || words[0] === 'help') return this.help();
-    if (is('end') || line === '\u001a') {
+    if (words[0] !== 'do') {
+      const amb = ambiguousFirstWord(this.mode, line);
+      if (amb) return amb;
+    }
+    // "end" exists only in configuration modes; in user EXEC "en" means enable.
+    if ((this.mode !== 'user' && this.mode !== 'priv' && is('end')) || line === '\u001a') {
       this.mode = this.mode === 'user' ? 'user' : 'priv';
       return '';
     }
@@ -908,6 +939,14 @@ export class DesignCli {
     const s = (...p: string[]) => p.every((x, k) => sub[k] !== undefined && x.startsWith(sub[k]));
     if (s('running-config') || s('run')) return runningConfig(d).replace(/\n/g, '\r\n');
     if (s('startup-config') || s('start')) return (d.startupSaved ?? 'startup-config is not present').replace(/\n/g, '\r\n');
+    if (s('clock')) {
+      const t = new Date();
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `*${t.toTimeString().slice(0, 8)}.${String(t.getMilliseconds()).padStart(3, '0')} UTC ${days[t.getDay()]} ${months[t.getMonth()]} ${t.getDate()} ${t.getFullYear()}`;
+    }
+    if (s('history')) return this.history.slice(-11, -1).map((h) => `  ${h}`).join('\r\n');
+    if (s('users')) return `    Line       User       Host(s)              Idle       Location\r\n*  0 con 0                idle                 00:00:00`;
     if (s('version')) return `${modelOf(d).vendor} ${modelOf(d).name}, lab designer model\r\n${d.name} uptime is simulated\r\nBase ethernet MAC Address: ${d.interfaces.find((i) => i.mac)?.mac ?? 'n/a'}`;
     if (s('ip', 'interface', 'brief') || (s('ip', 'int') && sub[2]?.startsWith('b'))) {
       const rows = d.interfaces.filter((i) => i.type !== 'console' && i.type !== 'terminal').map((i) => {

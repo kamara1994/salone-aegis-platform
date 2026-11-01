@@ -31,9 +31,9 @@ export function CheckResults({ open, onClose, lab, grade, attempt, final, mask }
   const hasQ = grade.questions.length > 0;
   const [tab, setTab] = useState<Tab>(hasQ ? 'questions' : 'items');
   const okQ = grade.questions.filter((q) => q.ok).length;
-  const tree = itemTree(grade.items);
+  const tree = itemTree([...grade.topology, ...grade.items]);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const okItems = grade.items.filter((i) => i.ok).length;
+  const okItems = [...grade.topology, ...grade.items].filter((i) => i.ok).length;
   const okTests = grade.tests.filter((t) => t.ok).length;
   return (
     <Dialog open={open} onClose={onClose} title={final ? 'Activity results' : 'Check results (practice check, not submitted)'} wide>
@@ -63,7 +63,7 @@ export function CheckResults({ open, onClose, lab, grade, attempt, final, mask }
                 <div>
                   <dt className="text-[11.5px] text-muted">Assessment items</dt>
                   <dd className="font-semibold tabular-nums">
-                    {okItems} / {grade.items.length}
+                    {okItems} / {grade.topology.length + grade.items.length}
                   </dd>
                 </div>
                 <div>
@@ -98,7 +98,7 @@ export function CheckResults({ open, onClose, lab, grade, attempt, final, mask }
           onChange={setTab}
           tabs={[
             ...(hasQ ? [{ key: 'questions' as Tab, label: `Questions (${okQ}/${grade.questions.length})` }] : []),
-            ...(grade.items.length ? [{ key: 'items' as Tab, label: `Assessment items (${okItems}/${grade.items.length})` }] : []),
+            ...(grade.items.length + grade.topology.length ? [{ key: 'items' as Tab, label: `Assessment items (${okItems}/${grade.topology.length + grade.items.length})` }] : []),
             ...(grade.tests.length ? [{ key: 'tests' as Tab, label: `Connectivity tests (${okTests}/${grade.tests.length})` }] : []),
             ...(final ? [{ key: 'debrief' as Tab, label: 'Debrief' }] : []),
           ]}

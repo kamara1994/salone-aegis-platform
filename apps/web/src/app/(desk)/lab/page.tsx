@@ -2,7 +2,6 @@
 
 import { useReactFlow } from '@xyflow/react';
 import dynamic from 'next/dynamic';
-import { loadPacks } from '@/content/progress';
 import { FolderOpen, PlayCircle, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
@@ -13,16 +12,17 @@ import { Palette } from '@/components/lab/Palette';
 import { Toolbar } from '@/components/lab/Toolbar';
 import type { ToolKey } from '@/components/lab/ToolsPanel';
 import { Button, cx, Dialog, ErrorState, Field, IconButton, Input, Loading, relTime } from '@/components/ui';
-import { ARENA_PREFIX } from '@/lab/arena';
+import { ARENA_PREFIX, arenaLab, startsBlank } from '@/lab/arena';
 import { startArena, useArenaUi } from '@/lab/arena/session';
-import { updateArena } from '@/lab/arena/progress';
-import { prepareChallenge } from '@/lab/challenges';
+import { ARENA_LABS, ARENA_TOPICS } from '@/lab/arena';
+import { CHALLENGES, prepareChallenge } from '@/lab/challenges';
 import { buildDoc, emptyDoc } from '@/lab/inventory';
 import { useLabProject } from '@/components/lab/projectContext';
 import { setFresh, useLab } from '@/lab/store';
 import type { CableEnd, LabDoc } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
 import { initialLab, type LabState as MockLab } from '@/mock/lab';
+import { WORKBOOKS } from '@/lab/workbooks';
 
 const BASELINE_KEY = 'aegis.lab.baseline.v1:live-topology';
 const PanelLoading = () => <div className="grid min-h-24 place-items-center text-[12px] text-muted" role="status">Loading…</div>;
@@ -39,8 +39,6 @@ const SimPanel = dynamic(() => import('@/components/lab/SimPanel').then((module)
 const ToolsPanel = dynamic(() => import('@/components/lab/ToolsPanel').then((module) => module.ToolsPanel), { loading: PanelLoading });
 const ArenaPanel = dynamic(() => import('@/components/arena/ArenaPanel').then((module) => module.ArenaPanel), { loading: PanelLoading });
 const TerminalDock = dynamic(() => import('@/components/arena/TerminalDock').then((module) => module.TerminalDock), { ssr: false });
-const LabPicker = dynamic(() => import('@/components/lab/LabPicker').then((module) => module.LabPicker), { loading: PanelLoading });
-
 function loadWorkbook(id: string, fit?: () => void) {
   void import('@/components/lab/WorkbooksTab').then(({ startWorkbookById }) => startWorkbookById(id, fit));
 }
@@ -109,6 +107,60 @@ function Banner({ tone = 'info', children, onClose }: { tone?: 'info' | 'warn'; 
   );
 }
 
+type LabBrowseItem = { id: string; title: string; topic: string; type: string; kind: 'workbook' | 'arena' | 'challenge' };
+
+function getLabBrowseItems(): LabBrowseItem[] {
+  const workbookItems = WORKBOOKS.map((workbook) => ({
+    id: workbook.id,
+    title: workbook.title,
+    topic: workbook.topic,
+    kind: 'workbook' as const,
+    type: /^timed challenge/i.test(workbook.title) ? 'Challenge Labs' : /^skills assessment/i.test(workbook.title) ? 'Scenario Labs' : /^troubleshoot/i.test(workbook.title) ? 'Troubleshooting Labs' : 'Guided Labs',
+  }));
+  const arenaItems = ARENA_LABS.map((lab) => ({
+    id: lab.id,
+    title: lab.title,
+    topic: (() => { const topic = ARENA_TOPICS.find((entry) => entry.id === lab.topicId); return topic ? `Ch ${topic.chapter} · ${topic.title}` : 'Network operations'; })(),
+    kind: 'arena' as const,
+    type: ({ guided: 'Guided Labs', skills: 'Scenario Labs', troubleshoot: 'Troubleshooting Labs', challenge: 'Challenge Labs', simlet: 'Simlet Labs' } as const)[lab.kind],
+  }));
+  const challengeItems = CHALLENGES.map((challenge) => ({
+    id: challenge.id,
+    title: challenge.title,
+    topic: /vlan|trunk|port|switch/i.test(challenge.id + challenge.title) ? 'Switching and VLANs' : /gateway|mask|ip|address|dhcp|dns|route/i.test(challenge.id + challenge.title) ? 'IP addressing and routing' : 'Troubleshooting fundamentals',
+    kind: 'challenge' as const,
+    type: 'Troubleshooting Labs',
+  }));
+  return [...workbookItems, ...arenaItems, ...challengeItems];
+}
+
+function LabSelectionBar({ items, onLaunch }: { items: LabBrowseItem[]; onLaunch: (item: LabBrowseItem) => void }) {
+  const [view, setView] = useState<'type' | 'topic'>('type');
+  const [selection, setSelection] = useState('');
+  const types = ['Troubleshooting Labs', 'Scenario Labs', 'Guided Labs', 'Simlet Labs', 'Challenge Labs'];
+  const byType = [...items].sort((a, b) => types.indexOf(a.type) - types.indexOf(b.type) || a.topic.localeCompare(b.topic) || a.title.localeCompare(b.title));
+  const byTopic = [...items].sort((a, b) => a.topic.localeCompare(b.topic) || types.indexOf(a.type) - types.indexOf(b.type) || a.title.localeCompare(b.title));
+  const launchSelected = (value: string) => {
+    if (!value) return;
+    const [kind, ...idParts] = value.split(':');
+    const item = items.find((entry) => entry.kind === kind && entry.id === idParts.join(':'));
+    if (item) onLaunch(item);
+    setSelection('');
+  };
+
+  return <nav className="flex h-11 shrink-0 items-center gap-2 border-b border-line bg-pane px-3" aria-label="Lab selector" data-testid="lab-workspace-tabs">
+    <div className="flex h-8 items-center gap-0.5 rounded-md border border-line-strong bg-ink p-0.5" role="tablist" aria-label="Organize labs by">
+      <button type="button" role="tab" aria-selected={view === 'type'} onClick={() => { setView('type'); setSelection(''); }} className={cx('h-full rounded px-2.5 text-[12px] font-medium', view === 'type' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-type">By lab type</button>
+      <button type="button" role="tab" aria-selected={view === 'topic'} onClick={() => { setView('topic'); setSelection(''); }} className={cx('h-full rounded px-2.5 text-[12px] font-medium', view === 'topic' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-topic">By topic</button>
+    </div>
+    <label className="sr-only" htmlFor="lab-view-selector">Choose a lab</label>
+    <select id="lab-view-selector" value={selection} onChange={(event) => launchSelected(event.target.value)} className="h-8 min-w-[min(92vw,440px)] rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]" data-testid="lab-view-selector">
+      <option value="">{view === 'type' ? 'Choose a lab by type…' : 'Choose a lab by topic…'}</option>
+      {(view === 'type' ? byType : byTopic).map((item) => <option key={`${item.kind}:${item.id}`} value={`${item.kind}:${item.id}`}>{view === 'type' ? `${item.type} › ${item.topic} › ${item.title}` : `${item.topic} › ${item.type} › ${item.title}`}</option>)}
+    </select>
+  </nav>;
+}
+
 function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const rt = useRuntime();
   const rf = useReactFlow();
@@ -126,11 +178,6 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const [vmFor, setVmFor] = useState<string | null>(null);
   const [simOpen, setSimOpenRaw] = useState(false);
   const [tools, setTools] = useState<ToolKey | null>(null);
-  const [labsOpen, setLabsOpen] = useState(!project);
-  const [libraryFilter, setLibraryFilter] = useState<'all' | 'guided' | 'scenario' | 'assessment'>('all');
-  const [libraryView, setLibraryView] = useState<'type' | 'topic'>('topic');
-  const [libraryTopic, setLibraryTopic] = useState<string | null>(null);
-  const [libraryProgress, setLibraryProgress] = useState(false);
   const setSimOpen = (v: boolean) => {
     setSimOpenRaw(v);
     if (v) setTools(null);
@@ -165,26 +212,14 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   useEffect(() => {
     if (project) return; // project workspaces ignore lab links in the URL
     const params = new URLSearchParams(window.location.search);
-    const library = params.get('library');
-    if (library === 'all' || library === 'guided' || library === 'scenario' || library === 'assessment') {
-      setLibraryView(params.get('view') === 'topic' ? 'topic' : 'type');
-      setLibraryTopic(params.get('topic') ?? (params.get('chapter') ? `ch${params.get('chapter')}` : null));
-      setLibraryProgress(params.get('progress') === '1');
-      window.history.replaceState(null, '', window.location.pathname);
-      setLibraryFilter(library);
-      setLabsOpen(true);
-      return;
-    }
     const arena = params.get('arena');
     if (arena) {
-      setLabsOpen(false);
       window.history.replaceState(null, '', window.location.pathname);
       if (useLab.getState().doc?.workbook?.id !== ARENA_PREFIX + arena) startArena(arena);
       return;
     }
     const wb = params.get('workbook');
     if (wb) {
-      setLabsOpen(false);
       window.history.replaceState(null, '', window.location.pathname);
       if (useLab.getState().doc?.workbook?.id !== wb) loadWorkbook(wb);
       setTools('labs');
@@ -192,16 +227,12 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
     }
     const pack = params.get('pack');
     if (pack) {
-      setLabsOpen(false);
       window.history.replaceState(null, '', window.location.pathname);
-      const lab = loadPacks().find((p) => p.name === pack)?.labs?.[Number(params.get('lab') ?? 0)];
-      const d = lab?.doc as LabDoc | undefined;
-      if (d && d.version === 1 && Array.isArray(d.devices) && Array.isArray(d.cables)) useLab.getState().importDoc(d);
+      // Legacy saved-pack deep links are intentionally ignored; the Lab Library was removed.
       return;
     }
     const id = params.get('challenge');
     if (!id) return;
-    setLabsOpen(false);
     window.history.replaceState(null, '', window.location.pathname);
     const st = useLab.getState();
     if (!st.doc || st.doc.challenge) {
@@ -248,6 +279,11 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   // Every Arena lab (and every restart) opens with the whole topology in view.
   const arenaStart = doc.workbook?.startedAt;
   useEffect(() => {
+    // Build labs need the device library; troubleshooting and simlets start with it closed.
+    const lab = arenaId ? arenaLab(arenaId) : undefined;
+    if (lab) setPalette(startsBlank(lab));
+  }, [arenaId]);
+  useEffect(() => {
     if (!arenaId) return;
     const t = [150, 700].map((ms) => setTimeout(() => rf.fitView({ padding: 0.12, duration: 250 }), ms));
     return () => t.forEach(clearTimeout);
@@ -276,66 +312,32 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           requestAnimationFrame(() => rf.fitView({ padding: 0.12, duration: 250 }));
         }} data-testid="project-in-progress"><PlayCircle className="mr-1.5 size-4" />In Progress</Button>
       </section>}
-      {labsOpen && <LabPicker
-        open
-        inline
-        initialFilter={libraryFilter}
-        onClose={() => setLabsOpen(false)}
-        initialView={libraryView}
-        initialTopic={libraryTopic}
-        initialProgress={libraryProgress}
-        onStart={(id) => {
-          setLabsOpen(false);
-          loadWorkbook(id, () => rf.fitView({ padding: 0.15, duration: 250 }));
+      {!project && <LabSelectionBar items={getLabBrowseItems()} onLaunch={(item) => {
+        if (item.kind === 'workbook') {
+          loadWorkbook(item.id, () => rf.fitView({ padding: 0.15, duration: 250 }));
           setTools('labs');
           setSimOpenRaw(false);
-        }}
-        onChallenge={(id) => {
-          setLabsOpen(false);
-          const st = useLab.getState();
-          if (st.doc?.workbook) st.endWorkbook();
-          const cur = useLab.getState();
-          if (cur.doc?.challenge) return setTools('challenge');
-          const p = cur.doc ? prepareChallenge(cur.doc, id) : null;
-          if (p) cur.startChallenge({ title: p.def.title, brief: p.brief, fault: p.fault }, p.apply);
-          else cur.setError({ title: 'This ticket needs a design with a PC on a switch. Reset to the built-in lab and try again.', issues: [], tone: 'error' });
-          if (p) setTimeout(() => rf.fitView({ padding: 0.15, duration: 250 }), 150);
-          setTools('challenge');
-        }}
-        onArena={(id) => {
-          setLabsOpen(false);
-          if (startArena(id)) {
+        } else if (item.kind === 'arena') {
+          if (startArena(item.id)) {
             setTools(null);
             setSimOpenRaw(false);
             if (s.tool === 'simulate') s.setTool('select');
           }
-        }}
-        onPlayground={() => {
-          setLabsOpen(false);
+        } else {
           const st = useLab.getState();
-          if (st.doc?.devices.length) st.saveLayout(`Before open playground · ${new Date().toLocaleString()}`.slice(0, 60));
           if (st.doc?.workbook) st.endWorkbook();
-          if (useLab.getState().doc?.challenge) useLab.getState().endChallenge();
-          updateArena((progress) => { progress.active = undefined; });
-          useLab.getState().commit('Open playground', (doc) => {
-            for (const key of Object.keys(doc) as (keyof LabDoc)[]) if (key !== 'version') delete (doc as Partial<LabDoc>)[key];
-            Object.assign(doc, emptyDoc());
-          });
-          const blank = useLab.getState();
-          blank.clearSelection();
-          blank.setTool('select');
-          blank.setCompare(false);
-          blank.clearTraces();
-          blank.closeInspector();
-          blank.setError(null);
-          useArenaUi.setState({ terms: [], activeTerm: null, termOpen: false, resultsOpen: false, submitted: null });
-          setTools(null);
+          const current = useLab.getState();
+          if (current.doc?.challenge) current.endChallenge();
+          const challenge = current.doc ? prepareChallenge(current.doc, item.id) : null;
+          if (challenge) {
+            current.startChallenge({ title: challenge.def.title, brief: challenge.brief, fault: challenge.fault }, challenge.apply);
+            setTimeout(() => rf.fitView({ padding: 0.15, duration: 250 }), 150);
+          } else current.setError({ title: 'This troubleshooting lab needs a connected PC. Add a PC to a switch and try again.', issues: [], tone: 'error' });
+          setTools('challenge');
           setSimOpenRaw(false);
-          setPalette(true);
-          setTimeout(() => rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 250 }), 100);
-        }}
-      />}
-      <Toolbar onLabs={project ? undefined : () => setLabsOpen(true)} paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
+        }
+      }} />}
+      <Toolbar paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
           if (tools) setTools(null);
           else {
             setTools(useLab.getState().doc?.workbook ? 'labs' : 'audit');

@@ -10,7 +10,7 @@ function cssVar(name: string, fallback: string) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
-/** Line-editing terminal over the simulated lab shell: history, paste, Ctrl+C, Ctrl+L, clear. */
+/** Line-editing terminal over the simulated lab shell: history, paste, ? help, Tab completion, Ctrl+C, Ctrl+L, Ctrl+A/E/U. */
 export function XtermMock({ con, theme }: { con: MockConsole; theme: string }) {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -89,6 +89,26 @@ export function XtermMock({ con, theme }: { con: MockConsole; theme: string }) {
             line = '';
           }
           redraw();
+        } else if (ch === '?' && con.contextHelp) {
+          // IOS answers "?" at once, then gives the line back so you keep typing.
+          term.write('?\r\n');
+          const help = con.contextHelp(line);
+          if (help) write(help + '\n');
+          write(con.prompt() + line);
+        } else if (ch === '\t') {
+          const done = con.tabComplete?.(line);
+          if (done) {
+            line = done;
+            redraw();
+          } else term.write('\x07');
+        } else if (ch === '\x15') {
+          line = ''; // Ctrl+U: erase the line
+          redraw();
+        } else if (ch === '\x1a') {
+          term.write('^Z\r\n'); // Ctrl+Z: back to privileged EXEC
+          con.exec('end');
+          line = '';
+          write(con.prompt());
         } else if (ch >= ' ' && !ch.startsWith('\x1b')) {
           line += ch;
           term.write(ch);

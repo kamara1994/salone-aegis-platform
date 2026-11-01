@@ -27,6 +27,7 @@ export const ARENA_LABS: ArenaLab[] = [...VLAN_LABS, ...VLAN_SIMLETS];
 export const labsFor = (topicId: string) => ARENA_LABS.filter((l) => l.topicId === topicId);
 export const arenaLab = (id: string) => ARENA_LABS.find((l) => l.id === id);
 export const ARENA_PREFIX = 'arena:';
+export { startsBlank } from './grade';
 export const KIND_LABEL: Record<ArenaKind, string> = { guided: 'Guided', skills: 'Skills assessment', troubleshoot: 'Troubleshooting', challenge: 'Timed challenge', simlet: 'Simlet' };
 export const KIND_ORDER: ArenaKind[] = ['guided', 'skills', 'troubleshoot', 'simlet', 'challenge'];
 export type { ArenaLab, ArenaTopic } from './types';

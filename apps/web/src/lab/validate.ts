@@ -73,7 +73,12 @@ function portFamilyOk(type: CableType, a: Iface, b: Iface, da: Device, db: Devic
       return null;
     case 'console': {
       const kinds = [a.type, b.type].sort().join('+');
-      if (kinds !== 'console+terminal') return err('console_misuse', 'A console (rollover) cable goes from a device console port to a PC or laptop RS-232/USB port. It never carries network traffic.', 'Connect Console on the router or switch to RS232 on a PC or USB-Console on a laptop.');
+      if (kinds !== 'console+terminal') {
+        const issue = err('console_misuse', 'A console (rollover) cable goes from a device console port to a PC or laptop RS-232/USB port. It never carries network traffic.', 'Connect Console on the router or switch to RS232 on a PC or USB-Console on a laptop.');
+        // Its RJ-45 end still fits a copper or console port: it plugs in and simply does nothing.
+        const fits = (i: Iface) => i.type === 'copper' || i.type === 'console' || i.type === 'terminal';
+        return fits(a) && fits(b) ? { ...issue, severity: 'down' } : issue;
+      }
       return null;
     }
     case 'wan':
@@ -130,8 +135,9 @@ export function checkConnection(doc: LabDoc, a: CableEnd, b: CableEnd, type: Cab
     const needs: CableType = like ? 'crossover' : 'straight';
     if (needs !== type) {
       const mdix = modelOf(A.device).autoMdix || modelOf(B.device).autoMdix;
+      // Like real hardware: the plug fits, so it connects, but no link comes up.
       if (!mdix)
-        out.push(err('wrong_cable', `${A.device.name} and ${B.device.name} are ${like ? 'the same class of device' : 'different classes of device'}, so they need a ${CABLE_LABEL[needs].toLowerCase()} cable. Neither ${modelOf(A.device).name} nor ${modelOf(B.device).name} supports auto-MDIX.`, `Replace it with a ${CABLE_LABEL[needs].toLowerCase()} cable.`));
+        out.push({ code: 'wrong_cable', severity: 'down', message: `${A.device.name} and ${B.device.name} are ${like ? 'the same class of device' : 'different classes of device'}, so they need a ${CABLE_LABEL[needs].toLowerCase()} cable. Neither ${modelOf(A.device).name} nor ${modelOf(B.device).name} supports auto-MDIX, so the transmit pairs never meet and the link stays down.`, fix: `Replace it with a ${CABLE_LABEL[needs].toLowerCase()} cable.` });
       else out.push({ code: 'mdix_corrected', severity: 'info', message: `A ${CABLE_LABEL[needs].toLowerCase()} cable is the textbook choice here; auto-MDIX swaps the pairs so this one still works.` });
     }
   }
@@ -241,7 +247,9 @@ export function cableStatus(doc: LabDoc, c: Cable): CableStatus {
   // name the fault the student is meant to find. They are display-only; the simulator does not use them.
   if (!doc.workbook?.exam) issues.push(...vlanChecks(doc, A.device, A.iface, B.device, B.iface));
   const state = issues.some((i) => i.severity === 'down') ? 'down' : issues.some((i) => i.severity === 'degraded') ? 'degraded' : 'up';
-  return { state, issues, negotiated: state === 'down' ? undefined : neg.text };
+  // Graded labs: a wrong cable looks like it does on real hardware, a dark port with no explanation.
+  const shown = doc.workbook?.exam ? issues.map((i) => (i.code === 'wrong_cable' || i.code === 'console_misuse' ? { ...i, message: 'No link: neither port detects a signal.', fix: undefined } : i)) : issues;
+  return { state, issues: shown, negotiated: state === 'down' ? undefined : neg.text };
 }
 
 /** Distance limits per medium (TIA-568 copper, IEEE 802.3 fibre, V.35 serial, RS-232 console). */

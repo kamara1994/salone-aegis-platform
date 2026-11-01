@@ -7,6 +7,7 @@ import { cx } from '@/components/ui';
 import { CABLE_INFO } from '@/lab/cables';
 import { CATALOG, KIND_LABEL, type DeviceModel } from '@/lab/catalog';
 import { useLab } from '@/lab/store';
+import { DEVICE_H, DEVICE_W } from '@/lab/inventory';
 import type { CableType, DeviceKind } from '@/lab/types';
 import { CABLE_ASSET, CABLE_STYLE } from './CanvasParts';
 import { DevicePicture, portSummary } from './DeviceHoverCard';
@@ -36,6 +37,7 @@ function CableLibrary() {
   const cableType = useLab((s) => s.cableType);
   const pending = useLab((s) => s.pendingEnd);
   const doc = useLab((s) => s.doc);
+  const exam = !!doc?.workbook?.exam;
   const pick = (t: CableType | 'auto') => {
     const st = useLab.getState();
     st.setCableType(t);
@@ -48,7 +50,7 @@ function CableLibrary() {
     <div data-testid="cable-library">
       <p className="mb-2 px-1 text-[11.5px] text-muted">Pick a cable, then click the first device and the second device and choose their ports.</p>
       <ul className="grid grid-cols-2 gap-1.5">
-        {CABLE_INFO.map((c) => {
+        {CABLE_INFO.filter((c) => !(exam && c.type === 'auto')).map((c) => {
           const on = tool === 'cable' && cableType === c.type;
           return (
             <li key={c.type}>
@@ -132,10 +134,23 @@ function DeviceLibrary() {
   const [q, setQ] = useState('');
   const needle = q.trim().toLowerCase();
   const shown = CATALOG.filter((m) => !needle || `${m.vendor} ${m.name} ${m.description} ${KIND_LABEL[m.kind]}`.toLowerCase().includes(needle));
+  // Tap-to-add: the nearest free grid spot to the middle of the view, so devices never stack.
   const center = () => {
     const r = document.querySelector('[data-testid="lab-canvas"]')?.getBoundingClientRect();
-    const k = (useLab.getState().doc?.devices.filter((d) => d.origin === 'design').length ?? 0) % 6;
-    return r ? rf.screenToFlowPosition({ x: r.left + r.width / 2 + k * 32, y: r.top + r.height / 2 + k * 32 }) : { x: 200, y: 200 };
+    const mid = r ? rf.screenToFlowPosition({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) : { x: 200, y: 200 };
+    const taken = useLab.getState().doc?.devices ?? [];
+    const free = (x: number, y: number) => !taken.some((d) => Math.abs(d.x - x) < DEVICE_W + 24 && Math.abs(d.y - y) < DEVICE_H + 24);
+    const sx = DEVICE_W + 48;
+    const sy = DEVICE_H + 48;
+    for (let ring = 0; ring < 12; ring++)
+      for (let dy = -ring; dy <= ring; dy++)
+        for (let dx = -ring; dx <= ring; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+          const x = mid.x + dx * sx; // centre point, as addDevice expects
+          const y = mid.y + dy * sy;
+          if (free(x - DEVICE_W / 2, y - DEVICE_H / 2)) return { x, y };
+        }
+    return { x: mid.x, y: mid.y };
   };
   return (
     <nav aria-label="Device library" className="h-full overflow-auto p-2" data-testid="palette">
@@ -158,6 +173,7 @@ function DeviceLibrary() {
                   onClick={() => {
                     const c = center();
                     add(m.key, c.x, c.y);
+                    if ((useLab.getState().doc?.devices.length ?? 0) <= 1) setTimeout(() => rf.setViewport({ ...rf.getViewport(), zoom: Math.min(rf.getViewport().zoom, 1) }), 80);
                   }}
                   aria-label={`Add ${m.vendor} ${m.name} (${KIND_LABEL[m.kind]})`}
                   data-testid={`palette-${m.key}`}

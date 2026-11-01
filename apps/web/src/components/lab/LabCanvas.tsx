@@ -294,13 +294,14 @@ function Inner({ actions }: { actions: CanvasActions }) {
 
   const finishCable = (from: CableEnd, to: CableEnd) => {
     const st = useLab.getState();
-    const type = st.cableType === 'auto' ? suggestCableType(st.doc!, from, to) : st.cableType;
+    const type = st.cableType === 'auto' && !st.doc?.workbook?.exam ? suggestCableType(st.doc!, from, to) : st.cableType === 'auto' ? 'straight' : st.cableType;
     const r = st.connect(from, to, type);
     st.setPendingEnd(null);
     if (!r.ok) st.setError({ title: 'This cable cannot be connected', issues: r.issues });
     else {
-      const problems = r.issues.filter((i) => i.severity === 'down' || i.severity === 'degraded');
-      st.setError(problems.length ? { title: 'Connected, but the link has problems', issues: problems, tone: 'warn' } : null);
+      // Like real hardware, a link that will not come up just stays dark (red link lights).
+      // Outside graded labs the cable inspector still explains why; nothing pops up either way.
+      st.setError(null);
     }
   };
 
@@ -509,7 +510,8 @@ function Inner({ actions }: { actions: CanvasActions }) {
   useEffect(() => {
     if (fitted.current || !nodes.length) return;
     fitted.current = true;
-    setTimeout(() => rf.fitView({ padding: 0.08 }), 60);
+    // Never zoom past 100%: one device on an empty canvas should not fill the screen.
+    setTimeout(() => rf.fitView({ padding: 0.08, maxZoom: 1 }), 60);
   }, [nodes.length, rf]);
 
   const pickerFrom = picker?.stage === 'second' || picker?.stage === 'reconnect' ? picker.from : undefined;

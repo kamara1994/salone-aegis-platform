@@ -72,6 +72,10 @@ export interface MockConsole {
   banner(): string;
   prompt(): string;
   exec(line: string): string;
+  /** IOS-style "?" help for the text typed so far (optional). */
+  contextHelp?(typed: string): string;
+  /** Tab completion of the last word; null when not unique (optional). */
+  tabComplete?(typed: string): string | null;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

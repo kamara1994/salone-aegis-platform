@@ -9,6 +9,9 @@ import { CABLE_LABEL, CABLE_TYPES, cableOnPort, cableStatus, deviceById, ifaceOf
 import { Button, cx, Dialog, IconButton } from '@/components/ui';
 
 export function CableTypeSelect({ value, onChange, id, allowAuto = true }: { value: CableType | 'auto'; onChange: (v: CableType | 'auto') => void; id?: string; allowAuto?: boolean }) {
+  // Graded labs: choosing the cable is part of the test, so the automatic choice is not offered.
+  const exam = useLab((s) => !!s.doc?.workbook?.exam);
+  allowAuto = allowAuto && !exam;
   return (
     <select id={id} aria-label="Cable type" value={value} onChange={(e) => onChange(e.target.value as CableType | 'auto')} className="h-8 rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]">
       {allowAuto && <option value="auto">Automatic (pick for me)</option>}

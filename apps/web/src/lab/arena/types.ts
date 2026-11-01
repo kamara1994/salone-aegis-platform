@@ -72,6 +72,13 @@ export interface ArenaLab {
   build: () => LabDoc;
   items: AssessmentItem[];
   tests: ConnectivityTest[];
+  /**
+   * How the lab starts. 'blank': an empty canvas; the student places the devices, cables them and
+   * configures everything; build() is the reference answer, matched by hostname. 'built': build()
+   * is loaded as-is (troubleshooting and simlets, where finding faults in a given network is the task).
+   * Default: blank for guided, skills and challenge labs.
+   */
+  start?: 'blank' | 'built';
   /** Simlets: the questions, and the network is read-only (show, ping, traceroute). */
   questions?: SimletQuestion[];
   /** Troubleshooting labs: what was broken (revealed after submitting). */
@@ -121,6 +128,8 @@ export interface QuestionResult {
   hinted: boolean;
 }
 export interface Grade {
+  /** Blank-canvas labs: the devices and cabling the student built, against the reference design. */
+  topology: ItemResult[];
   items: ItemResult[];
   tests: TestResult[];
   questions: QuestionResult[];

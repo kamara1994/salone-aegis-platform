@@ -119,8 +119,8 @@ describe('routing: OSPF, HSRP, NAT through the CLI', () => {
 
   it('HSRP elects the higher priority router as active', () => {
     const { r1, r2, c1, c2 } = twoRouters();
-    run(c1, 'conf t', 'int g0/0/0', 'ip address 10.9.0.2 255.255.255.0', 'standby 1 ip 10.9.0.1', 'standby 1 priority 110', 'standby 1 preempt', 'end');
-    run(c2, 'conf t', 'int g0/0/0', 'ip address 10.9.0.3 255.255.255.0', 'standby 1 ip 10.9.0.1', 'end');
+    run(c1, 'conf t', 'int g0/0/0', 'no shutdown', 'ip address 10.9.0.2 255.255.255.0', 'standby 1 ip 10.9.0.1', 'standby 1 priority 110', 'standby 1 preempt', 'end');
+    run(c2, 'conf t', 'int g0/0/0', 'no shutdown', 'ip address 10.9.0.3 255.255.255.0', 'standby 1 ip 10.9.0.1', 'end');
     const sw = st().addDevice('c2960x24', 150, 200);
     st().connect({ device: r1, port: 'Gi0/0/0' }, { device: sw, port: 'Gi0/1' }, 'straight');
     st().connect({ device: r2, port: 'Gi0/0/0' }, { device: sw, port: 'Gi0/2' }, 'straight');

@@ -2,7 +2,9 @@
 import { create } from 'zustand';
 import { useLab } from '../store';
 import { gradeArena } from './grade';
+import { emptyDoc } from '../inventory';
 import { ARENA_PREFIX, arenaLab } from './index';
+import { startsBlank } from './grade';
 import { readArena, updateArena } from './progress';
 import type { Attempt, Grade } from './types';
 
@@ -60,7 +62,9 @@ export const activeArenaId = (): string | null => {
 export function startArena(labId: string): boolean {
   const lab = arenaLab(labId);
   if (!lab) return false;
-  useLab.getState().startWorkbook(lab.build(), ARENA_PREFIX + lab.id, lab.title);
+  // Build labs start on an empty canvas: the student places, cables and configures everything.
+  useLab.getState().startWorkbook(startsBlank(lab) ? emptyDoc() : lab.build(), ARENA_PREFIX + lab.id, lab.title);
+  if (lab.kind !== 'guided' && useLab.getState().cableType === 'auto') useLab.getState().setCableType('straight');
   // Simlets lock configuration; every assessed lab hides configuration diagnoses on the canvas.
   useLab.setState((s) => (s.doc?.workbook ? { doc: { ...s.doc, workbook: { ...s.doc.workbook, readOnly: lab.kind === 'simlet' || undefined, exam: lab.kind !== 'guided' || undefined } } } : {}));
   updateArena((p) => {
@@ -113,7 +117,7 @@ export function submitArena(labId: string, timedOut = false): { grade: Grade; at
     pct: grade.pct,
     hints: a.hinted.length,
     timedOut,
-    missed: [...grade.items, ...grade.tests, ...grade.questions].filter((x) => !x.ok).map((x) => x.id),
+    missed: [...grade.topology, ...grade.items, ...grade.tests, ...grade.questions].filter((x) => !x.ok).map((x) => x.id),
   };
   updateArena((p) => {
     p.attempts.push(attempt);

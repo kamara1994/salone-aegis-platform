@@ -4,15 +4,16 @@ import { Check, ClipboardCheck, Flag, Lightbulb, LogOut, PanelRightClose, PanelR
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Button, cx, IconButton, Tabs, useNow } from '@/components/ui';
-import { arenaLab, KIND_LABEL } from '@/lab/arena';
+import { arenaLab, KIND_LABEL, startsBlank } from '@/lab/arena';
 import { gradeArena, HINT_FACTOR } from '@/lab/arena/grade';
 import { bestFor, fmtTime, useArena } from '@/lab/arena/progress';
 import { activeAttempt, focusTerminal, leaveArena, setAnswer, startArena, submitArena, takeHint, useArenaUi } from '@/lab/arena/session';
 import type { ArenaKind, SimletQuestion } from '@/lab/arena/types';
 import { useLab } from '@/lab/store';
 import { CheckResults } from './CheckResults';
+import { TopologySheet } from './TopologySheet';
 
-type Tab = 'brief' | 'tasks' | 'addressing';
+type Tab = 'brief' | 'topology' | 'tasks' | 'addressing';
 export const KIND_TONE: Record<ArenaKind, 'info' | 'good' | 'warn' | 'bad'> = { guided: 'good', skills: 'info', troubleshoot: 'warn', challenge: 'bad', simlet: 'info' };
 
 export function Pips({ n }: { n: 1 | 2 | 3 }) {
@@ -46,6 +47,8 @@ export function ArenaPanel({ labId }: { labId: string }) {
   const answers = useMemo(() => active?.answers ?? {}, [active?.answers]);
   const grade = useMemo(() => gradeArena(lab, doc, log, hinted, answers), [lab, doc, log, hinted, answers]);
   const simlet = lab.kind === 'simlet';
+  const blank = startsBlank(lab);
+  const reference = useMemo(() => (blank ? lab.build() : null), [blank, lab]);
   const done = !!ui.submitted;
   const started = active ? new Date(active.startedAt).getTime() : now;
   const elapsed = done ? ui.submitted!.attempt.seconds : Math.max(0, Math.floor((now - started) / 1000));
@@ -133,7 +136,7 @@ export function ArenaPanel({ labId }: { labId: string }) {
         )}
       </header>
 
-      <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ key: 'brief', label: 'Brief' }, { key: 'tasks', label: simlet ? `Questions (${lab.questions?.length ?? 0})` : `Tasks (${lab.items.length + lab.tests.length})` }, ...(lab.addressing ? [{ key: 'addressing' as Tab, label: 'Addressing' }] : [])]} />
+      <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ key: 'brief', label: 'Brief' }, ...(blank ? [{ key: 'topology' as Tab, label: 'Topology' }] : []), { key: 'tasks', label: simlet ? `Questions (${lab.questions?.length ?? 0})` : `Tasks (${grade.topology.length + lab.items.length + lab.tests.length})` }, ...(lab.addressing ? [{ key: 'addressing' as Tab, label: 'Addressing' }] : [])]} />
 
       <div className="min-h-0 flex-1 overflow-auto px-3 py-3 text-[12.5px]">
         {tab === 'brief' && (
@@ -160,6 +163,7 @@ export function ArenaPanel({ labId }: { labId: string }) {
               {lab.kind === 'skills' && 'Skills assessment: build to the spec. Use Check results to see where you stand; only Submit records the attempt.'}
               {lab.kind === 'troubleshoot' && 'Troubleshooting: the faults are hidden. Find them with show commands, ping and traceroute. The debrief reveals them after you submit.'}
               {lab.kind === 'challenge' && 'Timed challenge: no hints, no checks. Your attempt submits itself when the clock reaches zero.'}
+              {blank && ' Build it yourself: the canvas starts empty. Open the Topology tab for the devices, hostnames and ports.'}
               {simlet && 'Simlet: configuration is locked. Open consoles, run show commands, ping and traceroute, then answer every question. Like the exam, nothing is marked until you submit. Hints cost half the points of that question.'}
             </p>
           </div>
@@ -189,8 +193,31 @@ export function ArenaPanel({ labId }: { labId: string }) {
           </ol>
         )}
 
+        {tab === 'topology' && reference && <TopologySheet reference={reference} />}
+
         {tab === 'tasks' && !simlet && (
           <div className="space-y-3">
+            {grade.topology.length > 0 && (
+              <div data-testid="arena-build-status">
+                <h3 className="mb-1 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Build the topology</h3>
+                <ul className="space-y-1">
+                  {grade.topology.map((r) => {
+                    const show = live || done;
+                    return (
+                      <li key={r.id} className="flex items-start gap-2 rounded border border-line px-2 py-1.5" data-ok={show ? r.ok : undefined}>
+                        <span className={cx('mt-1 size-2 shrink-0 rounded-full', !show ? 'bg-line-strong' : r.ok ? 'bg-healthy' : 'bg-down')} aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[11px] text-faint">{r.group.replace('Topology › ', '')}</span>
+                          {r.text}
+                          {show && !r.ok && r.detail && <span className="block text-[11.5px] text-degraded">Not yet: {r.detail}</span>}
+                        </span>
+                        <span className="text-[11px] text-muted tabular-nums">{r.points} pts</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
             <ol className="space-y-1.5" data-testid="arena-tasks">
               {lab.items.map((it, k) => {
                 const r = grade.items[k];

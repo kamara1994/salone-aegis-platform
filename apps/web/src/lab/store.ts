@@ -352,7 +352,7 @@ export const useLab = create<LabState>((set, get) => ({
         y: snapTo(y - DEVICE_H / 2, s.snap),
         power: 'running',
         health: 'healthy',
-        interfaces: m.ports().map((t) => ifaceFromTemplate(t, id, m.macPrefix)).map((i) => (m.kind === 'switch' && i.type !== 'console' ? { ...i, mode: 'access' as const, vlan: 1 } : i)),
+        interfaces: m.ports().map((t) => ifaceFromTemplate(t, id, m.macPrefix)).map((i) => (m.kind === 'switch' && i.type !== 'console' ? { ...i, mode: 'access' as const, vlan: 1 } : i)).map((i) => (m.kind === 'router' && ['copper', 'sfp', 'serial'].includes(i.type) ? { ...i, shutdown: true } : i)), // routers ship with interfaces shut, like IOS
         routes: [],
         vlans: m.kind === 'switch' ? { 1: 'default' } : {},
         firewall: m.kind === 'firewall' ? [{ id: 99, iface: 'any', src: 'any', dst: 'any', proto: 'any', port: 'any', action: 'block', log: true, enabled: true, descr: 'Default deny (logged)' }] : [],
