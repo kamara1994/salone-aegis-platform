@@ -2,13 +2,14 @@
 
 import { useReactFlow } from '@xyflow/react';
 import dynamic from 'next/dynamic';
-import { FolderOpen, Info, PlayCircle, Plus, X } from 'lucide-react';
+import { FolderOpen, Info, LayoutList, PlayCircle, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
 import type { Topology } from '@/api/types';
 import { useRuntime } from '@/components/providers';
 import { LabCanvas, LabFlowProvider, type CanvasActions } from '@/components/lab/LabCanvas';
 import { Palette, PaletteStrip, type PaletteFocus } from '@/components/lab/Palette';
+import { useFocus } from '@/components/shell/Rail';
 import { Toolbar } from '@/components/lab/Toolbar';
 import type { ToolKey } from '@/components/lab/ToolsPanel';
 import { Button, cx, Dialog, ErrorState, Field, IconButton, Input, Loading, relTime } from '@/components/ui';
@@ -193,6 +194,10 @@ function LabSelectionBar({ items, onLaunch, onOpenBuild }: { items: LabBrowseIte
 }
 
 function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
+  const focus = useFocus((f) => f.focus);
+  const setFocus = useFocus((f) => f.setFocus);
+  // Leaving the lab page brings the full menu back.
+  useEffect(() => () => useFocus.getState().setFocus(false), []);
   const rt = useRuntime();
   const rf = useReactFlow();
   const s = useLab();
@@ -344,7 +349,7 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           requestAnimationFrame(() => rf.fitView({ padding: 0.12, duration: 250 }));
         }} data-testid="project-in-progress"><PlayCircle className="mr-1.5 size-4" />In Progress</Button>
       </section>}
-      {!project && <LabSelectionBar items={getLabBrowseItems()} onOpenBuild={() => {
+      {!project && !focus && <LabSelectionBar items={getLabBrowseItems()} onOpenBuild={() => {
         setPalette(true);
         setTools(null);
         setSimOpenRaw(false);
@@ -354,6 +359,7 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
         s.setTool('select');
         s.closeInspector();
       }} onLaunch={(item) => {
+        setFocus(true);
         if (item.kind === 'workbook') {
           loadWorkbook(item.id, () => rf.fitView({ padding: 0.15, duration: 250 }));
           setTools('labs');
@@ -438,6 +444,11 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
         )}
         <main className={cx('relative min-w-0 flex-1', arenaId && 'max-xl:h-[min(56vh,560px)] max-xl:min-h-[360px] max-xl:flex-none')} aria-label="Canvas">
           <LabCanvas actions={actions} />
+          {focus && !project && (
+            <button type="button" onClick={() => setFocus(false)} className="absolute top-2 left-2 z-10 flex h-7 items-center gap-1.5 rounded-full border border-line bg-pane/90 px-2.5 text-[12px] text-muted shadow-sm hover:text-text" title="Show the lab picker and the full menu" data-testid="lab-change">
+              <LayoutList className="size-3.5" /> Labs
+            </button>
+          )}
           {hideSource && (
             <button type="button" onClick={() => setHideSource(false)} className="absolute top-2 right-2 z-10 grid size-7 place-items-center rounded-full border border-line bg-pane/90 text-muted shadow-sm hover:text-text" title="About this workspace" aria-label="About this workspace" data-testid="workspace-info">
               <Info className="size-3.5" />
