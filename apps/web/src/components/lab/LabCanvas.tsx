@@ -12,6 +12,7 @@ import { cableOnPort, cableStatus, deviceById, otherEnd, suggestCableType } from
 import { useLive, useUi } from '@/state/ui';
 import { CableEdge, DeviceNode, GroupFrame, NoteNode, SiteFrame, type CableEdgeData, type CompareMark, type DeviceNodeData, type NoteNodeData } from './CanvasParts';
 import { controlPlane } from '@/lab/protocols';
+import { HandCursor } from './HandCursor';
 import { PacketLayer } from './PacketLayer';
 import { ContextMenu, ErrorBanner, linkTestSummary, PortPicker, type MenuItem } from './Pickers';
 
@@ -542,6 +543,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
       data-testid="lab-canvas"
       data-tool={s.tool}
     >
+      <HandCursor target={wrap} />
       <ReactFlow
         nodes={nodes}
         edges={edges}
