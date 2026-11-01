@@ -25,7 +25,7 @@ export function portSummary(m: DeviceModel): string {
   for (const p of m.ports()) {
     const max = Math.max(...p.speeds);
     const sp = max >= 10000 ? '10G' : max >= 1000 ? '1G' : max >= 100 ? '100M' : '';
-    const label = p.type === 'copper' ? `${sp} copper` : p.type === 'sfp' ? `${sp} SFP` : p.type === 'serial' ? 'serial' : p.type === 'console' ? 'console' : p.type === 'terminal' ? 'RS-232' : p.type === 'wireless' ? 'Wi-Fi radio' : 'virtual NIC';
+    const label = p.type === 'copper' ? `${sp} copper` : p.type === 'sfp' ? `${sp} SFP` : p.type === 'serial' ? 'serial' : p.type === 'console' ? 'console' : p.type === 'terminal' ? 'RS-232' : p.type === 'wireless' ? 'Wi-Fi radio' : p.type === 'coax' ? 'F-type coax' : p.type === 'rj11' ? 'RJ-11 DSL' : 'virtual NIC';
     groups.set(label, (groups.get(label) ?? 0) + 1);
   }
   return [...groups.entries()].map(([k, n]) => `${n}× ${k}`).join(', ');

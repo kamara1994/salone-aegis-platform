@@ -296,7 +296,7 @@ export function billOfMaterials(doc: LabDoc): { item: string; qty: number; note:
     const b = deviceById(doc, c.b.device);
     if (a?.origin !== 'design' && b?.origin !== 'design') continue;
     const len = c.lengthM ?? 3;
-    const label = c.type === 'fiber' ? `${c.fiberMode === 'smf' ? 'Single-mode' : 'Multimode OM4'} LC-LC fibre patch, ${len} m (+2 SFP optics)` : c.type === 'console' ? 'Rollover / USB console cable' : c.type === 'serial' ? 'Serial DCE/DTE cable' : c.type === 'virtual' || c.type === 'wan' ? '' : `Cat6 ${c.type === 'crossover' ? 'crossover' : 'patch'} cable, ${len} m`;
+    const label = c.type === 'fiber' ? `${c.fiberMode === 'smf' ? 'Single-mode' : 'Multimode OM4'} LC-LC fibre patch, ${len} m (+2 SFP optics)` : c.type === 'console' ? 'Rollover / USB console cable' : c.type === 'serial' ? 'Serial DCE/DTE cable' : c.type === 'coax' ? `RG-6 coax with F connectors, ${len} m` : c.type === 'phone' ? `RJ-11 phone cord, ${len} m` : c.type === 'virtual' || c.type === 'wan' ? '' : `Cat6 ${c.type === 'crossover' ? 'crossover' : 'patch'} cable, ${len} m`;
     if (label) bump(label);
   }
   return [...items.entries()].map(([item, v]) => ({ item, ...v })).sort((x, y) => x.item.localeCompare(y.item));

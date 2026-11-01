@@ -14,6 +14,8 @@ export const CABLE_LABEL: Record<CableType, string> = {
   access: 'Access',
   wan: 'WAN circuit',
   virtual: 'Virtual link',
+  coax: 'Coaxial (RG-6)',
+  phone: 'Phone line (RJ-11)',
 };
 
 export const CABLE_TYPES = Object.keys(CABLE_LABEL) as CableType[];
@@ -87,6 +89,12 @@ function portFamilyOk(type: CableType, a: Iface, b: Iface, da: Device, db: Devic
         if (i.type === 'console' || i.type === 'terminal' || i.type === 'wireless') return err('incompatible_port', `${d.name} ${i.name} cannot terminate a WAN circuit.`);
       }
       return null;
+    case 'coax':
+      for (const [d, i] of [[da, a], [db, b]] as const) if (i.type !== 'coax') return err('incompatible_port', `Coaxial cable screws onto an F-type coax port on both ends. ${d.name} ${i.name} is a ${portTypeName(i.type)} port.`, 'Run coax from the cable modem to the provider coax drop.');
+      return null;
+    case 'phone':
+      for (const [d, i] of [[da, a], [db, b]] as const) if (i.type !== 'rj11') return err('incompatible_port', `A phone cable has small RJ-11 plugs; it fits a DSL or phone port, not ${d.name} ${i.name} (${portTypeName(i.type)}).`, 'Run the phone line from the DSL modem to the provider phone jack.');
+      return null;
     case 'virtual': {
       const ok = (d: Device, i: Iface) => i.type === 'virtual' || i.type === 'wireless' || d.kind === 'cloud' || d.kind === 'vm';
       for (const [d, i] of [[da, a], [db, b]] as const) if (!ok(d, i)) return err('incompatible_port', `Virtual links join vNICs, tunnels, wireless radios or cloud attachments. ${d.name} ${i.name} is a physical ${portTypeName(i.type)} port.`, 'Use a copper or fibre cable for physical ports.');
@@ -100,7 +108,7 @@ function portFamilyOk(type: CableType, a: Iface, b: Iface, da: Device, db: Devic
 }
 
 export function portTypeName(t: Iface['type']) {
-  return { copper: 'copper RJ-45', sfp: 'SFP fibre', serial: 'serial', console: 'console', terminal: 'RS-232/USB terminal', wireless: 'wireless', virtual: 'virtual' }[t];
+  return { copper: 'copper RJ-45', sfp: 'SFP fibre', serial: 'serial', console: 'console', terminal: 'RS-232/USB terminal', wireless: 'wireless', virtual: 'virtual', coax: 'F-type coax', rj11: 'RJ-11 phone' }[t];
 }
 
 /** Checks whether a cable may be connected at all. Returns blocking errors plus informational notes. */
@@ -262,6 +270,8 @@ export function lengthLimit(c: Cable, i: Iface): { max: number; label: string; f
   }
   if (c.type === 'serial') return { max: 15, label: 'V.35 serial', fix: 'Keep the DTE/DCE cable short or use a CSU/DSU.' };
   if (c.type === 'console') return { max: 15, label: 'RS-232 console', fix: 'Use a shorter console cable or a console server.' };
+  if (c.type === 'coax') return { max: 500, label: 'RG-6 coax (DOCSIS drop)', fix: 'Have the provider add an amplifier or move the modem closer to the tap.' };
+  if (c.type === 'phone') return { max: 5000, label: 'DSL over copper phone line', fix: 'DSL speed drops with distance; past about 5 km order fibre or cable instead.' };
   return { max: 100, label: 'Copper Ethernet (TIA-568)', fix: 'Stay under 100 m: add a switch in a closer closet, or run fibre.' };
 }
 
@@ -274,6 +284,8 @@ export function suggestCableType(doc: LabDoc, a: CableEnd, b: CableEnd): CableTy
   if (t.includes('console') || t.includes('terminal')) return 'console';
   if (t.every((x) => x === 'serial')) return 'serial';
   if (t.every((x) => x === 'sfp')) return 'fiber';
+  if (t.every((x) => x === 'coax')) return 'coax';
+  if (t.every((x) => x === 'rj11')) return 'phone';
   if (t.includes('wireless') || (t.includes('virtual') && !t.includes('copper'))) return 'virtual';
   if ([A.device, B.device].every((d) => ['router', 'firewall', 'cloud'].includes(d.kind)) && [A.device, B.device].some((d) => d.kind === 'cloud')) return 'wan';
   if (A.device.kind === 'switch' && B.device.kind === 'switch') return 'trunk';

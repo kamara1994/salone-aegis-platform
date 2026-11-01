@@ -217,6 +217,8 @@ const STYLE: Record<Cable['type'], { color: string; width: number; dash?: string
   console: { color: '#67e8f9', width: 1.6, dash: '2 3' },
   wan: { color: '#f472b6', width: 2.5, dash: '12 5' },
   virtual: { color: '#94a3b8', width: 1.8, dash: '3 4' },
+  coax: { color: '#e2e8f0', width: 3 },
+  phone: { color: '#a3a3a3', width: 1.4, dash: '6 3' },
 };
 export const CABLE_STYLE = STYLE;
 

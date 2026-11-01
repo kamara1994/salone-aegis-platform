@@ -19,5 +19,7 @@ export const CABLE_INFO: CableInfo[] = [
   { type: 'console', name: 'Console (rollover)', connector: 'RJ-45 or USB to DB-9/USB', use: 'From a PC terminal port to a router or switch console for out-of-band setup.', limit: '15 m' },
   { type: 'serial', name: 'Serial DCE/DTE', connector: 'Smart serial / V.35', use: 'Legacy WAN between routers; the DCE end provides the clock.', limit: '15 m' },
   { type: 'wan', name: 'WAN circuit', connector: 'Provider hand-off', use: 'Internet or carrier link to an ISP cloud; set provider, bandwidth and latency.', limit: 'Set by the provider' },
+  { type: 'coax', name: 'Coaxial', connector: 'F-type, RG-6', use: 'Cable internet: the cable modem to the provider coax drop (DOCSIS).', limit: 'About 500 m to the tap' },
+  { type: 'phone', name: 'Phone line', connector: 'RJ-11', use: 'DSL internet: the DSL modem to the phone jack from the provider.', limit: 'DSL slows past 1-5 km' },
   { type: 'virtual', name: 'Virtual / wireless', connector: 'vNIC, tunnel, radio', use: 'VM networks, VPN tunnels, cloud attachments and Wi-Fi association.', limit: 'None' },
 ];

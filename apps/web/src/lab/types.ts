@@ -5,7 +5,7 @@
 export type DeviceKind = 'router' | 'switch' | 'firewall' | 'server' | 'pc' | 'laptop' | 'ap' | 'cloud' | 'vm' | 'iot';
 
 /** Physical or logical port family. Decides which cables fit. */
-export type PortType = 'copper' | 'sfp' | 'serial' | 'console' | 'terminal' | 'wireless' | 'virtual';
+export type PortType = 'copper' | 'sfp' | 'serial' | 'console' | 'terminal' | 'wireless' | 'virtual' | 'coax' | 'rj11';
 
 export type Speed = 'auto' | 10 | 100 | 1000 | 10000;
 export type Duplex = 'auto' | 'full' | 'half';
@@ -200,7 +200,7 @@ export interface Device {
   psuOff?: string[];
 }
 
-export type CableType = 'straight' | 'crossover' | 'fiber' | 'serial' | 'console' | 'trunk' | 'access' | 'wan' | 'virtual';
+export type CableType = 'straight' | 'crossover' | 'fiber' | 'serial' | 'console' | 'trunk' | 'access' | 'wan' | 'virtual' | 'coax' | 'phone';
 
 export interface CableEnd {
   device: string; // Device.id
