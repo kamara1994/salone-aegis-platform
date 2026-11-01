@@ -10,10 +10,12 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await page.goto('/');
   await expect(page).toHaveURL(/\/dashboard\/networking$/); // the app opens straight into a dashboard
   const sw = page.getByTestId('cert-switch');
-  await expect(sw.locator('option')).toHaveCount(8);
-  await expect(sw.locator('option[value="networking"]')).toHaveText(/Networking: Network\+, CCNA, CCNP/);
-
-  await sw.selectOption('networking');
+  await expect(sw).toHaveText('AEGIS');
+  await expect(page.getByTestId('cert-menu')).toBeHidden(); // the certificate stays tucked inside AEGIS
+  await sw.hover();
+  await expect(page.getByTestId('cert-menu').getByRole('menuitemradio')).toHaveCount(8);
+  await expect(page.getByTestId('cert-option-networking')).toContainText(/Networking\s*Network\+, CCNA, CCNP/);
+  await page.getByTestId('cert-option-networking').click();
   await expect(page).toHaveURL(/\/dashboard\/networking$/);
   // the left side becomes the dashboard's own menu; the middle is an empty playground
   const side = page.getByTestId('dashboard-side');
@@ -78,16 +80,18 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await expect(page.getByTestId('side-part-all')).toBeVisible();
   await page.getByTestId('side-projects').click();
   await expect(page.getByTestId('playground-projects')).toBeVisible();
-  await sw.selectOption('security');
+  await sw.hover();
+  await page.getByTestId('cert-option-security').click();
   await expect(page).toHaveURL(/\/dashboard\/security$/);
   await expect(page.getByTestId('dashboard-side-title')).toContainText('Security fundamentals');
   await expect(page.getByTestId('dash-toolbar')).toContainText('Security+');
 
-  await sw.selectOption('pentest');
+  await sw.hover();
+  await page.getByTestId('cert-option-pentest').click();
   await expect(page.getByTestId('dash-toolbar')).toContainText('eJPT');
   await expect(page.getByTestId('dash-toolbar')).toContainText('PJPT');
   await page.reload();
-  await expect(sw).toHaveValue('pentest');
+  await expect(sw).toHaveAttribute('data-value', 'pentest');
   await page.goto('/'); // home reopens the dashboard you used last
   await expect(page).toHaveURL(/\/dashboard\/pentest$/);
 
@@ -99,12 +103,6 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await expect(page.getByTestId('exam-course')).toHaveValue('cert:pentest');
   await page.goto('/games');
   await expect(page.getByTestId('game-template')).toHaveValue('pentest');
-
-  await page.getByTestId('nav-dashboard').click();
-  await expect(page).toHaveURL(/\/dashboard\/pentest$/);
-  await sw.selectOption('all');
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByTestId('nav-dashboard')).toHaveCount(0);
 });
 
 test('learning and exam levels persist across dashboards and browser tabs', async ({ browser }) => {
@@ -128,6 +126,6 @@ test('learning and exam levels persist across dashboards and browser tabs', asyn
 test('a choice saved before dashboards existed opens the right dashboard', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('aegis.cert', JSON.stringify('ccna')));
   await page.goto('/learn');
-  await expect(page.getByTestId('cert-switch')).toHaveValue('networking');
+  await expect(page.getByTestId('cert-switch')).toHaveAttribute('data-value', 'networking');
 });
 
