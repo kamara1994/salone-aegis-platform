@@ -3,11 +3,8 @@
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { DashboardSide } from '@/components/cert/DashboardSide';
-import { DebriefOverlay } from '@/components/debrief/DebriefOverlay';
 import { CommandPalette } from './CommandPalette';
-import { ConsoleDock } from './ConsoleDock';
 import { NavRail } from './NavRail';
-import { NotificationsDrawer } from './NotificationsDrawer';
 import { Toasts } from './Toasts';
 import { TopBar } from './TopBar';
 
@@ -26,12 +23,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main id="main" className="min-h-0 flex-1 overflow-auto">
             {children}
           </main>
-          <ConsoleDock />
         </div>
       </div>
-      <NotificationsDrawer />
       <CommandPalette />
-      <DebriefOverlay />
       <Toasts />
     </div>
   );

@@ -131,8 +131,3 @@ test('a choice saved before dashboards existed opens the right dashboard', async
   await expect(page.getByTestId('cert-switch')).toHaveValue('networking');
 });
 
-test('the client filter still works from the notifications drawer', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: /Notifications/ }).click();
-  await expect(page.locator('#client-switch')).toBeVisible();
-});
