@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { create } from 'zustand';
 import { cx } from '@/components/ui';
 import { certById, CERTS, dashboardById, VENDOR_ACCENT } from '@/content/certs';
-import { RailActions, RailBrand, useFocus } from '@/components/shell/Rail';
+import { RailActions, RailBrand, useRailPeek } from '@/components/shell/Rail';
 
 /** What the dashboard shows: null (empty playground) or "<section>/<part>", e.g. "learn/exam", "labs", "games/<template>". */
 export const useDashItem = create<{ item: string | null; setItem: (item: string | null) => void }>((set) => ({
@@ -54,13 +54,13 @@ export function DashboardSide() {
   const dash = dashboardById(id);
   const focus = certById(id);
   const { item, setItem } = useDashItem();
-  const slim = useFocus((s) => s.focus);
+  const { compact: slim, slim: inFocus, navProps, overlay, wrap } = useRailPeek();
   if (!dash || !focus) return null;
   const accent = dashAccent(id);
   const current = sectionOf(item);
   const cls = (active: boolean) => cx('relative mx-0.5 flex min-w-[60px] flex-col items-center gap-1 rounded-[6px] py-1 text-center text-[11px] leading-tight md:mx-1.5 md:min-w-0', active ? 'font-medium text-text' : 'text-muted hover:text-text [&:hover>span]:bg-pane-2');
-  return (
-    <nav aria-label={`${dash.title} menu`} data-testid="dashboard-side" data-focus={slim || undefined} className={`flex shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-line bg-pane py-1 md:flex-col md:transition-[width] md:duration-200 ${slim ? 'md:w-[52px]' : 'md:w-[72px]'} md:overflow-visible md:border-t-0 md:border-r md:py-2`}>
+  return wrap(
+    <nav aria-label={`${dash.title} menu`} data-testid="dashboard-side" data-focus={inFocus || undefined} {...navProps} className={`flex shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-line bg-pane py-1 md:flex-col md:transition-[width] md:duration-200 ${slim ? 'md:w-[52px]' : 'md:w-[72px]'} md:overflow-visible md:border-t-0 md:border-r md:py-2 ${overlay}`}>
       <RailBrand />
       <button onClick={() => setItem(null)} title={`${dash.title} home`} className={cx('mx-0.5 mb-1 hidden rounded-[5px] border-b-2 px-0.5 py-1 text-center text-[10px] leading-tight font-semibold md:mx-1.5', slim ? 'md:hidden' : 'md:block')} style={{ borderColor: accent }} data-testid="dashboard-side-title">
         <span className="sr-only">{dash.title}</span>

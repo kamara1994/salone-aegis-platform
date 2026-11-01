@@ -196,6 +196,7 @@ function LabSelectionBar({ items, onLaunch, onOpenBuild }: { items: LabBrowseIte
 function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const focus = useFocus((f) => f.focus);
   const setFocus = useFocus((f) => f.setFocus);
+  const [peekBar, setPeekBar] = useState(false);
   // Leaving the lab page brings the full menu back.
   useEffect(() => () => useFocus.getState().setFocus(false), []);
   const rt = useRuntime();
@@ -374,7 +375,7 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const vmDevice = vmFor ? deviceById(doc, vmFor) : undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-testid="lab-designer">
+    <div className="relative flex h-full min-h-0 flex-col" data-testid="lab-designer">
       {project && <section className="flex flex-wrap items-center gap-3 border-b border-line bg-pane-2/60 px-3 py-2" aria-label="Networking project workspace" data-testid="project-workspace-nav">
         <div className="mr-auto min-w-40">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-action">Networking · CCNA · CCNP</p>
@@ -392,7 +393,10 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           requestAnimationFrame(() => rf.fitView({ padding: 0.12, duration: 250 }));
         }} data-testid="project-in-progress"><PlayCircle className="mr-1.5 size-4" />In Progress</Button>
       </section>}
-      {!project && !focus && <LabSelectionBar items={getLabBrowseItems()} onOpenBuild={() => {
+      {/* Focus mode: the picker hides; touching the top edge slides it down over the toolbar, and it folds away when the mouse leaves. */}
+      {!project && focus && <div className="absolute inset-x-0 top-0 z-30 h-2" onMouseEnter={() => setPeekBar(true)} aria-hidden data-testid="lab-picker-hotzone" />}
+      {!project && <div className={focus ? cx('absolute inset-x-0 top-0 z-40 shadow-2xl transition-transform duration-150 focus-within:translate-y-0', peekBar ? 'translate-y-0' : '-translate-y-full') : undefined} onMouseLeave={focus ? () => setPeekBar(false) : undefined} data-testid="lab-picker-wrap">
+      <LabSelectionBar items={getLabBrowseItems()} onOpenBuild={() => {
         setPalette(true);
         setTools(null);
         setSimOpenRaw(false);
@@ -403,6 +407,8 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
         s.closeInspector();
       }} onLaunch={(item) => {
         setFocus(true);
+        setPeekBar(false);
+        (document.activeElement as HTMLElement | null)?.blur?.();
         // A lab that arrives built needs configuring, not placing: start with the library folded to its strip.
         setTimeout(() => setPalette((useLab.getState().doc?.devices.length ?? 0) === 0), 0);
         if (item.kind === 'workbook') {
@@ -428,7 +434,8 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           setTools('challenge');
           setSimOpenRaw(false);
         }
-      }} />}
+      }} />
+      </div>}
       <Toolbar paletteOpen={palette} setPaletteOpen={setPalette} onLayouts={() => setLayouts(true)} onStructure={() => setStructure(true)} onShortcuts={() => setShortcuts(true)} onNewCable={() => setNewCable({})} toolsOpen={!!tools} onTools={() => {
           if (tools) setTools(null);
           else {

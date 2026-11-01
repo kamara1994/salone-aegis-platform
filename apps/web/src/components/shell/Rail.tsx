@@ -2,7 +2,7 @@
 
 import { Check, Command, LogOut, Moon, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { signOut } from '@/api/auth';
 import { cx } from '@/components/ui';
@@ -11,6 +11,23 @@ import { useUi } from '@/state/ui';
 
 /** Focus mode: once a lab is open, the side rail shrinks to icons and the lab picker folds away. */
 export const useFocus = create<{ focus: boolean; setFocus: (focus: boolean) => void }>((set) => ({ focus: false, setFocus: (focus) => set({ focus }) }));
+
+/**
+ * In focus mode the rail keeps a slim 52px slot. Hovering it slides the full rail out over the
+ * canvas (no layout jump); moving the mouse away folds it back.
+ */
+export function useRailPeek() {
+  const slim = useFocus((s) => s.focus);
+  const [peek, setPeek] = useState(false);
+  useEffect(() => {
+    if (!slim) setPeek(false);
+  }, [slim]);
+  const compact = slim && !peek;
+  const navProps = slim ? { onMouseOver: () => setPeek(true), onMouseLeave: () => setPeek(false), onFocus: () => setPeek(true), onBlur: (e: React.FocusEvent) => !e.currentTarget.contains(e.relatedTarget as Node) && setPeek(false) } : {};
+  const overlay = slim ? cx('md:absolute md:inset-y-0 md:left-0 md:z-40 md:transition-[width,box-shadow] md:duration-150', peek && 'md:shadow-2xl') : '';
+  const wrap = (nav: React.ReactNode) => (slim ? <div className="max-md:contents md:relative md:w-[52px] md:shrink-0">{nav}</div> : nav);
+  return { slim, compact, navProps, overlay, wrap };
+}
 
 /** Top of the left rail: the AEGIS mark. Hover, focus or tap it to switch certificate. */
 export function RailBrand() {

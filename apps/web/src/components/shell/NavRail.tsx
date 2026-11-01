@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { cx } from '@/components/ui';
 import { dashboardById } from '@/content/certs';
 import { useUi } from '@/state/ui';
-import { RailActions, RailBrand, useFocus } from './Rail';
+import { RailActions, RailBrand, useRailPeek } from './Rail';
 
 export const NAV = [
   { href: '/lab', label: 'Lab', icon: Cable },
@@ -20,9 +20,9 @@ export const NAV = [
 export function NavRail() {
   const path = usePathname();
   const dash = dashboardById(useUi((s) => s.certId));
-  const focus = useFocus((s) => s.focus);
-  return (
-    <nav aria-label="Main" className={cx('flex shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-line bg-pane py-1', focus ? 'md:w-[52px]' : 'md:w-[68px]', ' md:flex-col md:overflow-visible md:border-t-0 md:border-r md:py-2')}>
+  const { compact: focus, navProps, overlay, wrap } = useRailPeek();
+  return wrap(
+    <nav aria-label="Main" {...navProps} className={cx('flex shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-line bg-pane py-1', focus ? 'md:w-[52px]' : 'md:w-[68px]', ' md:flex-col md:overflow-visible md:border-t-0 md:border-r md:py-2', overlay)}>
       <RailBrand />
       {dash && (
         <Link href={`/dashboard/${dash.id}`} aria-current={path.startsWith('/dashboard') ? 'page' : undefined} title={`${dash.title} dashboard`} data-testid="nav-dashboard" className={cx('relative mx-0.5 flex min-w-[60px] flex-col items-center gap-0.5 rounded-[5px] py-1.5 text-center text-[11px] leading-tight md:mx-1.5 md:min-w-0', path.startsWith('/dashboard') ? 'bg-pane-2 text-text' : 'text-muted hover:bg-pane-2 hover:text-text')}>
