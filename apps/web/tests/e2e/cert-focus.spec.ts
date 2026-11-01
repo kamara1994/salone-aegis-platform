@@ -8,8 +8,9 @@ test.beforeEach(async ({ page }) => {
 
 test('each dashboard has its own screen; Network+ and CCNA share Networking', async ({ page }) => {
   await page.goto('/');
+  await expect(page).toHaveURL(/\/dashboard\/networking$/); // the app opens straight into a dashboard
   const sw = page.getByTestId('cert-switch');
-  await expect(sw.locator('option')).toHaveCount(9);
+  await expect(sw.locator('option')).toHaveCount(8);
   await expect(sw.locator('option[value="networking"]')).toHaveText(/Networking: Network\+, CCNA, CCNP/);
 
   await sw.selectOption('networking');
@@ -87,8 +88,8 @@ test('each dashboard has its own screen; Network+ and CCNA share Networking', as
   await expect(page.getByTestId('dash-toolbar')).toContainText('PJPT');
   await page.reload();
   await expect(sw).toHaveValue('pentest');
-  await page.getByTestId('dashboard-back').click();
-  await expect(page.getByTestId('nav-dashboard')).toContainText('Pentest');
+  await page.goto('/'); // home reopens the dashboard you used last
+  await expect(page).toHaveURL(/\/dashboard\/pentest$/);
 
   // the rest of the app follows the dashboard
   await page.goto('/learn');

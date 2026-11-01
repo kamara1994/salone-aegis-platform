@@ -23,6 +23,7 @@ import type { CableEnd, LabDoc } from '@/lab/types';
 import { deviceById } from '@/lab/validate';
 import { initialLab, type LabState as MockLab } from '@/mock/lab';
 import { WORKBOOKS } from '@/lab/workbooks';
+import { CCNA_FOCUS_BRIEFS, CCNA_FOCUS_FORMATS } from '@/lab/ccnaFocusBriefs';
 
 const BASELINE_KEY = 'aegis.lab.baseline.v1:live-topology';
 const PanelLoading = () => <div className="grid min-h-24 place-items-center text-[12px] text-muted" role="status">Loading…</div>;
@@ -135,11 +136,16 @@ function getLabBrowseItems(): LabBrowseItem[] {
 }
 
 function LabSelectionBar({ items, onLaunch }: { items: LabBrowseItem[]; onLaunch: (item: LabBrowseItem) => void }) {
-  const [view, setView] = useState<'type' | 'topic'>('type');
+  const [view, setView] = useState<'type' | 'topic' | 'ccna'>('type');
   const [selection, setSelection] = useState('');
+  const [ccnaType, setCcnaType] = useState('');
+  const [ccnaBriefId, setCcnaBriefId] = useState('');
   const types = ['Troubleshooting Labs', 'Scenario Labs', 'Guided Labs', 'Simlet Labs', 'Challenge Labs'];
   const byType = [...items].sort((a, b) => types.indexOf(a.type) - types.indexOf(b.type) || a.topic.localeCompare(b.topic) || a.title.localeCompare(b.title));
   const byTopic = [...items].sort((a, b) => a.topic.localeCompare(b.topic) || types.indexOf(a.type) - types.indexOf(b.type) || a.title.localeCompare(b.title));
+  const ccnaTypes = CCNA_FOCUS_FORMATS.filter((type) => CCNA_FOCUS_BRIEFS.some((brief) => brief.format === type));
+  const ccnaBriefs = CCNA_FOCUS_BRIEFS.filter((brief) => brief.format === ccnaType);
+  const selectedCcnaBrief = CCNA_FOCUS_BRIEFS.find((brief) => brief.id === ccnaBriefId);
   const launchSelected = (value: string) => {
     if (!value) return;
     const [kind, ...idParts] = value.split(':');
@@ -148,17 +154,78 @@ function LabSelectionBar({ items, onLaunch }: { items: LabBrowseItem[]; onLaunch
     setSelection('');
   };
 
-  return <nav className="flex h-11 shrink-0 items-center gap-2 border-b border-line bg-pane px-3" aria-label="Lab selector" data-testid="lab-workspace-tabs">
-    <div className="flex h-8 items-center gap-0.5 rounded-md border border-line-strong bg-ink p-0.5" role="tablist" aria-label="Organize labs by">
-      <button type="button" role="tab" aria-selected={view === 'type'} onClick={() => { setView('type'); setSelection(''); }} className={cx('h-full rounded px-2.5 text-[12px] font-medium', view === 'type' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-type">By lab type</button>
-      <button type="button" role="tab" aria-selected={view === 'topic'} onClick={() => { setView('topic'); setSelection(''); }} className={cx('h-full rounded px-2.5 text-[12px] font-medium', view === 'topic' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-topic">By topic</button>
+  return <>
+  <nav className="flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b border-line bg-pane px-3" aria-label="Lab selector" data-testid="lab-workspace-tabs">
+    <div className="flex h-8 shrink-0 items-center gap-0.5 rounded-md border border-line-strong bg-ink p-0.5" role="tablist" aria-label="Organize labs by">
+      <button type="button" role="tab" aria-selected={view === 'type'} onClick={() => { setView('type'); setSelection(''); setCcnaBriefId(''); }} className={cx('h-full rounded px-2.5 text-[12px] font-medium', view === 'type' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-type">By lab type</button>
+      <button type="button" role="tab" aria-selected={view === 'topic'} onClick={() => { setView('topic'); setSelection(''); setCcnaBriefId(''); }} className={cx('h-full rounded px-2.5 text-[12px] font-medium', view === 'topic' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-topic">By topic</button>
+      <button type="button" role="tab" aria-selected={view === 'ccna'} onClick={() => { setView('ccna'); setSelection(''); setCcnaType(''); setCcnaBriefId(''); }} className={cx('h-full whitespace-nowrap rounded px-2.5 text-[12px] font-medium', view === 'ccna' ? 'bg-action text-white' : 'text-muted hover:text-text')} data-testid="lab-view-ccna-focus" title="Original CCNA-only written lab briefs">CCNA Focus Lab</button>
     </div>
-    <label className="sr-only" htmlFor="lab-view-selector">Choose a lab</label>
-    <select id="lab-view-selector" value={selection} onChange={(event) => launchSelected(event.target.value)} className="h-8 min-w-[min(92vw,440px)] rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]" data-testid="lab-view-selector">
-      <option value="">{view === 'type' ? 'Choose a lab by type…' : 'Choose a lab by topic…'}</option>
-      {(view === 'type' ? byType : byTopic).map((item) => <option key={`${item.kind}:${item.id}`} value={`${item.kind}:${item.id}`}>{view === 'type' ? `${item.type} › ${item.topic} › ${item.title}` : `${item.topic} › ${item.type} › ${item.title}`}</option>)}
-    </select>
-  </nav>;
+    {view === 'ccna' ? (
+      <>
+        <label className="sr-only" htmlFor="ccna-lab-type">Choose a CCNA lab type</label>
+        <select id="ccna-lab-type" value={ccnaType} onChange={(event) => { setCcnaType(event.target.value); setCcnaBriefId(''); setSelection(''); }} className="h-8 min-w-[190px] rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]" data-testid="ccna-lab-type">
+          <option value="">Choose a CCNA lab type…</option>
+          {ccnaTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+        </select>
+        {ccnaType && <>
+          <label className="sr-only" htmlFor="ccna-lab-selector">Choose a CCNA brief</label>
+          <select id="ccna-lab-selector" value={ccnaBriefId} onChange={(event) => setCcnaBriefId(event.target.value)} className="h-8 min-w-[min(48vw,380px)] rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]" data-testid="ccna-lab-selector">
+            <option value="">Choose a {ccnaType.toLowerCase()} brief…</option>
+            {ccnaBriefs.map((brief) => <option key={brief.id} value={brief.id}>{brief.domain} › {brief.title}</option>)}
+          </select>
+        </>}
+      </>
+    ) : (
+      <>
+        <label className="sr-only" htmlFor="lab-view-selector">Choose a lab</label>
+        <select id="lab-view-selector" value={selection} onChange={(event) => launchSelected(event.target.value)} className="h-8 min-w-[min(92vw,440px)] rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px]" data-testid="lab-view-selector">
+          <option value="">{view === 'type' ? 'Choose a lab by type…' : 'Choose a lab by topic…'}</option>
+          {(view === 'type' ? byType : byTopic).map((item) => <option key={`${item.kind}:${item.id}`} value={`${item.kind}:${item.id}`}>{view === 'type' ? `${item.type} › ${item.topic} › ${item.title}` : `${item.topic} › ${item.type} › ${item.title}`}</option>)}
+        </select>
+      </>
+    )}
+  </nav>
+  {view === 'ccna' && <section className="max-h-[52vh] shrink-0 overflow-y-auto border-b border-line bg-pane-2/40 px-4 py-3" aria-label="CCNA written lab brief" data-testid="ccna-focus-brief-panel">
+    {selectedCcnaBrief ? <article className="mx-auto max-w-5xl space-y-3">
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-action">{selectedCcnaBrief.domain} · {selectedCcnaBrief.topic}</p>
+          <h2 className="mt-1 text-[17px] font-semibold">{selectedCcnaBrief.title}</h2>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-1.5 text-[10.5px] text-muted">
+          <span className="rounded border border-line px-2 py-1">{selectedCcnaBrief.format}</span>
+          <span className="rounded border border-line px-2 py-1">{selectedCcnaBrief.level}</span>
+          <span className="rounded border border-line px-2 py-1">Objectives {selectedCcnaBrief.objectives.join(', ')}</span>
+        </div>
+      </header>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <section className="rounded-md border border-line bg-pane p-3">
+          <h3 className="text-[12px] font-semibold">Scenario</h3>
+          <p className="mt-1.5 text-[12px] leading-relaxed text-muted">{selectedCcnaBrief.scenario}</p>
+          <h3 className="mt-3 text-[12px] font-semibold">Required tasks</h3>
+          <ol className="mt-1.5 list-decimal space-y-1 pl-5 text-[12px] leading-relaxed text-muted">
+            {selectedCcnaBrief.tasks.map((task) => <li key={task}>{task}</li>)}
+          </ol>
+        </section>
+        <section className="rounded-md border border-line bg-pane p-3">
+          <h3 className="text-[12px] font-semibold">Questions to answer</h3>
+          <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[12px] leading-relaxed text-muted">
+            {selectedCcnaBrief.questions.map((question) => <li key={question}>{question}</li>)}
+          </ul>
+          <h3 className="mt-3 text-[12px] font-semibold">What a strong response demonstrates</h3>
+          <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[12px] leading-relaxed text-muted">
+            {selectedCcnaBrief.evidence.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </section>
+      </div>
+      <p className="text-[10.5px] text-faint">Written CCNA practice brief only. Topology, answer key, and lab checks are intentionally not included at this stage.</p>
+    </article> : <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 text-[11.5px] text-muted" data-testid="ccna-focus-empty">
+      <p>Choose a CCNA lab type, then a brief. Each one gives the scenario, required tasks, questions, and evidence expected.</p>
+      <p className="text-faint">{CCNA_FOCUS_BRIEFS.length} original briefs · six CCNA domains · topology assembly later</p>
+    </div>}
+  </section>}
+  </>;
 }
 
 function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {

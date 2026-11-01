@@ -72,17 +72,16 @@ export function TopBar() {
       </label>
       <select
         id="cert-switch"
-        value={certId}
+        value={dash ? certId : 'networking'}
         onChange={(e) => {
           const id = e.target.value;
           setCert(id);
-          router.push(id === 'all' ? '/' : `/dashboard/${id}`);
+          router.push(`/dashboard/${id}`);
         }}
         title={dash ? `${dash.title}: ${dash.summary}` : 'Choose a certification area to open its dashboard'}
         className="h-8 max-w-[44vw] min-w-0 rounded-[5px] border border-line-strong bg-ink px-2 text-[13px] sm:max-w-[340px]"
         data-testid="cert-switch"
       >
-        <option value="all">All certifications (operator cockpit)</option>
         {DASHBOARDS.map((x) => (
           <option key={x.id} value={x.id}>
             {x.title}: {x.certs.map((c) => CERTS.find((k) => k.id === c)?.short).join(', ')}

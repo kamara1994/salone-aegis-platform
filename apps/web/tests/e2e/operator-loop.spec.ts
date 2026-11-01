@@ -9,13 +9,6 @@ test.beforeEach(async ({ page }) => {
   await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
 });
 
-test('cockpit shows the live map, queue and shift summary', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByTestId('map-node-FW01')).toBeVisible();
-  await expect(page.getByText('Connected but nothing opens').first()).toBeVisible();
-  await expect(page.getByText('Open work')).toBeVisible();
-});
-
 test('full ticket loop ends in an automatic debrief and a closed ticket', async ({ page }) => {
   await page.goto('/tickets');
   await page.getByText('Connected but nothing opens').click();
