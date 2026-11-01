@@ -37,24 +37,23 @@ const TopicPlayground = dynamic(() => import('@/components/learn/Topics').then((
 const TracksView = dynamic(() => import('@/components/learn/Tracks').then((module) => module.TracksView), { loading: SectionLoading });
 const VisualsView = dynamic(() => import('@/components/learn/Visuals').then((module) => module.VisualsView), { loading: SectionLoading });
 
-type Part = { key: string; label: string; hint?: string; icon: LucideIcon; hue: string; group?: string };
+type Part = { key: string; label: string; hint?: string; icon: LucideIcon; hue: string };
 
 // One colour per kind of activity, so the same kind looks the same in every dashboard.
 const HUE = { read: '#4f9cf9', see: '#22b8cf', test: '#f59f00', recall: '#ae3ec9', real: '#f03e3e', talk: '#37b24d', ai: '#7950f2', math: '#1098ad', path: '#e8590c', play: '#d6336c', neutral: '#868e96' };
 
-// Grouped into Study, Practice and AI so the menu reads as three short lists. Hints show on hover.
 const LEARN_PARTS: Part[] = [
-  { key: 'topics', label: 'Topics', hint: 'One topic at a time, at your level', icon: BookOpenText, hue: HUE.read, group: 'Study' },
-  { key: 'tracks', label: 'Tracks', hint: 'Step-by-step study path', icon: Route, hue: HUE.path, group: 'Study' },
-  { key: 'images', label: 'Images', hint: 'Diagrams and pictures', icon: Images, hue: HUE.see, group: 'Study' },
-  { key: 'lessons', label: 'Interactive lessons', hint: 'Guided walk-throughs', icon: Compass, hue: HUE.read, group: 'Study' },
-  { key: 'exam', label: 'Practice exam', hint: 'Timed, marked at the end', icon: Timer, hue: HUE.test, group: 'Practice' },
-  { key: 'flashcards', label: 'Flashcards', hint: 'Terms to remember', icon: Layers, hue: HUE.recall, group: 'Practice' },
-  { key: 'scenario-questions', label: 'Scenarios', hint: 'Real tickets: cause, fix, escalate', icon: ScrollText, hue: HUE.real, group: 'Practice' },
-  { key: 'subnetting', label: 'Subnetting', hint: 'Quick address maths', icon: Calculator, hue: HUE.math, group: 'Practice' },
-  { key: 'interview', label: 'Interview', hint: 'Answer out loud, get feedback', icon: MessagesSquare, hue: HUE.talk, group: 'Practice' },
-  { key: 'ai-tutor', label: 'AI Tutor', hint: 'Ask about this topic', icon: Sparkles, hue: HUE.ai, group: 'AI' },
-  { key: 'ai', label: 'AI questions', hint: 'Fresh questions on weak spots', icon: BrainCircuit, hue: HUE.ai, group: 'AI' },
+  { key: 'topics', label: 'Learn by topic', hint: 'One topic at a time, at your level', icon: BookOpenText, hue: HUE.read },
+  { key: 'images', label: 'Learn with images', hint: 'Diagrams and pictures', icon: Images, hue: HUE.see },
+  { key: 'exam', label: 'Practice exam', hint: 'Timed, marked at the end', icon: Timer, hue: HUE.test },
+  { key: 'flashcards', label: 'Flashcards', hint: 'Terms to remember', icon: Layers, hue: HUE.recall },
+  { key: 'scenario-questions', label: 'Scenario questions', hint: 'Real tickets: cause, fix, escalate', icon: ScrollText, hue: HUE.real },
+  { key: 'interview', label: 'Interview mode', hint: 'Answer out loud, get feedback', icon: MessagesSquare, hue: HUE.talk },
+  { key: 'ai', label: 'AI practice questions', hint: 'Fresh questions on weak spots', icon: BrainCircuit, hue: HUE.ai },
+  { key: 'ai-tutor', label: 'AI Tutor', hint: 'Ask about this topic', icon: Sparkles, hue: HUE.ai },
+  { key: 'subnetting', label: 'Subnetting drills', hint: 'Quick address maths', icon: Calculator, hue: HUE.math },
+  { key: 'tracks', label: 'Tracks', hint: 'Step-by-step study path', icon: Route, hue: HUE.path },
+  { key: 'lessons', label: 'Interactive lessons', hint: 'Guided walk-throughs', icon: Compass, hue: HUE.read },
 ];
 
 /** Learning mode: how deep the topic explanations go. */
@@ -265,6 +264,7 @@ export default function DashboardPage() {
               )}
             </div>}
             <div className="flex items-center gap-1" role="radiogroup" aria-label="Learning mode" data-testid="dash-mode">
+              <span className="hidden pr-0.5 text-[11.5px] text-faint lg:inline">Mode</span>
               <div className="flex rounded-[6px] border border-line-strong p-0.5">
                 {MODES.map((m) => (
                   <button key={m.key} role="radio" aria-checked={mode === m.key} title={m.hint} onClick={() => setMode(m.key)} className={cx('h-6 rounded-[4px] px-2 text-[12px]', mode === m.key ? 'text-white' : 'text-muted hover:text-text')} style={mode === m.key ? { background: accent } : undefined} data-testid={`mode-${m.key}`}>
@@ -282,15 +282,13 @@ export default function DashboardPage() {
       </DashToolbar>
       <div className="flex min-h-0 flex-1 max-md:flex-col">
         {section && panel && parts.length > 0 && (
-          <aside className={cx('shrink-0 border-line bg-pane max-md:border-b md:overflow-auto md:border-r', parts.some((p) => p.group) ? 'md:w-[196px]' : 'md:w-[240px]')} aria-label={`${sectionMeta?.label} parts`} data-testid="dash-panel">
-            {!parts.some((p) => p.group) && <p className="px-3 pt-3 pb-1.5 text-[12px] font-semibold max-md:hidden">{sectionMeta?.label}</p>}
-            <ul className="flex gap-1 overflow-x-auto p-2 md:flex-col md:gap-0.5 md:overflow-visible">
-              {parts.map((p, k) => {
+          <aside className="shrink-0 border-line bg-pane max-md:border-b md:w-[240px] md:overflow-auto md:border-r" aria-label={`${sectionMeta?.label} parts`} data-testid="dash-panel">
+            <p className="px-3 pt-3 pb-1.5 text-[12px] font-semibold max-md:hidden">{sectionMeta?.label}</p>
+            <ul className="flex gap-1 overflow-x-auto p-2 md:flex-col md:gap-0.5 md:overflow-visible md:pt-0">
+              {parts.map((p) => {
                 const on = part === p.key;
-                const heading = p.group && p.group !== parts[k - 1]?.group ? p.group : null;
                 return (
                   <li key={p.key} className="shrink-0">
-                    {heading && <p className={cx('px-2 pb-1 text-[10.5px] font-semibold tracking-wide text-faint uppercase max-md:hidden', k > 0 && 'mt-3')}>{heading}</p>}
                     <button
                       onClick={() => {
                         setLesson(null);
@@ -299,16 +297,15 @@ export default function DashboardPage() {
                         open(section, p.key);
                       }}
                       aria-current={on ? 'page' : undefined}
-                      title={p.group ? p.hint : undefined}
-                      className={cx('group flex w-full items-center gap-2.5 rounded-[7px] px-2 text-left', p.group ? 'py-1' : 'py-1.5', on ? 'bg-pane-2 ring-1 ring-line-strong' : 'hover:bg-pane-2/70')}
+                      className={cx('group flex w-full items-center gap-2.5 rounded-[7px] px-2 py-1.5 text-left', on ? 'bg-pane-2 ring-1 ring-line-strong' : 'hover:bg-pane-2/70')}
                       data-testid={`side-part-${p.key}`}
                     >
-                      <span className={cx('grid shrink-0 place-items-center rounded-[7px]', p.group ? 'size-7' : 'size-8')} style={{ background: `color-mix(in srgb, ${p.hue} ${on ? 30 : 16}%, transparent)`, color: p.hue }} aria-hidden>
+                      <span className="grid size-8 shrink-0 place-items-center rounded-[8px]" style={{ background: `color-mix(in srgb, ${p.hue} ${on ? 30 : 16}%, transparent)`, color: p.hue }} aria-hidden>
                         <p.icon className="size-4" strokeWidth={2} />
                       </span>
                       <span className="min-w-0 whitespace-nowrap md:whitespace-normal">
                         <span className={cx('block text-[13px] leading-tight', on ? 'font-medium text-text' : 'text-muted group-hover:text-text')}>{p.label}</span>
-                        {p.hint && !p.group && <span className="block text-[11px] leading-tight text-faint max-md:hidden">{p.hint}</span>}
+                        {p.hint && <span className="block text-[11px] leading-tight text-faint max-md:hidden">{p.hint}</span>}
                       </span>
                     </button>
                   </li>
@@ -332,7 +329,7 @@ export default function DashboardPage() {
             </div>
           )}
           {section === 'learn' && (
-            <div className={useCcnabookAsTopics ? undefined : 'p-4'} data-testid="playground-learn">
+            <div className="p-4" data-testid="playground-learn">
               {part === 'topics' && (useCcnabookAsTopics ? <CCNABook /> :
                 (lesson ? (
                   <LessonReader key={lesson} lessonId={lesson} onClose={() => setLesson(null)} />
