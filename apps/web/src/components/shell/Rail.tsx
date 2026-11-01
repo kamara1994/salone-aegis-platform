@@ -1,23 +1,21 @@
 'use client';
 
 import { Check, Command, LogOut, Moon, Sun } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { signOut } from '@/api/auth';
+import { cx } from '@/components/ui';
 import { CERTS, dashboardById, DASHBOARDS } from '@/content/certs';
-import { useRouter } from 'next/navigation';
-import { cx, IconButton, Kbd } from '@/components/ui';
 import { useUi } from '@/state/ui';
 
-export function TopBar() {
-  const { theme, setTheme, certId, setCert, setPalette } = useUi();
+/** Top of the left rail: the AEGIS mark. Hover, focus or tap it to switch certificate. */
+export function RailBrand() {
+  const { certId, setCert } = useUi();
   const current = dashboardById(certId) ?? dashboardById('networking')!;
   const [open, setOpen] = useState(false);
   const router = useRouter();
-
   return (
-    <header className="flex h-12 shrink-0 items-center gap-2 border-b border-line bg-pane px-3 sm:gap-3">
-      {/* The certificate menu lives inside the AEGIS mark: hover (or focus, or tap) to see and switch it. */}
-      <div className="group relative" onMouseLeave={() => setOpen(false)}>
+      <div className="group relative mx-0.5 shrink-0 md:mx-1.5 md:mb-1" onMouseLeave={() => setOpen(false)}>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -26,7 +24,7 @@ export function TopBar() {
           aria-expanded={open}
           aria-label={`AEGIS. Dashboard: ${current.title}. Change certificate`}
           title={`${current.title}: ${current.summary}`}
-          className="flex h-8 items-center rounded-[5px] px-2 text-[15px] font-semibold tracking-tight hover:bg-pane-2"
+          className="flex h-9 w-full min-w-[60px] items-center justify-center rounded-[5px] px-1 text-[13.5px] font-semibold tracking-tight hover:bg-pane-2"
           data-testid="cert-switch"
           data-value={current.id}
         >
@@ -36,7 +34,7 @@ export function TopBar() {
           role="menu"
           aria-label="Choose a certificate"
           className={cx(
-            'absolute top-full left-0 z-[2200] pt-1 transition-opacity duration-150',
+            'absolute bottom-full left-0 z-[2200] pb-1 transition-opacity duration-150 md:top-0 md:bottom-auto md:left-full md:pb-0 md:pl-1',
             open ? 'visible opacity-100' : 'invisible opacity-0 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100',
           )}
           data-testid="cert-menu"
@@ -71,16 +69,25 @@ export function TopBar() {
           </ul>
         </div>
       </div>
-      <div className="flex-1" />
-      <button onClick={() => setPalette(true)} className="hidden h-8 items-center gap-2 rounded-[5px] border border-line-strong px-2 text-[12.5px] text-muted hover:text-text lg:flex">
-        <Command className="size-3.5" aria-hidden /> Actions <Kbd>Ctrl K</Kbd>
+  );
+}
+
+const iconBtn = 'grid size-9 shrink-0 place-items-center rounded-[6px] text-muted hover:bg-pane-2 hover:text-text';
+
+/** Bottom of the left rail: Actions (Ctrl K), theme and sign out. */
+export function RailActions() {
+  const { theme, setTheme, setPalette } = useUi();
+  return (
+    <div className="flex shrink-0 items-center gap-0.5 px-0.5 md:mt-auto md:flex-col md:border-t md:border-line md:px-0 md:pt-2" data-testid="rail-actions">
+      <button type="button" onClick={() => setPalette(true)} className={iconBtn} title="Actions (Ctrl K)" aria-label="Actions (Ctrl K)" data-testid="rail-command">
+        <Command className="size-4" />
       </button>
-      <IconButton label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+      <button type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={iconBtn} title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
         {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
-      </IconButton>
-      <IconButton label="Sign out" onClick={() => void signOut()}>
+      </button>
+      <button type="button" onClick={() => void signOut()} className={iconBtn} title="Sign out" aria-label="Sign out">
         <LogOut className="size-4" />
-      </IconButton>
-    </header>
+      </button>
+    </div>
   );
 }

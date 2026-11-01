@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { cx } from '@/components/ui';
 import { dashboardById } from '@/content/certs';
 import { useUi } from '@/state/ui';
+import { RailActions, RailBrand } from './Rail';
 
 export const NAV = [
   { href: '/lab', label: 'Lab', icon: Cable },
@@ -21,6 +22,7 @@ export function NavRail() {
   const dash = dashboardById(useUi((s) => s.certId));
   return (
     <nav aria-label="Main" className="flex shrink-0 items-stretch gap-0.5 overflow-x-auto border-t border-line bg-pane py-1 md:w-[68px] md:flex-col md:overflow-visible md:border-t-0 md:border-r md:py-2">
+      <RailBrand />
       {dash && (
         <Link href={`/dashboard/${dash.id}`} aria-current={path.startsWith('/dashboard') ? 'page' : undefined} title={`${dash.title} dashboard`} data-testid="nav-dashboard" className={cx('relative mx-0.5 flex min-w-[60px] flex-col items-center gap-0.5 rounded-[5px] py-1.5 text-center text-[11px] leading-tight md:mx-1.5 md:min-w-0', path.startsWith('/dashboard') ? 'bg-pane-2 text-text' : 'text-muted hover:bg-pane-2 hover:text-text')}>
           {path.startsWith('/dashboard') && <span className="absolute top-0 right-2 left-2 h-0.5 rounded bg-action md:top-1.5 md:right-auto md:bottom-1.5 md:left-0 md:h-auto md:w-0.5" aria-hidden />}
@@ -38,6 +40,7 @@ export function NavRail() {
           </Link>
         );
       })}
+      <RailActions />
     </nav>
   );
 }
