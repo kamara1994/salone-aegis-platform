@@ -171,3 +171,15 @@ body {
 /* Lab: disconnect tool (Packet Tracer's delete tool) */
 [data-tool='disconnect'] .react-flow__edge { cursor: crosshair; }
 [data-tool='disconnect'] .react-flow__edge:hover .react-flow__edge-path { stroke: var(--down) !important; stroke-width: 4px !important; }
+
+/* Lab: whatever the pointer touches lights up (the pointer itself stays the normal one). */
+[data-testid='lab-canvas'] .react-flow__node-device { transition: filter 120ms ease-out; }
+[data-testid='lab-canvas'] .react-flow__edge-path { transition: filter 120ms ease-out, stroke-width 120ms ease-out; }
+[data-testid='lab-canvas'] .react-flow__node-device:hover { filter: drop-shadow(0 0 6px rgba(59, 142, 232, 0.6)); }
+[data-testid='lab-canvas'] .react-flow__node-device.dragging { filter: drop-shadow(0 0 12px rgba(59, 142, 232, 0.85)) drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45)); }
+[data-testid='lab-canvas'][data-tool='select'] .react-flow__edge:hover .react-flow__edge-path { filter: brightness(1.45) drop-shadow(0 0 3px rgba(140, 200, 255, 0.75)); stroke-width: 4px !important; }
+[data-testid='lab-canvas'][data-tool='cable'] .react-flow__node-device:hover { filter: drop-shadow(0 0 8px rgba(47, 179, 106, 0.85)); }
+[data-testid='lab-canvas'][data-tool='simulate'] .react-flow__node-device:hover { filter: drop-shadow(0 0 8px rgba(229, 162, 58, 0.85)); }
+@media (prefers-reduced-motion: reduce) {
+  [data-testid='lab-canvas'] .react-flow__node-device, [data-testid='lab-canvas'] .react-flow__edge-path { transition: none; }
+}
