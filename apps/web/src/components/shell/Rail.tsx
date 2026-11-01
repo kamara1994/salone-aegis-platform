@@ -3,10 +3,14 @@
 import { Check, Command, LogOut, Moon, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { create } from 'zustand';
 import { signOut } from '@/api/auth';
 import { cx } from '@/components/ui';
 import { CERTS, dashboardById, DASHBOARDS } from '@/content/certs';
 import { useUi } from '@/state/ui';
+
+/** Focus mode: once a lab is open, the side rail shrinks to icons and the lab picker folds away. */
+export const useFocus = create<{ focus: boolean; setFocus: (focus: boolean) => void }>((set) => ({ focus: false, setFocus: (focus) => set({ focus }) }));
 
 /** Top of the left rail: the AEGIS mark. Hover, focus or tap it to switch certificate. */
 export function RailBrand() {
@@ -14,6 +18,7 @@ export function RailBrand() {
   const current = dashboardById(certId) ?? dashboardById('networking')!;
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const focus = useFocus((s) => s.focus);
   return (
       <div className="group relative mx-0.5 shrink-0 md:mx-1.5 md:mb-1" onMouseLeave={() => setOpen(false)}>
         <button
@@ -24,7 +29,7 @@ export function RailBrand() {
           aria-expanded={open}
           aria-label={`AEGIS. Dashboard: ${current.title}. Change certificate`}
           title={`${current.title}: ${current.summary}`}
-          className="flex h-9 w-full min-w-[60px] items-center justify-center rounded-[5px] px-1 text-[13.5px] font-semibold tracking-tight hover:bg-pane-2"
+          className={cx('flex h-9 w-full items-center justify-center rounded-[5px] px-1 font-semibold tracking-tight hover:bg-pane-2', focus ? 'min-w-[40px] text-[10.5px]' : 'min-w-[60px] text-[13.5px]')}
           data-testid="cert-switch"
           data-value={current.id}
         >
