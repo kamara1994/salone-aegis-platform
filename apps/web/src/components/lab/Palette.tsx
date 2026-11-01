@@ -2,7 +2,8 @@
 
 import { useReactFlow } from '@xyflow/react';
 import { createPortal } from 'react-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Box, Cable as CableGlyph, Cloud, Cpu, Laptop, Monitor, Network, PanelLeftClose, PanelLeftOpen, Router, Server, Shield, Wifi, type LucideIcon } from 'lucide-react';
 import { cx } from '@/components/ui';
 import { CABLE_INFO } from '@/lab/cables';
 import { CATALOG, KIND_LABEL, type DeviceModel } from '@/lab/catalog';
@@ -99,15 +100,70 @@ function CableLibrary() {
           </button>
         </div>
       ) : (
-        <p className="mt-2 px-1 text-[11px] text-muted">Wrong cables are refused with the reason, just like real ports would not link.</p>
+        <p className="mt-2 px-1 text-[11px] text-muted">Pick the wrong cable and it still plugs in, but the link stays down, like real hardware.</p>
       )}
     </div>
   );
 }
 
+const KIND_ICON: Partial<Record<DeviceKind, LucideIcon>> = { router: Router, switch: Network, firewall: Shield, server: Server, vm: Box, pc: Monitor, laptop: Laptop, ap: Wifi, cloud: Cloud, iot: Cpu };
+const RECENT_KEY = 'aegis.lab.recentDevices';
+const readRecent = (): string[] => {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? '[]');
+    return Array.isArray(v) ? v.filter((k): k is string => typeof k === 'string').slice(0, 6) : [];
+  } catch {
+    return [];
+  }
+};
+const pushRecent = (key: string) => {
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify([key, ...readRecent().filter((k) => k !== key)].slice(0, 6)));
+    window.dispatchEvent(new Event('aegis:recent-devices'));
+  } catch {
+    /* storage blocked: Recent just stays empty */
+  }
+};
+
+export type PaletteFocus = DeviceKind | 'cables' | null;
+
+/** Collapsed library: one icon per device category, plus cables. A click opens the library at that spot. */
+export function PaletteStrip({ onOpen }: { onOpen: (focus: PaletteFocus) => void }) {
+  const kinds = ORDER.filter((k) => CATALOG.some((m) => m.kind === k));
+  const btn = 'grid size-9 shrink-0 place-items-center rounded-[6px] text-muted hover:bg-pane-2 hover:text-text';
+  return (
+    <nav aria-label="Device categories" className="flex h-full flex-col items-center gap-0.5 overflow-y-auto py-1.5" data-testid="palette-strip">
+      <button type="button" className={btn} title="Open the device library" aria-label="Open the device library" onClick={() => onOpen(null)} data-testid="palette-expand">
+        <PanelLeftOpen className="size-4" />
+      </button>
+      <span className="my-1 h-px w-6 shrink-0 bg-line" />
+      {kinds.map((k) => {
+        const Icon = KIND_ICON[k] ?? Box;
+        return (
+          <button key={k} type="button" className={btn} title={KIND_LABEL[k]} aria-label={`Show ${KIND_LABEL[k]} devices`} onClick={() => onOpen(k)} data-testid={`strip-${k}`}>
+            <Icon className="size-4" />
+          </button>
+        );
+      })}
+      <span className="my-1 h-px w-6 shrink-0 bg-line" />
+      <button type="button" className={btn} title="Cables" aria-label="Show cables" onClick={() => onOpen('cables')} data-testid="strip-cables">
+        <CableGlyph className="size-4" />
+      </button>
+    </nav>
+  );
+}
+
 /** Device library. Drag a device onto the canvas, or focus it and press Enter to place it in the middle of the view. */
-export function Palette() {
-  const [tab, setTab] = useState<'devices' | 'cables'>('devices');
+export function Palette({ onCollapse, focus = null }: { onCollapse?: () => void; focus?: PaletteFocus } = {}) {
+  const [tab, setTab] = useState<'devices' | 'cables'>(focus === 'cables' ? 'cables' : 'devices');
+  useEffect(() => {
+    if (focus === 'cables') setTab('cables');
+    else if (focus) {
+      setTab('devices');
+      const t = setTimeout(() => document.getElementById(`palette-kind-${focus}`)?.scrollIntoView({ block: 'start' }), 60);
+      return () => clearTimeout(t);
+    }
+  }, [focus]);
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div role="tablist" aria-label="Library" className="flex border-b border-line px-1">
@@ -121,6 +177,11 @@ export function Palette() {
             {label}
           </button>
         ))}
+        {onCollapse && (
+          <button type="button" onClick={onCollapse} className="grid w-7 place-items-center text-muted hover:text-text" title="Collapse the library" aria-label="Collapse the device library" data-testid="palette-collapse">
+            <PanelLeftClose className="size-3.5" />
+          </button>
+        )}
       </div>
       <div className="min-h-0 flex-1">{tab === 'devices' ? <DeviceLibrary /> : <nav aria-label="Cable library" className="h-full overflow-auto p-2"><CableLibrary /></nav>}</div>
     </div>
@@ -132,6 +193,13 @@ function DeviceLibrary() {
   const rf = useReactFlow();
   const [hover, setHover] = useState<{ model: DeviceModel; rect: DOMRect } | null>(null);
   const [q, setQ] = useState('');
+  const [recent, setRecent] = useState<string[]>([]);
+  useEffect(() => {
+    const load = () => setRecent(readRecent());
+    load();
+    window.addEventListener('aegis:recent-devices', load);
+    return () => window.removeEventListener('aegis:recent-devices', load);
+  }, []);
   const needle = q.trim().toLowerCase();
   const shown = CATALOG.filter((m) => !needle || `${m.vendor} ${m.name} ${m.description} ${KIND_LABEL[m.kind]}`.toLowerCase().includes(needle));
   // Tap-to-add: the nearest free grid spot to the middle of the view, so devices never stack.
@@ -152,44 +220,50 @@ function DeviceLibrary() {
         }
     return { x: mid.x, y: mid.y };
   };
+  const tile = (m: DeviceModel, where: 'all' | 'recent') => (
+    <li key={`${where}-${m.key}`}>
+      <button
+        type="button"
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('application/aegis-model', m.key);
+          e.dataTransfer.effectAllowed = 'copy';
+          pushRecent(m.key);
+        }}
+        onClick={() => {
+          const c = center();
+          add(m.key, c.x, c.y);
+          pushRecent(m.key);
+          if ((useLab.getState().doc?.devices.length ?? 0) <= 1) setTimeout(() => rf.setViewport({ ...rf.getViewport(), zoom: Math.min(rf.getViewport().zoom, 1) }), 80);
+        }}
+        aria-label={`Add ${m.vendor} ${m.name} (${KIND_LABEL[m.kind]})`}
+        data-testid={where === 'all' ? `palette-${m.key}` : `palette-recent-${m.key}`}
+        onMouseEnter={(e) => setHover({ model: m, rect: e.currentTarget.getBoundingClientRect() })}
+        onMouseLeave={() => setHover(null)}
+        className="relative flex h-full w-full cursor-grab flex-col items-center rounded-[6px] border border-line bg-pane-2/40 px-0.5 py-1 text-center hover:border-action focus-visible:border-action active:cursor-grabbing"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={m.image} alt="" className="pointer-events-none h-6 w-10 object-contain" draggable={false} />
+        <span className="mt-0.5 line-clamp-2 text-[9.5px] leading-tight">{m.name}</span>
+      </button>
+    </li>
+  );
+  const recentModels = recent.map((key) => CATALOG.find((m) => m.key === key)).filter((m): m is DeviceModel => !!m);
   return (
     <nav aria-label="Device library" className="h-full overflow-auto p-2" data-testid="palette">
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search devices: PoE, 10G, Cisco…" aria-label="Search the device library" data-testid="palette-search" className="mb-2 h-8 w-full rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px] focus:border-action" />
-      <p className="mb-2 px-1 text-[11.5px] text-muted">Drag onto the canvas, or tap / press Enter to add.</p>
+      <p className="mb-2 px-1 text-[11px] text-muted">Drag onto the canvas, or tap to add.</p>
       {needle && !shown.length && <p className="px-1 text-[12px] text-muted">No device matches “{q}”.</p>}
+      {!needle && recentModels.length > 0 && (
+        <section className="mb-2" data-testid="palette-recent">
+          <h3 className="px-1 pb-1 text-[11px] font-semibold text-muted">Recent</h3>
+          <ul className="grid grid-cols-3 gap-1 max-md:grid-cols-5">{recentModels.slice(0, 3).map((m) => tile(m, 'recent'))}</ul>
+        </section>
+      )}
       {ORDER.filter((kind) => shown.some((m) => m.kind === kind)).map((kind) => (
-        <section key={kind} className="mb-2">
-          <h3 className="px-1 pb-1 text-[11.5px] font-semibold text-muted">{KIND_LABEL[kind]}</h3>
-          <ul className="grid grid-cols-2 gap-1.5">
-            {shown.filter((m) => m.kind === kind).map((m) => (
-              <li key={m.key}>
-                <button
-                  type="button"
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('application/aegis-model', m.key);
-                    e.dataTransfer.effectAllowed = 'copy';
-                  }}
-                  onClick={() => {
-                    const c = center();
-                    add(m.key, c.x, c.y);
-                    if ((useLab.getState().doc?.devices.length ?? 0) <= 1) setTimeout(() => rf.setViewport({ ...rf.getViewport(), zoom: Math.min(rf.getViewport().zoom, 1) }), 80);
-                  }}
-                  aria-label={`Add ${m.vendor} ${m.name} (${KIND_LABEL[m.kind]})`}
-                  data-testid={`palette-${m.key}`}
-                  onMouseEnter={(e) => setHover({ model: m, rect: e.currentTarget.getBoundingClientRect() })}
-                  onMouseLeave={() => setHover(null)}
-                  className="relative flex w-full cursor-grab flex-col items-center rounded-[6px] border border-line bg-pane-2/40 px-1 py-1.5 text-center hover:border-action focus-visible:border-action active:cursor-grabbing"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {/* Keep the compact palette icon visible; the generated real-world asset appears only in the hover preview. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.image} alt="" className="pointer-events-none h-8 w-12 object-contain" draggable={false} />
-                  <span className="mt-0.5 line-clamp-2 text-[10.5px] leading-tight">{m.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+        <section key={kind} id={`palette-kind-${kind}`} className="mb-2 scroll-mt-1">
+          <h3 className="px-1 pb-1 text-[11px] font-semibold text-muted">{KIND_LABEL[kind]}</h3>
+          <ul className="grid grid-cols-3 gap-1 max-md:grid-cols-5">{shown.filter((m) => m.kind === kind).map((m) => tile(m, 'all'))}</ul>
         </section>
       ))}
       {hover && typeof document !== 'undefined' && createPortal(

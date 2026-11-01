@@ -1,7 +1,7 @@
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
-import { AlignCenterVertical, Cable, Copy, FolderOpen, GitCompare, Grid3x3, Group, Image as ImageIcon, Keyboard, Layers, Maximize2, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, RefreshCw, RotateCcw, Tag, Trash, Undo2, Ungroup, Wrench, StickyNote, Search, Scissors, FlaskConical } from 'lucide-react';
+import { Cable, FolderOpen, GitCompare, Image as ImageIcon, Maximize2, MoreHorizontal, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, Tag, Trash, Undo2, Wrench, StickyNote, Search, Scissors, FlaskConical } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { useLab, type LabBackground } from '@/lab/store';
 import { findDevices } from '@/lab/find';
@@ -56,6 +56,22 @@ export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStru
     { label: 'Distribute horizontally', disabled: n < 3, onSelect: () => s.align('hspace') },
     { label: 'Distribute vertically', disabled: n < 3, onSelect: () => s.align('vspace') },
   ];
+  // Tools used now and then live in one menu so the row stays short.
+  const moreItems: MenuItem[] = [
+    { label: 'Duplicate', hint: 'Ctrl+D', disabled: !n, onSelect: () => s.duplicate() },
+    { label: 'Group', hint: 'Ctrl+G', disabled: n < 2, onSelect: () => s.group() },
+    { label: 'Ungroup', hint: 'Ctrl+Shift+G', disabled: !n, onSelect: () => s.ungroup() },
+    ...alignItems.map((a) => ({ ...a, disabled: a.disabled || n < 2 })),
+    { label: '', separator: true, onSelect: () => {} },
+    { label: s.snap ? 'Turn off snap to grid' : 'Turn on snap to grid', onSelect: () => s.setSnap(!s.snap) },
+    { label: s.labelMode === 'full' ? 'Compact device labels' : 'Full device labels', onSelect: () => s.setView({ labelMode: s.labelMode === 'full' ? 'compact' : 'full' }) },
+    { label: '', separator: true, onSelect: () => {} },
+    { label: 'Sites, racks, VLANs, subnets, WAN and cloud…', onSelect: onStructure },
+    { label: 'Refresh devices from the lab', onSelect: () => s.refreshFromLab() },
+    { label: 'Reset to baseline…', danger: true, onSelect: () => setConfirmReset(true) },
+    { label: '', separator: true, onSelect: () => {} },
+    { label: 'Keyboard shortcuts', hint: '?', onSelect: onShortcuts },
+  ];
   return (
     <div role="toolbar" aria-label="Lab designer tools" className="flex flex-wrap items-center gap-0.5 border-b border-line bg-pane px-2 py-1">
       <TB label={paletteOpen ? 'Hide device library' : 'Show device library'} onClick={() => setPaletteOpen(!paletteOpen)}>
@@ -88,7 +104,7 @@ export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStru
       </TB>
       <div className="relative">
         <TB label="Choose canvas background" active={backgroundOpen} onClick={() => setBackgroundOpen((v) => !v)} testid="tool-background">
-          <ImageIcon className="size-4" /> <span className="hidden xl:inline">Background</span>
+          <ImageIcon className="size-4" />
         </TB>
         {backgroundOpen && (
           <div className="absolute left-0 top-9 z-[1200] w-64 rounded-[7px] border border-line-strong bg-pane p-2 shadow-xl" role="menu" aria-label="Canvas backgrounds">
@@ -171,62 +187,34 @@ export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStru
       <TB label="Redo" kbd="Ctrl+Shift+Z" disabled={!s.future.length} onClick={() => s.redo()} testid="redo">
         <Redo2 className="size-4" />
       </TB>
-      <TB label="Duplicate" className="max-sm:hidden" kbd="Ctrl+D" disabled={!n} onClick={() => s.duplicate()}>
-        <Copy className="size-4" />
-      </TB>
       <TB label="Delete" kbd="Del" disabled={!n && !s.selection.cables.length} onClick={() => s.deleteSelection()}>
         <Trash className="size-4" />
       </TB>
-      <TB
-        label="Align and distribute" className="max-sm:hidden"
-        disabled={n < 2}
-        testid="tool-align"
-        onClick={(e) => {
-          const r = e.currentTarget.getBoundingClientRect();
-          setMenu({ x: r.left, y: r.bottom + 4, items: alignItems, title: 'Align' });
-        }}
-      >
-        <AlignCenterVertical className="size-4" />
-      </TB>
-      <TB label="Group" className="max-sm:hidden" kbd="Ctrl+G" disabled={n < 2} onClick={() => s.group()}>
-        <Group className="size-4" />
-      </TB>
-      <TB label="Ungroup" className="max-sm:hidden" kbd="Ctrl+Shift+G" disabled={!n} onClick={() => s.ungroup()}>
-        <Ungroup className="size-4" />
-      </TB>
       <Sep />
-      <TB label="Snap to grid" className="max-sm:hidden" active={s.snap} onClick={() => s.setSnap(!s.snap)}>
-        <Grid3x3 className="size-4" />
-      </TB>
       <TB label="Port labels" kbd="L" active={s.portLabels} onClick={() => s.setView({ portLabels: !s.portLabels })}>
         <Tag className="size-4" />
-      </TB>
-      <TB label={s.labelMode === 'full' ? 'Compact device labels' : 'Full device labels'} active={s.labelMode === 'full'} onClick={() => s.setView({ labelMode: s.labelMode === 'full' ? 'compact' : 'full' })}>
-        <Layers className="size-4" />
       </TB>
       <TB label="Fit to screen" className="max-sm:hidden" kbd="F" onClick={() => rf.fitView({ padding: 0.1 })}>
         <Maximize2 className="size-4" />
       </TB>
       <Sep />
       <TB label="Compare with baseline" active={s.compare} onClick={() => s.setCompare(!s.compare)} testid="tool-compare">
-        <GitCompare className="size-4" /> <span className="hidden xl:inline">Compare</span>
-      </TB>
-      <TB label="Sites, racks, VLANs, subnets, WAN and cloud" onClick={onStructure} testid="tool-structure">
-        <span className="text-[12px]">Structure</span>
+        <GitCompare className="size-4" />
       </TB>
       <TB label="Saved layouts" onClick={onLayouts} testid="tool-layouts">
-        <FolderOpen className="size-4" /> <span className="hidden xl:inline">{s.layoutName ?? 'Layouts'}</span>
-      </TB>
-      <TB label="Refresh devices from the lab" onClick={() => s.refreshFromLab()} testid="tool-refresh">
-        <RefreshCw className="size-4" />
-      </TB>
-      <TB label="Reset to baseline" onClick={() => setConfirmReset(true)} testid="tool-reset">
-        <RotateCcw className="size-4" />
+        <FolderOpen className="size-4" />
       </TB>
       <span className="flex-1" />
       <DeviceFinder />
-      <TB label="Keyboard shortcuts" className="max-sm:hidden" kbd="?" onClick={onShortcuts}>
-        <Keyboard className="size-4" />
+      <TB
+        label="More tools"
+        testid="tool-more"
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setMenu({ x: Math.min(r.left, window.innerWidth - 260), y: r.bottom + 4, title: 'More', items: moreItems });
+        }}
+      >
+        <MoreHorizontal className="size-4" />
       </TB>
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
       <ConfirmDialog
