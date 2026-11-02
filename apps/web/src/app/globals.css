@@ -435,3 +435,63 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .drop-menu li, .drop-menu ul { transition-duration: 0.01s !important; transition-delay: 0s !important; filter: none !important; }
 }
+
+/* ---------- Book contents (Learn by topic) ---------- */
+.book-toc .toc-head {
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--action) 22%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--pane-2) 70%, transparent), transparent);
+  border: 1px solid var(--line);
+}
+.book-toc .toc-head::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.07) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: toc-sheen 6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes toc-sheen { 0%, 60% { background-position: 130% 0; } 100% { background-position: -40% 0; } }
+.toc-scroll { scrollbar-width: thin; mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 24px), transparent); }
+.toc-chapter { transition: background 0.25s; }
+.toc-chapter:hover { background: color-mix(in srgb, var(--pane-2) 45%, transparent); }
+.toc-chapter.is-current { background: linear-gradient(90deg, color-mix(in srgb, var(--hue) 12%, transparent), transparent 80%); }
+/* Timeline: a faint rail with a glowing fill up to where you are. */
+.toc-line::before { content: ''; position: absolute; left: 3.5px; top: 10px; bottom: 10px; width: 1.5px; background: var(--line); border-radius: 2px; }
+.toc-line::after {
+  content: '';
+  position: absolute;
+  left: 3.5px;
+  top: 10px;
+  width: 1.5px;
+  height: max(0px, calc(var(--reach, 0%) - 10px));
+  background: linear-gradient(180deg, var(--hue), color-mix(in srgb, var(--hue) 40%, transparent));
+  box-shadow: 0 0 8px var(--hue);
+  border-radius: 2px;
+  transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toc-node {
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--ink);
+  transition: all 0.25s;
+}
+.toc-node.is-done { width: 12px; height: 12px; left: -17.5px; border-color: var(--hue); background: var(--hue); box-shadow: 0 0 6px color-mix(in srgb, var(--hue) 70%, transparent); }
+.toc-node.is-on { width: 13px; height: 13px; left: -18px; border: 2px solid var(--hue); background: var(--ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--hue) 22%, transparent), 0 0 14px var(--hue); animation: toc-pulse 2.2s ease-in-out infinite; }
+@keyframes toc-pulse { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--hue) 8%, transparent), 0 0 18px var(--hue); } }
+.toc-lesson { transition: background 0.2s, color 0.2s, translate 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+.toc-lesson:hover { background: color-mix(in srgb, var(--pane-2) 70%, transparent); color: var(--text); translate: 3px 0; }
+.toc-lesson.is-on { color: var(--text); font-weight: 600; background: linear-gradient(90deg, color-mix(in srgb, var(--hue) 20%, transparent), transparent); }
+.toc-open { transition: border-color 0.2s, box-shadow 0.2s; }
+.toc-open:hover { border-color: var(--action); box-shadow: 0 0 16px -4px var(--action); }
+@media (prefers-reduced-motion: reduce) { .toc-node.is-on, .book-toc .toc-head::after { animation: none; } }

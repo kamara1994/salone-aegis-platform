@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, BookOpen, Tags } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, ListTree, PanelLeftClose, Tags } from 'lucide-react';
 import { Button, cx } from '@/components/ui';
 import { useBookLesson } from '@/state/bookLesson';
 import { useLearningPreferences } from '@/state/learning';
@@ -139,6 +139,124 @@ export function BookTopicPicker() {
   );
 }
 
+const HUES = ['#4f9cf9', '#22b8cf', '#38d9a9', '#a9e34b', '#fcc419', '#ff922b', '#ff6b6b', '#f06595', '#cc5de8', '#845ef7', '#5c7cfa'];
+const hueOf = (n: number) => HUES[(n - 1) % HUES.length];
+
+/** A small progress ring. */
+function Ring({ pct, size, stroke, color, children }: { pct: number; size: number; stroke: number; color: string; children?: ReactNode }) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  return (
+    <span className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-line" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.16,1,.3,1)', filter: pct ? `drop-shadow(0 0 3px ${color})` : undefined }} />
+      </svg>
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Left-hand contents for the book: chapters as an accordion with a progress ring each, lessons on a
+ * glowing timeline (done, current, upcoming). Only the current chapter starts open.
+ */
+function BookContents({ lessonId, completed, onOpen, onHide }: { lessonId: string; completed: string[]; onOpen: (id: string) => void; onHide: () => void }) {
+  const current = book.lessons.find((l) => l.id === lessonId);
+  const [openCh, setOpenCh] = useState<Set<string>>(() => new Set(current ? [current.chapterId] : []));
+  const currentRef = useRef<HTMLButtonElement>(null);
+  const done = new Set(completed);
+  const pct = book.lessons.length ? Math.round((completed.length / book.lessons.length) * 100) : 0;
+  useEffect(() => {
+    if (!current) return;
+    setOpenCh((s) => (s.has(current.chapterId) ? s : new Set([...s, current.chapterId])));
+    const t = setTimeout(() => currentRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 350);
+    return () => clearTimeout(t);
+  }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const byId = new Map(book.lessons.map((l) => [l.id, l]));
+  return (
+    <aside className="book-toc sticky top-0 hidden h-[calc(100dvh-96px)] w-[290px] shrink-0 flex-col self-start md:flex" aria-label="Course contents" data-testid="ccna-book-contents">
+      <div className="toc-head relative mb-3 flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-3">
+        <Ring pct={pct} size={46} stroke={4} color="var(--action)">
+          <span className="text-[11px] font-semibold">{pct}%</span>
+        </Ring>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold tracking-[0.22em] text-faint uppercase">Contents</p>
+          <p className="text-[12.5px] text-text">
+            <b>{completed.length}</b>
+            <span className="text-muted"> / {book.lessons.length} lessons</span>
+          </p>
+        </div>
+        <button type="button" onClick={onHide} className="grid size-7 place-items-center rounded-md text-muted hover:bg-pane-2 hover:text-text" title="Hide contents" aria-label="Hide contents" data-testid="ccna-contents-hide">
+          <PanelLeftClose className="size-4" />
+        </button>
+      </div>
+      <nav className="toc-scroll min-h-0 flex-1 overflow-y-auto pr-1">
+        <ol className="space-y-1">
+          {book.chapters.map((c) => {
+            const lessons = c.lessonIds.map((id) => byId.get(id)).filter((l): l is Lesson => !!l);
+            const doneN = lessons.filter((l) => done.has(l.id)).length;
+            const isOpen = openCh.has(c.id);
+            const isCurrent = current?.chapterId === c.id;
+            const hue = hueOf(c.number);
+            const curIdx = lessons.findIndex((l) => l.id === lessonId);
+            const lastDone = lessons.reduce((m, l, i) => (done.has(l.id) ? i : m), -1);
+            const reach = Math.max(curIdx, lastDone);
+            return (
+              <li key={c.id} className={cx('toc-chapter rounded-xl', isCurrent && 'is-current')} style={{ '--hue': hue } as React.CSSProperties}>
+                <button
+                  type="button"
+                  onClick={() => setOpenCh((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; })}
+                  aria-expanded={isOpen}
+                  className="group flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left"
+                  data-testid={`toc-chapter-${c.number}`}
+                >
+                  <Ring pct={lessons.length ? (doneN / lessons.length) * 100 : 0} size={28} stroke={2.5} color={hue}>
+                    <span className="text-[10.5px] font-semibold" style={{ color: isCurrent ? hue : undefined }}>{c.number}</span>
+                  </Ring>
+                  <span className="min-w-0 flex-1">
+                    <span className={cx('block truncate text-[12.5px] leading-tight', isCurrent ? 'font-semibold text-text' : 'text-muted group-hover:text-text')}>{c.title}</span>
+                    <span className="block text-[10.5px] text-faint">{doneN}/{lessons.length} done</span>
+                  </span>
+                  <ChevronRight className={cx('size-3.5 text-faint transition-transform duration-300', isOpen && 'rotate-90')} />
+                </button>
+                <div className={cx('grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(.16,1,.3,1)]', isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
+                  <div className="min-h-0 overflow-hidden">
+                    <ol className="toc-line relative mt-0.5 mb-2 ml-[22px] pl-4" style={{ '--reach': lessons.length ? `${((reach + 0.5) / lessons.length) * 100}%` : '0%' } as React.CSSProperties}>
+                      {lessons.map((l) => {
+                        const on = l.id === lessonId;
+                        const fin = done.has(l.id);
+                        return (
+                          <li key={l.id} className="relative">
+                            <span className={cx('toc-node', on ? 'is-on' : fin ? 'is-done' : '')} aria-hidden>
+                              {fin && !on && <Check className="size-2 text-ink" strokeWidth={4} />}
+                            </span>
+                            <button
+                              ref={on ? currentRef : undefined}
+                              type="button"
+                              onClick={() => onOpen(l.id)}
+                              aria-current={on ? 'page' : undefined}
+                              className={cx('toc-lesson flex w-full items-baseline gap-2 rounded-lg px-2 py-1.5 text-left text-[12.5px] text-muted', on && 'is-on')}
+                              data-testid={`toc-lesson-${l.id}`}
+                            >
+                              <span className="w-8 shrink-0 font-mono text-[10.5px] text-faint">{l.id}</span>
+                              <span className="min-w-0 flex-1 leading-snug">{l.title}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+    </aside>
+  );
+}
+
 function Panel({ title, children, tone = 'normal' }: { title: string; children?: ReactNode; tone?: 'normal' | 'remember' }) {
   if (!children) return null;
   return <section className="space-y-1.5"><h3 className={cx('text-[14px] font-semibold', tone === 'remember' && 'text-healthy')}>{title}</h3><div className="space-y-2 text-[14px] leading-relaxed text-text">{children}</div></section>;
@@ -153,6 +271,16 @@ export function CCNABook() {
   const [submitted, setSubmitted] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const [completed, setCompleted] = useState<string[]>([]);
+  const [toc, setTocRaw] = useState(false);
+  const setToc = (v: boolean) => {
+    setTocRaw(v);
+    try { window.localStorage.setItem('aegis.book.toc', v ? '1' : '0'); } catch { /* optional */ }
+  };
+  useEffect(() => {
+    let v: string | null = null;
+    try { v = window.localStorage.getItem('aegis.book.toc'); } catch { /* optional */ }
+    setTocRaw(v === null ? window.innerWidth >= 1280 : v === '1');
+  }, []);
   const level = teach === 'technical' ? 'technical' : 'beginner';
 
   useEffect(() => {
@@ -213,12 +341,17 @@ export function CCNABook() {
   const masterclass = lesson.masterclass;
   const depth = lesson.depthV8;
 
-  return <div className="min-w-0 space-y-7" data-testid="ccna-course-book">
+  return <div className="flex min-w-0 gap-8" data-testid="ccna-course-book">
+    {toc && <BookContents lessonId={lesson.id} completed={completed} onOpen={openLesson} onHide={() => setToc(false)} />}
+    <div className="min-w-0 flex-1 space-y-7">
     <section className="space-y-3" aria-label="CCNA course">
       <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+        {!toc && <button type="button" onClick={() => setToc(true)} className="toc-open mt-0.5 hidden items-center gap-1.5 rounded-lg border border-line-strong px-2.5 py-1.5 text-[12px] text-muted hover:text-text md:inline-flex" data-testid="ccna-contents-show"><ListTree className="size-4" /> Contents</button>}
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-action">Learn by topic · CCNA · v{book.version}</p>
           <h2 className="mt-1 text-[17px] font-semibold">{book.title}</h2>
+        </div>
         </div>
         <div className="w-full max-w-xs sm:w-64">
           <p className="mb-1 flex justify-between text-[11px] text-muted"><span>Course progress</span><span>{completed.length}/{book.lessons.length} · {progressPercent}%</span></p>
@@ -296,5 +429,6 @@ export function CCNABook() {
       </footer>
       <section className="pt-2 text-[12px] text-muted" aria-label="Course quality notice"><p className="font-semibold text-text">Study draft · independent educational content</p><p className="mt-1">{book.qualityNotice}</p><p className="mt-1">{book.disclaimer}</p></section>
     </main>
+    </div>
   </div>;
 }
