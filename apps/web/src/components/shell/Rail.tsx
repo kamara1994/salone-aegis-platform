@@ -13,6 +13,40 @@ import { readArena } from '@/lab/arena/progress';
 /** Focus mode: once a lab is open, the side rail shrinks to icons and the lab picker folds away. */
 export const useFocus = create<{ focus: boolean; setFocus: (focus: boolean) => void }>((set) => ({ focus: false, setFocus: (focus) => set({ focus }) }));
 
+/**
+ * HUD "decode": a label's letters scramble, then lock into place left to right. Works on the
+ * existing text node (same node React owns), and always restores the real text.
+ */
+const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/<>#*+';
+function decode(el: Element, delay: number, duration = 420) {
+  const node = [...el.childNodes].find((n) => n.nodeType === Node.TEXT_NODE && n.nodeValue?.trim()) as Text | undefined;
+  if (!node) return () => {};
+  const text = (node as Text & { __real?: string }).__real ?? node.nodeValue ?? '';
+  (node as Text & { __real?: string }).__real = text;
+  let raf = 0;
+  let start = 0;
+  const frame = (t: number) => {
+    if (!start) start = t;
+    const p = Math.min(1, (t - start) / duration);
+    const locked = Math.floor(p * text.length);
+    node.nodeValue = text
+      .split('')
+      .map((ch, i) => (i < locked || ch === ' ' ? ch : GLYPHS[(Math.random() * GLYPHS.length) | 0]))
+      .join('');
+    if (p < 1) raf = requestAnimationFrame(frame);
+    else node.nodeValue = text;
+  };
+  const timer = setTimeout(() => {
+    node.nodeValue = text.replace(/\S/g, ' ');
+    raf = requestAnimationFrame(frame);
+  }, delay);
+  return () => {
+    clearTimeout(timer);
+    cancelAnimationFrame(raf);
+    node.nodeValue = text;
+  };
+}
+
 /** Rail state shared by both rails: open (peeking) and pinned (kept open, pushing the page over). */
 const PIN_KEY = 'aegis.rail.pinned';
 export const useRail = create<{ open: boolean; pinned: boolean; setOpen: (v: boolean) => void; togglePin: () => void }>((set, get) => ({
@@ -36,6 +70,8 @@ export const useRail = create<{ open: boolean; pinned: boolean; setOpen: (v: boo
  * Items magnify like a dock under the pointer. It wipes away a moment after the pointer leaves,
  * unless pinned. Phones keep the bottom bar.
  */
+const STEP_MS = 75;
+
 export function useRailPeek() {
   const { open: peek, pinned, setOpen } = useRail();
   const open = peek || pinned;
@@ -89,7 +125,23 @@ export function useRailPeek() {
     }
   };
   const settle = (nav: HTMLElement) => nav.querySelectorAll<HTMLElement>('[data-rail-item]').forEach((el) => el.style.setProperty('--mag', '1'));
+  // Boot sequence: every time the rail opens, items come online one at a time, top to bottom.
+  const navRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!open || pinned || !nav || window.innerWidth < 768) return;
+    const items = [...nav.querySelectorAll<HTMLElement>('[data-rail-item]')];
+    items.forEach((el, i) => el.style.setProperty('--d', String(i)));
+    const stops = items.map((el, i) => {
+      const label = el.matches('a') ? el.querySelector(':scope > span:last-child') : el.querySelector(':scope > span:not(:first-child)') ?? el.querySelector('.rail-brand');
+      return label ? decode(label, 140 + i * STEP_MS, 380) : () => {};
+    });
+    return () => stops.forEach((stop) => stop());
+  }, [open, pinned]);
   const navProps = {
+    ref: (el: HTMLElement | null) => {
+      navRef.current = el;
+    },
     'data-open': open || undefined,
     'data-pinned': pinned || undefined,
     onMouseEnter: show,
@@ -170,6 +222,12 @@ export function RailBrand() {
     clearTimeout(t.current);
     t.current = setTimeout(() => setOpen(false), 180);
   };
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || !menuRef.current) return;
+    const stops = [...menuRef.current.querySelectorAll('.cert-title')].map((el, i) => decode(el, 120 + i * 55, 360));
+    return () => stops.forEach((stop) => stop());
+  }, [open]);
   return (
       <div className="relative mx-0.5 shrink-0 md:mx-1.5 md:mb-2" data-rail-item onMouseEnter={hoverOpen} onMouseLeave={hoverClose} onFocus={() => setOpen(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOpen(false)}>
         <button
@@ -189,6 +247,7 @@ export function RailBrand() {
         <div
           role="menu"
           aria-label="Choose a certificate"
+          ref={menuRef}
           className="cert-pop absolute bottom-full left-0 z-[2200] pb-2 md:top-0 md:bottom-auto md:left-full md:pb-0 md:pl-3"
           data-open={open || undefined}
           data-testid="cert-menu"
