@@ -813,3 +813,74 @@ body {
 .case-tick.is-on { color: var(--text); border-color: color-mix(in srgb, var(--hue) 35%, transparent); background: color-mix(in srgb, var(--hue) 9%, transparent); }
 .case-box { display: grid; place-items: center; flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 5px; border: 1.5px solid var(--line-strong); color: var(--ink); transition: background 0.2s, border-color 0.2s; }
 .case-tick.is-on .case-box { background: var(--hue); border-color: var(--hue); box-shadow: 0 0 8px var(--hue); }
+
+/* ---- Practice exam ---- */
+.exam-hero { padding: 24px 26px; border-radius: 22px; border: 1px solid var(--line); background: radial-gradient(90% 140% at 0% 0%, color-mix(in srgb, #f59f00 16%, transparent), transparent 55%), radial-gradient(70% 120% at 100% 100%, color-mix(in srgb, var(--action) 12%, transparent), transparent 60%), var(--pane); }
+.exam-panel { padding: 16px 18px; border-radius: 18px; border: 1px solid var(--line); background: var(--pane); }
+.exam-level { padding: 16px; border-radius: 16px; text-align: left; border: 1px solid var(--line); background: var(--pane); transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, translate 0.2s; }
+.exam-level:hover { translate: 0 -2px; border-color: color-mix(in srgb, var(--c) 45%, var(--line)); }
+.exam-level.is-on { border-color: var(--c); background: linear-gradient(160deg, color-mix(in srgb, var(--c) 14%, transparent), transparent 70%), var(--pane); box-shadow: 0 0 0 1px var(--c), 0 18px 40px -24px var(--c); }
+.exam-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--pane) 88%, transparent); backdrop-filter: blur(10px); }
+.exam-clock { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-family: var(--font-mono); font-size: 13.5px; font-variant-numeric: tabular-nums; color: var(--text); background: linear-gradient(90deg, color-mix(in srgb, var(--action) 26%, transparent) var(--p), color-mix(in srgb, var(--pane-2) 80%, transparent) var(--p)); border: 1px solid var(--line); transition: background 1s linear; }
+.exam-clock.is-low { color: #fff; background: linear-gradient(90deg, color-mix(in srgb, var(--down) 55%, transparent) var(--p), color-mix(in srgb, var(--down) 18%, transparent) var(--p)); animation: exam-pulse 1s ease-in-out infinite; }
+@keyframes exam-pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--down) 25%, transparent); } }
+.exam-nav { display: flex; flex-wrap: wrap; gap: 5px; }
+.exam-nav button { position: relative; width: 30px; height: 30px; border-radius: 8px; font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--muted); background: color-mix(in srgb, var(--pane-2) 70%, transparent); border: 1px solid var(--line); transition: background 0.2s, border-color 0.2s, color 0.2s; }
+.exam-nav button:hover { border-color: var(--line-strong); color: var(--text); }
+.exam-nav button[data-state='done'] { color: var(--text); background: color-mix(in srgb, var(--action) 22%, transparent); border-color: color-mix(in srgb, var(--action) 40%, transparent); }
+.exam-nav button[data-state='cur'] { color: #fff; background: var(--action); border-color: var(--action); box-shadow: 0 0 14px -2px var(--action); }
+.exam-nav button[data-flag]::after { content: ''; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 99px; background: #ffa94d; box-shadow: 0 0 6px #ffa94d; }
+.exam-q { padding: 22px 24px; border-radius: 20px; border: 1px solid var(--line); background: radial-gradient(90% 120% at 0% 0%, color-mix(in srgb, var(--action) 10%, transparent), transparent 60%), var(--pane); }
+.exam-flag { display: inline-flex; align-items: center; gap: 5px; flex: none; padding: 5px 10px; border-radius: 999px; font-size: 12px; color: var(--muted); border: 1px solid var(--line); transition: color 0.2s, background 0.2s, border-color 0.2s; }
+.exam-flag:hover { color: var(--text); }
+.exam-flag.is-on { color: #ffa94d; border-color: color-mix(in srgb, #ffa94d 50%, transparent); background: color-mix(in srgb, #ffa94d 12%, transparent); }
+.flash-opt.is-picked { border-color: var(--action); background: color-mix(in srgb, var(--action) 16%, transparent); }
+.flash-opt.is-picked b { background: var(--action); color: #fff; }
+.exam-review { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); border-left-width: 3px; background: var(--pane); }
+.exam-review.is-ok { border-left-color: var(--healthy); }
+.exam-review.is-bad { border-left-color: var(--down); }
+
+/* ---- Studio layout: settings rail + focused stage (AI practice, Interview, Subnetting) ---- */
+.studio { display: grid; gap: 20px; align-items: start; }
+@media (min-width: 1024px) { .studio { grid-template-columns: 300px minmax(0, 1fr); } }
+.studio-rail { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 20px; border: 1px solid var(--line); background: linear-gradient(180deg, color-mix(in srgb, var(--pane) 90%, transparent), color-mix(in srgb, var(--pane) 60%, transparent)); }
+@media (min-width: 1024px) { .studio-rail { position: sticky; top: 0; } }
+.studio-stage { min-height: 60vh; overflow: hidden; border-radius: 20px; border: 1px solid var(--line); background: radial-gradient(70% 90% at 100% 0%, color-mix(in srgb, var(--action) 9%, transparent), transparent 60%), var(--pane); }
+.stage-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.stage-progress { position: relative; width: 140px; height: 4px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.stage-progress::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--p); border-radius: inherit; background: var(--action); box-shadow: 0 0 10px var(--action); transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.seg { display: flex; gap: 3px; padding: 3px; border-radius: 11px; border: 1px solid var(--line); background: color-mix(in srgb, var(--ink) 60%, transparent); }
+.seg-btn { flex: 1; padding: 6px 8px; border-radius: 8px; font-size: 12.5px; color: var(--muted); transition: background 0.2s, color 0.2s, box-shadow 0.2s; }
+.seg-btn:hover { color: var(--text); }
+.seg-btn.is-on { color: #fff; background: var(--action); box-shadow: 0 0 14px -4px var(--action); }
+.rail-option { display: flex; width: 100%; flex-direction: column; align-items: flex-start; gap: 1px; padding: 9px 12px; border-radius: 12px; text-align: left; border: 1px solid var(--line); transition: border-color 0.2s, background 0.2s; }
+.rail-option:hover { border-color: var(--line-strong); }
+.rail-option.is-on { border-color: var(--action); background: color-mix(in srgb, var(--action) 12%, transparent); box-shadow: 0 0 0 1px var(--action) inset; }
+.rail-row { display: flex; width: 100%; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; font-size: 13px; color: var(--muted); text-align: left; transition: background 0.2s, color 0.2s; }
+.rail-row:hover { background: color-mix(in srgb, var(--pane-2) 60%, transparent); color: var(--text); }
+.rail-row.is-on { color: var(--text); font-weight: 600; background: linear-gradient(90deg, color-mix(in srgb, var(--action) 18%, transparent), transparent); }
+.rail-dot { width: 8px; height: 8px; border-radius: 99px; border: 1.5px solid var(--line-strong); flex: none; transition: background 0.2s, border-color 0.2s; }
+.rail-row.is-on .rail-dot { background: var(--action); border-color: var(--action); box-shadow: 0 0 8px var(--action); }
+.rail-stat { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--ink) 50%, transparent); }
+.rail-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 12px; border: 1px solid var(--line); background: color-mix(in srgb, var(--ink) 50%, transparent); }
+.rail-tile b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.rail-tile span { font-size: 10.5px; color: var(--faint); }
+.rail-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; font-size: 12px; color: var(--muted); border: 1px solid var(--line); cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s; }
+.rail-chip:hover { color: var(--text); }
+.rail-chip.is-on { color: var(--text); border-color: color-mix(in srgb, #1098ad 60%, transparent); background: color-mix(in srgb, #1098ad 18%, transparent); }
+.rail-chip:focus-within { outline: 2px solid var(--action); outline-offset: 2px; }
+.chat-bubble { position: relative; max-width: 86%; padding: 12px 15px; border-radius: 16px; font-size: 14px; line-height: 1.55; }
+.chat-bubble.is-them { border: 1px solid var(--line); background: color-mix(in srgb, var(--pane-2) 80%, transparent); border-top-left-radius: 5px; color: var(--text); }
+.chat-bubble.is-me { margin-left: auto; border-top-right-radius: 5px; color: var(--text); background: color-mix(in srgb, var(--action) 18%, transparent); border: 1px solid color-mix(in srgb, var(--action) 35%, transparent); }
+.chat-bubble.is-live { border-color: color-mix(in srgb, #37b24d 50%, var(--line)); box-shadow: 0 0 24px -12px #37b24d; font-size: 15.5px; font-weight: 500; }
+.chat-who { display: block; margin-bottom: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
+.chat-feedback { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; border: 1px dashed var(--line); }
+.subnet-prompt { font-family: var(--font-mono); font-size: clamp(22px, 3vw, 32px); font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+.subnet-input { height: 48px; width: min(100%, 340px); padding: 0 16px; border-radius: 14px; font-family: var(--font-mono); font-size: 18px; color: var(--text); background: color-mix(in srgb, var(--ink) 70%, transparent); border: 1.5px solid var(--line-strong); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+.subnet-input:focus { border-color: #1098ad; box-shadow: 0 0 0 4px color-mix(in srgb, #1098ad 22%, transparent); }
+.subnet-input.is-ok { border-color: var(--healthy); }
+.subnet-input.is-bad { border-color: var(--down); animation: subnet-shake 0.35s; }
+@keyframes subnet-shake { 25% { translate: -6px 0; } 75% { translate: 6px 0; } }
+.subnet-verdict { padding: 14px 16px; border-radius: 14px; border: 1px solid; animation: rates-in 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+.subnet-verdict.is-ok { border-color: color-mix(in srgb, var(--healthy) 45%, transparent); background: color-mix(in srgb, var(--healthy) 9%, transparent); }
+.subnet-verdict.is-bad { border-color: color-mix(in srgb, var(--down) 45%, transparent); background: color-mix(in srgb, var(--down) 9%, transparent); }

@@ -152,8 +152,8 @@ export default function DashboardPage() {
   const isCcna = dash.id === 'networking' || dash.id === 'ccna';
   // Pages with their own contents sidebar, or that never use a topic, hide the toolbar topic search.
   const ownNav = section === 'learn' && ((isCcna && ['flashcards', 'images', 'scenario-questions'].includes(part ?? '')) || ['interview', 'ai', 'subnetting', 'tracks', 'lessons'].includes(part ?? ''));
-  // Beginner / Technical only changes Learn by topic, the AI Tutor and Interview level.
-  const showMode = section === 'learn' && ['topics', 'ai-tutor', 'interview'].includes(part ?? '') || (section === 'learn' && !isCcna && ['images', 'scenario-questions'].includes(part ?? ''));
+  // Beginner / Technical only changes Learn by topic and the AI Tutor. Interview has its own level.
+  const showMode = section === 'learn' && ['topics', 'ai-tutor'].includes(part ?? '') || (section === 'learn' && !isCcna && ['images', 'scenario-questions'].includes(part ?? ''));
   const open = (s: DashSection, p?: string) => setItem(p ? `${s}/${p}` : s);
   const pickTopic = (t: string) => {
     setTopicId(t);

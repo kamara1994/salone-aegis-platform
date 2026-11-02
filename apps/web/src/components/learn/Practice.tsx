@@ -5,6 +5,7 @@ import { Bot, Check, MessagesSquare, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Badge, Button, cx, Field, Input, Pane, Textarea } from '@/components/ui';
+import type React from 'react';
 import { CHALLENGES } from '@/lab/challenges';
 import { WORKBOOKS } from '@/lab/workbooks';
 import type { LabDoc } from '@/lab/types';
@@ -37,6 +38,55 @@ function labSummary(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+
+// ---------------- shared studio layout (rail on the left, focused stage on the right) ----------------
+
+function RailHead({ icon, eyebrow, title, hue }: { icon: React.ReactNode; eyebrow: string; title: string; hue: string }) {
+  return (
+    <div className="toc-head relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-3" style={{ '--hue': hue } as React.CSSProperties}>
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl" style={{ background: `color-mix(in srgb, ${hue} 22%, transparent)`, color: hue, boxShadow: `0 0 18px -6px ${hue}` }}>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold tracking-[0.22em] text-faint uppercase">{eyebrow}</p>
+        <p className="text-[13px] font-medium text-text">{title}</p>
+      </div>
+    </div>
+  );
+}
+function RailLabel({ children }: { children: React.ReactNode }) {
+  return <p className="pt-1 text-[10.5px] font-semibold tracking-[0.18em] text-faint uppercase">{children}</p>;
+}
+function Seg({ children, role, label }: { children: React.ReactNode; role: string; label: string }) {
+  return (
+    <div className="seg" role={role} aria-label={label}>
+      {children}
+    </div>
+  );
+}
+function StageHead({ eyebrow, title, right }: { eyebrow: string; title: string; right?: React.ReactNode }) {
+  return (
+    <header className="stage-head">
+      <div className="min-w-0 flex-1">
+        <p className="text-[10.5px] font-semibold tracking-[0.2em] text-faint uppercase">{eyebrow}</p>
+        <h2 className="mt-0.5 truncate text-[18px] font-semibold text-text">{title}</h2>
+      </div>
+      {right}
+    </header>
+  );
+}
+function Empty({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+  return (
+    <div className="grid min-h-[38vh] place-items-center text-center">
+      <div className="max-w-[420px]">
+        <span className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-pane-2 text-muted">{icon}</span>
+        <p className="text-[15px] font-semibold text-text">{title}</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{body}</p>
+      </div>
+    </div>
+  );
 }
 
 function NotConnected({ error }: { error: unknown }) {
@@ -151,75 +201,72 @@ export function Practice({ initialTrack }: { initialTrack?: Track }) {
     onSuccess: (r) => setExamResults(r),
   });
   const finished = qs && idx >= qs.length;
+  const trackLabel = TRACKS.find((t) => t.key === track)?.label;
+  const MODES: [QuizMode, string, string][] = [
+    ['quiz', 'Quiz', 'Explains each answer as you go'],
+    ['exam', 'Exam', 'Timed, graded at the end'],
+    ['flashcard', 'Cards', 'Shows the answer when ready'],
+  ];
   return (
-    <div className="grid gap-3 lg:grid-cols-[300px_1fr]">
-      <Pane title="Set up">
-        <div className="space-y-2.5 p-3">
-          <Field label="Track">
-            <select className={cx(sel, 'w-full')} value={track} onChange={(e) => setTrack(e.target.value as Track)} aria-label="Track">
-              {(['Certifications', 'Interviews'] as const).map((g) => (
-                <optgroup key={g} label={g}>
-                  {TRACKS.filter((t) => t.group === g).map((t) => (
-                    <option key={t.key} value={t.key}>
-                      {t.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </Field>
-          <Field label="Topic (optional)" hint="For example OSPF, VLANs, ACLs, incident response, IAM">
-            <Input value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Topic" />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label={mode === 'exam' ? 'Exam difficulty' : 'Question level'}>
-              <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="AI practice difficulty">
-                {PRACTICE_LEVELS.map((level) => (
-                  <button key={level.key} type="button" role="radio" aria-checked={examDifficulty === level.key} title={level.detail} onClick={() => setExamDifficulty(level.key)} className={cx('rounded border px-2 py-1 text-[11px]', examDifficulty === level.key ? 'border-action bg-action/15 text-text' : 'border-line text-muted')} data-testid={`ai-level-${level.key}`}>
-                    {level.label}
-                  </button>
+    <div className="studio">
+      <aside className="studio-rail" aria-label="AI practice set up">
+        <RailHead icon={<Bot className="size-4" />} eyebrow="AI practice" title="Fresh questions on demand" hue="#7950f2" />
+        <Field label="Track">
+          <select className={cx(sel, 'w-full')} value={track} onChange={(e) => setTrack(e.target.value as Track)} aria-label="Track">
+            {(['Certifications', 'Interviews'] as const).map((g) => (
+              <optgroup key={g} label={g}>
+                {TRACKS.filter((t) => t.group === g).map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
+                  </option>
                 ))}
-              </div>
-              <p className="mt-1 text-[11px] text-muted">{PRACTICE_LEVELS.find((level) => level.key === examDifficulty)?.detail} · API difficulty {difficulty}/5</p>
-            </Field>
-            <Field label="Questions">
-              <select className={cx(sel, 'w-full')} value={count} onChange={(e) => setCount(Number(e.target.value))} aria-label="Number of questions">
-                {[5, 10, 20].map((n) => (
-                  <option key={n}>{n}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <Field label="Mode">
-            <div className="flex gap-1" role="radiogroup" aria-label="Mode">
-              {(
-                [
-                  ['quiz', 'Quiz'],
-                  ['exam', 'Exam (timed)'],
-                  ['flashcard', 'Flashcards'],
-                ] as const
-              ).map(([k, label]) => (
-                <button key={k} role="radio" aria-checked={mode === k} onClick={() => setMode(k)} className={cx('flex-1 rounded-[5px] border px-2 py-1.5 text-[12.5px]', mode === k ? 'border-action bg-action/15' : 'border-line text-muted')}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </Field>
-          <label className="flex items-center gap-2 text-[13px]">
-            <input type="checkbox" checked={useLab} onChange={(e) => setUseLab(e.target.checked)} /> Ask about my own lab design
-          </label>
-          <Button variant="primary" className="w-full" busy={gen.isPending} onClick={() => gen.mutate()} data-testid="learn-generate">
-            <Bot className="size-4" /> Generate questions
-          </Button>
-          <p className="text-[11.5px] text-muted">Questions are written by the AI from the official exam objectives, never copied from real exams.</p>
+              </optgroup>
+            ))}
+          </select>
+        </Field>
+        <Field label="Topic (optional)" hint="For example OSPF, VLANs, ACLs, IAM">
+          <Input value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Topic" />
+        </Field>
+        <RailLabel>{mode === 'exam' ? 'Exam difficulty' : 'Question level'}</RailLabel>
+        <Seg role="radiogroup" label="AI practice difficulty">
+          {PRACTICE_LEVELS.map((level) => (
+            <button key={level.key} type="button" role="radio" aria-checked={examDifficulty === level.key} title={level.detail} onClick={() => setExamDifficulty(level.key)} className={cx('seg-btn', examDifficulty === level.key && 'is-on')} data-testid={`ai-level-${level.key}`}>
+              {level.label}
+            </button>
+          ))}
+        </Seg>
+        <RailLabel>Questions</RailLabel>
+        <Seg role="radiogroup" label="Number of questions">
+          {[5, 10, 20].map((n) => (
+            <button key={n} type="button" role="radio" aria-checked={count === n} onClick={() => setCount(n)} className={cx('seg-btn', count === n && 'is-on')}>
+              {n}
+            </button>
+          ))}
+        </Seg>
+        <RailLabel>Mode</RailLabel>
+        <div className="space-y-1.5" role="radiogroup" aria-label="Mode">
+          {MODES.map(([k, label, hint]) => (
+            <button key={k} role="radio" aria-checked={mode === k} onClick={() => setMode(k)} className={cx('rail-option', mode === k && 'is-on')}>
+              <span className="text-[13px] font-semibold text-text">{label}</span>
+              <span className="text-[11.5px] text-faint">{hint}</span>
+            </button>
+          ))}
         </div>
-      </Pane>
-      <Pane title={qs ? `${TRACKS.find((t) => t.key === track)?.label}${mode === 'exam' && !finished ? ` · ${Math.floor((Date.now() - started) / 60000)} min` : ''}` : 'Questions'}>
-        <div className="p-4">
+        <label className="mt-1 flex items-center gap-2 text-[12.5px] text-muted">
+          <input type="checkbox" checked={useLab} onChange={(e) => setUseLab(e.target.checked)} /> Ask about my own lab design
+        </label>
+        <Button variant="primary" className="w-full" busy={gen.isPending} onClick={() => gen.mutate()} data-testid="learn-generate">
+          <Bot className="size-4" /> Generate questions
+        </Button>
+        <p className="text-[11px] leading-relaxed text-faint">Written by the AI from the official exam objectives, never copied from real exams.</p>
+      </aside>
+      <section className="studio-stage" aria-label="Questions">
+        <StageHead eyebrow={qs ? `${trackLabel} · ${MODES.find((m) => m[0] === mode)?.[1]}` : 'Questions'} title={qs ? (finished ? 'Set complete' : `Question ${Math.min(idx + 1, qs.length)} of ${qs.length}`) : 'Generate a set to begin'} right={qs && !finished ? <span className="stage-progress" style={{ '--p': `${(idx / qs.length) * 100}%` } as React.CSSProperties} /> : null} />
+        <div className="p-5">
           {gen.error ? (
             <NotConnected error={gen.error} />
           ) : !qs ? (
-            <p className="text-[13px] text-muted">Choose a track and generate a set. Quiz mode explains each answer as you go; exam mode grades everything at the end; flashcards show the answer when you are ready.</p>
+            <Empty icon={<Bot className="size-6" />} title="Pick a track, level and mode on the left" body="Quiz explains each answer as you go. Exam grades everything at the end. Cards show the answer when you are ready." />
           ) : !finished ? (
             <QuestionCard
               key={qs[idx].id}
@@ -232,7 +279,7 @@ export function Practice({ initialTrack }: { initialTrack?: Track }) {
                   const list = [...examAnswers, { q: qs[idx], a }];
                   setExamAnswers(list);
                   if (idx + 1 >= qs.length) gradeExam.mutate(list);
-                } else if (r) setScore((s) => ({ correct: s.correct + (r.correct ? 1 : 0), total: s.total + 1 }));
+                } else if (r) setScore((sc) => ({ correct: sc.correct + (r.correct ? 1 : 0), total: sc.total + 1 }));
                 setIdx(idx + 1);
               }}
             />
@@ -242,31 +289,31 @@ export function Practice({ initialTrack }: { initialTrack?: Track }) {
             ) : gradeExam.error ? (
               <NotConnected error={gradeExam.error} />
             ) : examResults ? (
-              <div className="space-y-2" data-testid="learn-exam-report">
-                <p className="text-[16px] font-semibold">
+              <div className="space-y-3" data-testid="learn-exam-report">
+                <p className="text-[20px] font-semibold">
                   {examResults.filter((r) => r.correct).length}/{examResults.length} correct ({Math.round((examResults.filter((r) => r.correct).length / examResults.length) * 100)}%) in {Math.max(1, Math.round((Date.now() - started) / 60000))} min
                 </p>
-                <ul className="space-y-1.5">
+                <ul className="space-y-2">
                   {examResults.map((r, k) => (
-                    <li key={k} className={cx('rounded border p-2 text-[13px]', r.correct ? 'border-healthy/40' : 'border-down/40')}>
-                      <p className="font-medium">
+                    <li key={k} className={cx('exam-review', r.correct ? 'is-ok' : 'is-bad')}>
+                      <p className="text-[13.5px] font-medium text-text">
                         {k + 1}. {examAnswers[k].q.prompt}
                       </p>
-                      {!r.correct && r.correct_answer && <p>Answer: {r.correct_answer}</p>}
-                      <p className="text-muted">{r.explanation}</p>
+                      {!r.correct && r.correct_answer && <p className="mt-1 text-[12.5px] text-healthy">Answer: {r.correct_answer}</p>}
+                      <p className="mt-1 text-[12.5px] text-muted">{r.explanation}</p>
                     </li>
                   ))}
                 </ul>
               </div>
             ) : null
           ) : (
-            <div className="space-y-2">
-              <p className="text-[16px] font-semibold">{mode === 'flashcard' ? `Reviewed ${qs.length} cards` : `${score.correct}/${score.total} correct`}</p>
-              <Button onClick={() => gen.mutate()}>Another set</Button>
+            <div className="space-y-3">
+              <p className="text-[22px] font-semibold">{mode === 'flashcard' ? `Reviewed ${qs.length} cards` : `${score.correct}/${score.total} correct`}</p>
+              <Button variant="primary" onClick={() => gen.mutate()}>Another set</Button>
             </div>
           )}
         </div>
-      </Pane>
+      </section>
     </div>
   );
 }
@@ -288,58 +335,89 @@ export function Interview({ initialLevel = 'entry' }: { initialLevel?: 'entry' |
       setAnswer('');
     },
   });
+  const avg = session?.turns.length ? session.turns.reduce((a, t) => a + (t.feedback?.score ?? 0), 0) / session.turns.length : 0;
   return (
-    <div className="grid gap-3 lg:grid-cols-[300px_1fr]">
-      <Pane title="Interviewer">
-        <div className="space-y-2.5 p-3">
-          <Field label="Role">
-            <select className={cx(sel, 'w-full')} value={role} onChange={(e) => setRole(e.target.value)} aria-label="Role">
-              {ROLES.map((r) => (
-                <option key={r}>{r}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Level">
-            <select className={cx(sel, 'w-full')} value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Level">
-              <option value="entry">Entry level</option>
-              <option value="mid">Mid level</option>
-              <option value="senior">Senior</option>
-            </select>
-          </Field>
-          <Button variant="primary" className="w-full" busy={start.isPending} onClick={() => start.mutate()} data-testid="interview-start">
-            <MessagesSquare className="size-4" /> Start interview
-          </Button>
-          <p className="text-[11.5px] text-muted">The AI asks technical and scenario questions with follow-ups, then scores each answer: what was strong and what an interviewer expected to hear.</p>
+    <div className="studio">
+      <aside className="studio-rail" aria-label="Interviewer set up">
+        <RailHead icon={<MessagesSquare className="size-4" />} eyebrow="Interview mode" title="Practise answering out loud" hue="#37b24d" />
+        <RailLabel>Role</RailLabel>
+        <div className="space-y-1" role="radiogroup" aria-label="Role">
+          {ROLES.map((r) => (
+            <button key={r} type="button" role="radio" aria-checked={role === r} onClick={() => setRole(r)} className={cx('rail-row', role === r && 'is-on')}>
+              <span className="rail-dot" />
+              {r}
+            </button>
+          ))}
         </div>
-      </Pane>
-      <Pane title={session ? `${session.role} · ${session.level}` : 'Interview'}>
-        <div className="space-y-3 p-4">
+        <RailLabel>Level</RailLabel>
+        <Seg role="radiogroup" label="Level">
+          {([['entry', 'Entry'], ['mid', 'Mid'], ['senior', 'Senior']] as const).map(([k, label]) => (
+            <button key={k} type="button" role="radio" aria-checked={level === k} onClick={() => setLevel(k)} className={cx('seg-btn', level === k && 'is-on')}>
+              {label}
+            </button>
+          ))}
+        </Seg>
+        <Button variant="primary" className="w-full" busy={start.isPending} onClick={() => start.mutate()} data-testid="interview-start">
+          <MessagesSquare className="size-4" /> {session ? 'Restart interview' : 'Start interview'}
+        </Button>
+        <p className="text-[11px] leading-relaxed text-faint">The AI asks technical and scenario questions with follow-ups, then scores each answer: what was strong and what an interviewer expected to hear.</p>
+        {session && session.turns.length > 0 && (
+          <div className="rail-stat">
+            <span className="text-[10.5px] font-semibold tracking-[0.18em] text-faint uppercase">Average score</span>
+            <b className="text-[22px]" style={{ color: avg >= 0.7 ? '#38d9a9' : avg >= 0.4 ? '#ffa94d' : '#ff6b81' }}>{Math.round(avg * 100)}%</b>
+            <span className="text-[11px] text-faint">{session.turns.length} answered</span>
+          </div>
+        )}
+      </aside>
+      <section className="studio-stage" aria-label="Interview">
+        <StageHead eyebrow={session ? `${session.role} · ${session.level}` : 'Interview'} title={session ? (session.next_question ? `Question ${session.turns.length + 1}` : 'Interview complete') : 'Ready when you are'} />
+        <div className="space-y-4 p-5">
           {start.error ? (
             <NotConnected error={start.error} />
           ) : !session ? (
-            <p className="text-[13px] text-muted">Pick a role and start. Answer like you would in the room; explain your reasoning.</p>
+            <Empty icon={<MessagesSquare className="size-6" />} title="Pick a role and level, then start" body="Answer like you would in the room. Say what you would check, in what order, and why." />
           ) : (
             <>
               {session.turns.map((t, k) => (
-                <div key={k} className="space-y-1 rounded border border-line p-2.5 text-[13px]">
-                  <p className="font-medium">Q: {t.question}</p>
-                  <p className="whitespace-pre-wrap text-muted">A: {t.answer}</p>
+                <div key={k} className="space-y-2">
+                  <div className="chat-bubble is-them">
+                    <span className="chat-who">Interviewer</span>
+                    {t.question}
+                  </div>
+                  <div className="chat-bubble is-me">
+                    <span className="chat-who">You</span>
+                    <span className="whitespace-pre-wrap">{t.answer}</span>
+                  </div>
                   {t.feedback && (
-                    <div className="grid gap-2 sm:grid-cols-[auto_1fr_1fr]">
+                    <div className="chat-feedback">
                       <Badge tone={t.feedback.score >= 0.7 ? 'good' : t.feedback.score >= 0.4 ? 'warn' : 'bad'}>{Math.round(t.feedback.score * 100)}%</Badge>
-                      <ul className="list-disc pl-4 text-healthy">{t.feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
-                      <ul className="list-disc pl-4 text-degraded">{t.feedback.missing.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                      <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <p className="mb-1 text-[10.5px] font-semibold tracking-[0.16em] text-healthy uppercase">Strong</p>
+                          <ul className="space-y-1 text-[12.5px] text-muted">{t.feedback.strengths.map((x, i) => <li key={i} className="flex gap-1.5"><Check className="mt-0.5 size-3.5 shrink-0 text-healthy" />{x}</li>)}</ul>
+                        </div>
+                        <div>
+                          <p className="mb-1 text-[10.5px] font-semibold tracking-[0.16em] text-degraded uppercase">Expected to hear</p>
+                          <ul className="space-y-1 text-[12.5px] text-muted">{t.feedback.missing.map((x, i) => <li key={i} className="flex gap-1.5"><X className="mt-0.5 size-3.5 shrink-0 text-degraded" />{x}</li>)}</ul>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
               ))}
               {session.next_question ? (
-                <div className="space-y-2">
-                  <p className="text-[15px] font-medium">{session.next_question}</p>
-                  <Textarea rows={5} value={answer} onChange={(e) => setAnswer(e.target.value)} aria-label="Your answer" />
-                  <Button variant="primary" disabled={!answer.trim()} busy={turn.isPending} onClick={() => turn.mutate()}>
-                    Answer
-                  </Button>
+                <div className="space-y-3">
+                  <div className="chat-bubble is-them is-live">
+                    <span className="chat-who">Interviewer</span>
+                    {session.next_question}
+                  </div>
+                  <Textarea rows={5} value={answer} onChange={(e) => setAnswer(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && answer.trim()) turn.mutate(); }} aria-label="Your answer" placeholder="Answer as you would in the room…" />
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11.5px] text-faint">{answer.trim() ? answer.trim().split(/\s+/).length : 0} words · ⌘/Ctrl + Enter to send</span>
+                    <Button className="ml-auto" variant="primary" disabled={!answer.trim()} busy={turn.isPending} onClick={() => turn.mutate()}>
+                      Answer
+                    </Button>
+                  </div>
                   {turn.error && <NotConnected error={turn.error} />}
                 </div>
               ) : (
@@ -348,7 +426,7 @@ export function Interview({ initialLevel = 'entry' }: { initialLevel?: 'entry' |
             </>
           )}
         </div>
-      </Pane>
+      </section>
     </div>
   );
 }
@@ -391,47 +469,74 @@ export function Subnetting() {
       /* storage blocked */
     }
   };
+  const acc = stats.done ? stats.right / stats.done : 0;
   return (
-    <div className="grid gap-3 lg:grid-cols-[300px_1fr]">
-      <Pane title="Drill types">
-        <div className="space-y-1.5 p-3 text-[13px]">
-          {(Object.keys(DRILL_LABEL) as DrillKind[]).map((k) => (
-            <label key={k} className="flex items-center gap-2">
-              <input type="checkbox" checked={kinds.includes(k)} onChange={(e) => setKinds(e.target.checked ? [...kinds, k] : kinds.filter((x) => x !== k))} /> {DRILL_LABEL[k]}
-            </label>
-          ))}
-          <div className="mt-2 border-t border-line pt-2 text-muted" data-testid="subnet-stats">
-            {stats.right}/{stats.done} right · streak {stats.streak} (best {stats.best}) · avg {stats.done ? (stats.ms / stats.done / 1000).toFixed(1) : '0'} s
+    <div className="studio">
+      <aside className="studio-rail" aria-label="Drill types">
+        <RailHead icon={<span className="font-mono text-[12px] font-bold">/24</span>} eyebrow="Subnetting drills" title="Fast address maths" hue="#1098ad" />
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rail-tile">
+            <b style={{ color: acc >= 0.8 ? '#38d9a9' : acc >= 0.5 ? '#ffa94d' : 'var(--text)' }}>{Math.round(acc * 100)}%</b>
+            <span>accuracy</span>
+          </div>
+          <div className="rail-tile">
+            <b>🔥 {stats.streak}</b>
+            <span>best {stats.best}</span>
+          </div>
+          <div className="rail-tile">
+            <b>{stats.done ? (stats.ms / stats.done / 1000).toFixed(1) : '0'}s</b>
+            <span>avg time</span>
           </div>
         </div>
-      </Pane>
-      <Pane title="Subnetting">
-        <div className="space-y-3 p-4" data-testid="subnet-drill">
+        <p className="text-[11px] text-faint" data-testid="subnet-stats">
+          {stats.right}/{stats.done} right · streak {stats.streak} (best {stats.best}) · avg {stats.done ? (stats.ms / stats.done / 1000).toFixed(1) : '0'} s
+        </p>
+        <RailLabel>Drill types</RailLabel>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.keys(DRILL_LABEL) as DrillKind[]).map((k) => {
+            const on = kinds.includes(k);
+            return (
+              <label key={k} className={cx('rail-chip', on && 'is-on')}>
+                <input type="checkbox" className="sr-only" checked={on} onChange={(e) => setKinds(e.target.checked ? [...kinds, k] : kinds.filter((x) => x !== k))} />
+                {on && <Check className="size-3" strokeWidth={3} />}
+                {DRILL_LABEL[k]}
+              </label>
+            );
+          })}
+        </div>
+      </aside>
+      <section className="studio-stage" aria-label="Subnetting">
+        <StageHead eyebrow="Subnetting" title={verdict === null ? 'Work it out' : verdict ? 'Correct' : 'Not quite'} />
+        <div className="space-y-5 p-6" data-testid="subnet-drill">
           {drill && (
             <>
-              <p className="font-mono text-[18px]">{drill.prompt}</p>
+              <p className="subnet-prompt">{drill.prompt}</p>
               <form
-                className="flex gap-2"
+                className="flex flex-wrap gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
                   submit();
                 }}
               >
-                <input ref={box} value={input} onChange={(e) => setInput(e.target.value)} readOnly={verdict !== null} className="h-8 w-56 rounded-[5px] border border-line-strong bg-ink px-2.5 font-mono text-[13px] text-text focus:border-action" aria-label="Subnet answer" autoFocus />
+                <input ref={box} value={input} onChange={(e) => setInput(e.target.value)} readOnly={verdict !== null} className={cx('subnet-input', verdict === true && 'is-ok', verdict === false && 'is-bad')} aria-label="Subnet answer" placeholder="Type the answer" autoFocus spellCheck={false} />
                 <Button variant="primary" type="submit" data-testid="subnet-submit">
                   {verdict === null ? 'Check' : 'Next (Enter)'}
                 </Button>
               </form>
               {verdict !== null && (
-                <div className={cx('rounded-[6px] border p-3 text-[13px]', verdict ? 'border-healthy/50 bg-healthy/10' : 'border-down/50 bg-down/10')} data-testid="subnet-verdict">
-                  <p className="font-semibold">{verdict ? 'Correct' : `Answer: ${drill.answer}`}</p>
-                  <p className="text-muted">{drill.explain}</p>
+                <div className={cx('subnet-verdict', verdict ? 'is-ok' : 'is-bad')} data-testid="subnet-verdict">
+                  <p className="flex items-center gap-2 text-[15px] font-semibold">
+                    {verdict ? <Check className="size-4 text-healthy" /> : <X className="size-4 text-down" />}
+                    {verdict ? 'Correct' : <>Answer: <span className="font-mono">{drill.answer}</span></>}
+                  </p>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{drill.explain}</p>
                 </div>
               )}
+              <p className="text-[11.5px] text-faint">Enter to check, Enter again for the next one.</p>
             </>
           )}
         </div>
-      </Pane>
+      </section>
     </div>
   );
 }
