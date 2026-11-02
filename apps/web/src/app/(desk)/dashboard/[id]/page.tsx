@@ -28,6 +28,7 @@ const TimedExam = dynamic(() => import('@/components/learn/Exams').then((module)
 const LessonLibrary = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonLibrary), { loading: SectionLoading });
 const LessonReader = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonReader), { loading: SectionLoading });
 const CCNABook = dynamic(() => import('@/components/learn/CCNABook').then((module) => module.CCNABook), { loading: SectionLoading });
+const BookTopicPicker = dynamic(() => import('@/components/learn/CCNABook').then((module) => module.BookTopicPicker), { ssr: false });
 const Interview = dynamic(() => import('@/components/learn/Practice').then((module) => module.Interview), { loading: SectionLoading });
 const Practice = dynamic(() => import('@/components/learn/Practice').then((module) => module.Practice), { loading: SectionLoading });
 const Subnetting = dynamic(() => import('@/components/learn/Practice').then((module) => module.Subnetting), { loading: SectionLoading });
@@ -278,6 +279,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>}
+            {useCcnabookAsTopics && <BookTopicPicker />}
             <div className="flex items-center gap-1" role="radiogroup" aria-label="Learning mode" data-testid="dash-mode">
               <span className="hidden pr-0.5 text-[11.5px] text-faint lg:inline">Mode</span>
               <div className="flex rounded-[6px] border border-line-strong p-0.5">

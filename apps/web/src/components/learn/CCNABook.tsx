@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, BookOpen, Search } from 'lucide-react';
-import { Button, cx, Input } from '@/components/ui';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ArrowLeft, ArrowRight, BookOpen, Tags } from 'lucide-react';
+import { Button, cx } from '@/components/ui';
+import { useBookLesson } from '@/state/bookLesson';
 import { useLearningPreferences } from '@/state/learning';
 import source from '@/content/books/ccna-v8.1.json';
 
@@ -54,6 +55,90 @@ function savedBookProgress(): { lessonId?: string; completed: string[] } {
   }
 }
 
+/** Toolbar topic picker: type to search all lessons, grouped by chapter. */
+export function BookTopicPicker() {
+  const { lessonId, open } = useBookLesson();
+  const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [completed, setCompleted] = useState<string[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = book.lessons.find((l) => l.id === lessonId);
+  const groups = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const byId = new Map(book.lessons.map((l) => [l.id, l]));
+    return book.chapters
+      .map((c) => ({ chapter: c, lessons: c.lessonIds.map((id) => byId.get(id)).filter((l): l is Lesson => !!l && (!q || `${l.id} ${l.title} ${c.title}`.toLowerCase().includes(q))) }))
+      .filter((g) => g.lessons.length);
+  }, [query]);
+  useEffect(() => {
+    if (!isOpen) return;
+    setCompleted(savedBookProgress().completed);
+    const close = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [isOpen]);
+  const pick = (id: string) => {
+    open(id);
+    setIsOpen(false);
+    setQuery('');
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  };
+  return (
+    <div ref={ref} className="relative" data-testid="ccna-book-picker">
+      <Tags className="pointer-events-none absolute top-2 left-2 z-10 size-3.5 text-faint" aria-hidden />
+      <input
+        type="search"
+        value={isOpen ? query : current ? `${current.id} · ${current.title}` : ''}
+        onFocus={() => {
+          setIsOpen(true);
+          setQuery('');
+        }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setIsOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setIsOpen(false);
+            (e.target as HTMLInputElement).blur();
+          }
+          if (e.key === 'Enter' && groups[0]?.lessons[0]) pick(groups[0].lessons[0].id);
+        }}
+        placeholder={`Choose or search ${book.lessons.length} topics…`}
+        aria-label="Search and choose a CCNA topic"
+        aria-expanded={isOpen}
+        role="combobox"
+        className="h-8 w-60 rounded-[6px] border border-line-strong bg-ink pr-2 pl-7 text-[12.5px] placeholder:text-faint focus:border-action focus:outline-none lg:w-80"
+        data-testid="ccna-book-topic"
+      />
+      {isOpen && (
+        <div role="listbox" className="absolute top-full left-0 z-50 mt-1 max-h-[70vh] w-[340px] overflow-auto rounded-[8px] border border-line-strong bg-pane p-1 shadow-xl">
+          {!groups.length ? (
+            <p className="px-3 py-2 text-[12px] text-muted">No matching topics.</p>
+          ) : (
+            groups.map((g) => (
+              <div key={g.chapter.id}>
+                <p className="sticky top-0 bg-pane px-2 pt-2 pb-1 text-[10.5px] font-semibold tracking-wide text-faint uppercase">
+                  Chapter {g.chapter.number}: {g.chapter.title}
+                </p>
+                {g.lessons.map((l) => (
+                  <button key={l.id} type="button" role="option" aria-selected={l.id === lessonId} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(l.id)} className={cx('flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[12.5px] text-text', l.id === lessonId ? 'bg-action/25' : 'hover:bg-pane-2')}>
+                    <span className="w-9 shrink-0 text-faint">{l.id}</span>
+                    <span className="min-w-0 flex-1">{l.title}</span>
+                    {completed.includes(l.id) && <span className="text-healthy" aria-label="done">✓</span>}
+                  </button>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Panel({ title, children, tone = 'normal' }: { title: string; children?: ReactNode; tone?: 'normal' | 'remember' }) {
   if (!children) return null;
   return <section className={cx('space-y-2 rounded-lg border p-4', tone === 'remember' ? 'border-healthy/30 bg-healthy/8' : 'border-line bg-pane')}><h3 className="text-[14px] font-semibold">{title}</h3><div className="space-y-2 text-[14px] leading-relaxed text-text">{children}</div></section>;
@@ -61,9 +146,9 @@ function Panel({ title, children, tone = 'normal' }: { title: string; children?:
 
 export function CCNABook() {
   const { teach } = useLearningPreferences();
-  const [lessonId, setLessonId] = useState('');
+  const lessonId = useBookLesson((b) => b.lessonId);
+  const setLessonId = useBookLesson((b) => b.open);
   const [stageIndex, setStageIndex] = useState(0);
-  const [query, setQuery] = useState('');
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -72,7 +157,7 @@ export function CCNABook() {
 
   useEffect(() => {
     const saved = savedBookProgress();
-    setLessonId(book.lessons.some((lesson) => lesson.id === saved.lessonId) ? saved.lessonId! : book.lessons[0]?.id ?? '');
+    if (!useBookLesson.getState().lessonId) setLessonId(book.lessons.some((lesson) => lesson.id === saved.lessonId) ? saved.lessonId! : book.lessons[0]?.id ?? '');
     setCompleted(saved.completed);
   }, []);
 
@@ -81,14 +166,6 @@ export function CCNABook() {
   const stages = lesson?.learningJourney?.stages?.length ? lesson.learningJourney.stages : ['meaning', 'mental-model', 'mechanism', 'worked-example', 'verification', 'troubleshooting', 'interview', 'assessment'];
   const safeStageIndex = Math.min(stageIndex, stages.length - 1);
   const stage = stages[safeStageIndex];
-  const chapterLessons = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    const byId = new Map(book.lessons.map((entry) => [entry.id, entry]));
-    return book.chapters.map((item) => ({
-      chapter: item,
-      lessons: item.lessonIds.map((id) => byId.get(id)).filter((entry): entry is Lesson => !!entry && (entry.id === lessonId || !search || `${entry.id} ${entry.title} ${item.title} ${(entry as Lesson & { tags?: string[] }).tags?.join(' ') ?? ''}`.toLowerCase().includes(search))),
-    })).filter((item) => item.lessons.length > 0);
-  }, [query, lessonId]);
   const assessment = lesson?.assessments?.[level]?.length ? lesson.assessments[level]! : lesson?.quiz ?? [];
   const correctCount = assessment.filter((question) => answers[question.id] === question.answerIndex).length;
   const allAnswered = assessment.length > 0 && assessment.every((question) => answers[question.id] !== undefined);
@@ -102,6 +179,11 @@ export function CCNABook() {
     setAnswers({});
     setSubmitted(false);
   }, [level, lessonId]);
+  // A lesson picked from the toolbar starts at its first step.
+  useEffect(() => {
+    setStageIndex(0);
+    setShowAnswer(false);
+  }, [lessonId]);
 
   const openLesson = (id: string) => {
     setLessonId(id);
@@ -143,22 +225,6 @@ export function CCNABook() {
           <div className="h-1.5 overflow-hidden rounded-full bg-pane-2" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Book progress"><div className="h-full bg-action" style={{ width: `${progressPercent}%` }} /></div>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-[minmax(260px,1fr)_minmax(220px,320px)]">
-        <label className="min-w-0">
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">Choose a topic</span>
-          <select value={lesson.id} onChange={(event) => { openLesson(event.target.value); setQuery(''); }} aria-label="Choose a CCNA topic" className="h-10 w-full rounded-md border border-line-strong bg-ink px-3 text-[13px] text-text focus:border-action focus:outline-none" data-testid="ccna-book-topic">
-            {chapterLessons.map(({ chapter: section, lessons }) => <optgroup key={section.id} label={`Chapter ${section.number}: ${section.title}`}>
-              {lessons.map((entry) => <option key={entry.id} value={entry.id}>{completed.includes(entry.id) ? '✓ ' : ''}{entry.id} · {entry.title}</option>)}
-            </optgroup>)}
-          </select>
-        </label>
-        <label className="relative min-w-0">
-          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">Find a topic</span>
-          <Search className="pointer-events-none absolute top-[30px] left-3 size-4 text-faint" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search chapters or topics…" aria-label="Search CCNA topics" className="!h-10 !w-full pl-9" data-testid="ccna-book-search" />
-        </label>
-      </div>
-      {query.trim() && <p className="text-[11px] text-muted" aria-live="polite">The topic menu is filtered by your search.</p>}
     </section>
 
     <main className="min-w-0 space-y-4" data-testid="ccna-book-reader">
