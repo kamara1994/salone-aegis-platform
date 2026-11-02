@@ -25,7 +25,7 @@ const SkillsPage = dynamic(() => import('@/app/(desk)/skills/page'), { loading: 
 const GamesView = dynamic(() => import('@/components/games/GamesView').then((module) => module.GamesView), { loading: SectionLoading });
 const Flashcards = dynamic(() => import('@/components/learn/Exams').then((module) => module.Flashcards), { loading: SectionLoading });
 const TimedExam = dynamic(() => import('@/components/learn/Exams').then((module) => module.TimedExam), { loading: SectionLoading });
-const LessonLibrary = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonLibrary), { loading: SectionLoading });
+const LessonStudio = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonStudio), { loading: SectionLoading });
 const LessonReader = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonReader), { loading: SectionLoading });
 const FlashDeck = dynamic(() => import('@/components/learn/FlashDeck').then((module) => module.FlashDeck), { loading: SectionLoading });
 const CCNABook = dynamic(() => import('@/components/learn/CCNABook').then((module) => module.CCNABook), { loading: SectionLoading });
@@ -357,7 +357,7 @@ export default function DashboardPage() {
             <div className="p-4" data-testid="playground-learn">
               {part === 'topics' && (useCcnabookAsTopics ? <CCNABook /> :
                 (lesson ? (
-                  <LessonReader key={lesson} lessonId={lesson} onClose={() => setLesson(null)} />
+                  <LessonReader key={lesson} lessonId={lesson} onClose={() => setLesson(null)} showBack />
                 ) : topic ? (
                   <TopicPlayground key={topic.id} topicId={topic.id} list={topics} scopeLabel={dash.short} level={mode} onTopic={pickTopic} onOpenLesson={(l) => setLesson(l)} />
                 ) : (
@@ -418,7 +418,7 @@ export default function DashboardPage() {
                   onPractice={() => open('learn', 'ai')}
                 />
               )}
-              {part === 'lessons' && (lesson ? <LessonReader key={lesson} lessonId={lesson} onClose={() => setLesson(null)} /> : <LessonLibrary onOpen={(l) => setLesson(l)} />)}
+              {part === 'lessons' && <LessonStudio lesson={lesson} onOpen={(l) => setLesson(l)} />}
             </div>
           )}
           {section === 'games' && (

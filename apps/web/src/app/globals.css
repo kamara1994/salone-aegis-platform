@@ -884,3 +884,9 @@ body {
 .subnet-verdict { padding: 14px 16px; border-radius: 14px; border: 1px solid; animation: rates-in 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
 .subnet-verdict.is-ok { border-color: color-mix(in srgb, var(--healthy) 45%, transparent); background: color-mix(in srgb, var(--healthy) 9%, transparent); }
 .subnet-verdict.is-bad { border-color: color-mix(in srgb, var(--down) 45%, transparent); background: color-mix(in srgb, var(--down) 9%, transparent); }
+
+/* ---- Interactive lessons ---- */
+.lesson-head { padding: 20px 24px; border-radius: 20px; border: 1px solid var(--line); background: radial-gradient(90% 140% at 0% 0%, color-mix(in srgb, #4f9cf9 16%, transparent), transparent 55%), var(--pane); }
+.lesson-lab { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; color: #fff; background: var(--action); box-shadow: 0 10px 24px -14px var(--action); transition: translate 0.2s, box-shadow 0.2s; }
+.lesson-lab:hover { translate: 0 -1px; box-shadow: 0 14px 28px -12px var(--action); }
+.lesson-notes { padding: 10px 14px; border-radius: 14px; border: 1px dashed var(--line); }
