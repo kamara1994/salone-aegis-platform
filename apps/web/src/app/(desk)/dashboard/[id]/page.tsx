@@ -24,7 +24,7 @@ const SettingsPage = dynamic(() => import('@/app/(desk)/settings/page'), { loadi
 const SkillsPage = dynamic(() => import('@/app/(desk)/skills/page'), { loading: SectionLoading });
 const GamesView = dynamic(() => import('@/components/games/GamesView').then((module) => module.GamesView), { loading: SectionLoading });
 const Flashcards = dynamic(() => import('@/components/learn/Exams').then((module) => module.Flashcards), { loading: SectionLoading });
-const TimedExam = dynamic(() => import('@/components/learn/Exams').then((module) => module.TimedExam), { loading: SectionLoading });
+const ExamStudio = dynamic(() => import('@/components/learn/ExamStudio').then((module) => module.ExamStudio), { loading: SectionLoading });
 const LessonStudio = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonStudio), { loading: SectionLoading });
 const LessonReader = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonReader), { loading: SectionLoading });
 const FlashDeck = dynamic(() => import('@/components/learn/FlashDeck').then((module) => module.FlashDeck), { loading: SectionLoading });
@@ -371,7 +371,7 @@ export default function DashboardPage() {
               {part === 'images' && (isCcna ? <ImageStudy /> : <VisualsView onTopic={pickTopic} scope={topics} topicId={topicId} />)}
               {part === 'exam' && (
                 <div data-testid="playground-exam">
-                  <TimedExam key={scope ?? 'all'} scope={scope} onStudy={studyTopic} />
+                  <ExamStudio key={scope ?? 'all'} scope={scope} onStudy={studyTopic} />
                 </div>
               )}
               {part === 'flashcards' && (

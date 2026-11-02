@@ -10,9 +10,8 @@ import { vlanAccessExemplar } from '@/content/books/vlan-access-exemplar';
 import { trunkExemplar } from '@/content/books/trunk-exemplar';
 import { VlanAccessJourney } from '@/components/learn/VlanAccessJourney';
 import { TrunkJourney } from '@/components/learn/TrunkJourney';
-import { CourseLessonJourney, BookRecall } from '@/components/learn/CourseLessonJourney';
+import { CourseLessonJourney } from '@/components/learn/CourseLessonJourney';
 
-type Question = { id: string; prompt: string; options: string[]; answerIndex: number; explanation: string };
 type Lesson = {
   id: string;
   chapterId: string;
@@ -29,8 +28,6 @@ type Lesson = {
   depthV8?: { concept?: string; procedure?: string[]; workedExample?: string; verification?: string; commonError?: string };
   commonMistake?: string;
   interview?: { question?: string; sampleAnswer?: string };
-  assessments?: { beginner?: Question[]; technical?: Question[] };
-  quiz?: Question[];
   learningJourney?: { kind?: string; stages?: string[] };
   navigation?: { previous?: string | null; next?: string | null };
 };
@@ -44,10 +41,9 @@ const stageNames: Record<string, string> = {
   'mental-model': 'Mental model',
   mechanism: 'How it works',
   'worked-example': 'Worked example',
-  verification: 'Verify and practise',
+  verification: 'Read the evidence',
   troubleshooting: 'Troubleshooting',
-  interview: 'Interview practice',
-  assessment: 'Quiz',
+  recap: 'Key takeaways',
   overview: 'Review overview',
 };
 
@@ -317,8 +313,6 @@ export function CCNABook() {
   const [stageIndex, setStageIndex] = useState(0);
   // Furthest step reached in this lesson, so earlier steps show as seen.
   const [reached, setReached] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [submitted, setSubmitted] = useState(false);
   const [completed, setCompleted] = useState<string[]>([]);
   const [toc, setTocRaw] = useState(false);
   const tocRef = useRef(false);
@@ -343,22 +337,19 @@ export function CCNABook() {
   const baseLesson = book.lessons.find((entry) => entry.id === lessonId) ?? book.lessons[0];
   const lesson: Lesson | undefined = baseLesson?.id === '8.02' ? { ...baseLesson, ...vlanAccessExemplar } : baseLesson?.id === '8.04' ? { ...baseLesson, ...trunkExemplar } : baseLesson;
   const chapter = book.chapters.find((entry) => entry.id === lesson?.chapterId);
-  const stages = lesson?.learningJourney?.stages?.length ? lesson.learningJourney.stages : ['meaning', 'mental-model', 'mechanism', 'worked-example', 'verification', 'troubleshooting', 'interview', 'assessment'];
+  const reviewTopics = lesson?.learningJourney?.kind === 'reading-review' && chapter
+    ? chapter.lessonIds.map((id) => book.lessons.find((entry) => entry.id === id)).filter((entry): entry is Lesson => !!entry && entry.id !== lesson.id)
+    : [];
+  const stages = lesson?.learningJourney?.stages?.filter((entry) => entry !== 'interview' && entry !== 'assessment') ?? ['meaning', 'mental-model', 'mechanism', 'worked-example', 'verification', 'troubleshooting'];
+  if (!stages.includes('recap')) stages.push('recap');
   const safeStageIndex = Math.min(stageIndex, stages.length - 1);
   const stage = stages[safeStageIndex];
-  const assessment = lesson?.assessments?.[level]?.length ? lesson.assessments[level]! : lesson?.quiz ?? [];
-  const correctCount = assessment.filter((question) => answers[question.id] === question.answerIndex).length;
-  const allAnswered = assessment.length > 0 && assessment.every((question) => answers[question.id] !== undefined);
   const progressPercent = book.lessons.length ? Math.round(completed.length / book.lessons.length * 100) : 0;
 
   useEffect(() => {
     if (!lessonId) return;
     try { window.localStorage.setItem(progressKey, JSON.stringify({ lessonId, completed })); } catch { /* local progress is optional */ }
   }, [lessonId, completed]);
-  useEffect(() => {
-    setAnswers({});
-    setSubmitted(false);
-  }, [level, lessonId]);
   // A lesson picked from the toolbar starts at its first step.
   useEffect(() => {
     setStageIndex(0);
@@ -368,15 +359,11 @@ export function CCNABook() {
   const openLesson = (id: string) => {
     setLessonId(id);
     setStageIndex(0);
-    setAnswers({});
-    setSubmitted(false);
   };
   const setStage = (index: number) => {
     const i = Math.max(0, Math.min(index, stages.length - 1));
     setStageIndex(i);
     setReached((r) => Math.max(r, i));
-    setAnswers({});
-    setSubmitted(false);
   };
   // Keyboard: J next lesson, K previous lesson, C show or hide the contents.
   useEffect(() => {
@@ -394,11 +381,6 @@ export function CCNABook() {
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }); // eslint-disable-line react-hooks/exhaustive-deps
-  const submitQuiz = () => {
-    setSubmitted(true);
-    if (correctCount / assessment.length >= 0.75) setCompleted((current) => current.includes(lesson.id) ? current : [...current, lesson.id]);
-  };
-
   if (!lesson) return <div className="p-4 text-muted">The CCNA book could not be loaded.</div>;
 
   const nextLesson = lesson.navigation?.next ? book.lessons.findIndex((entry) => entry.id === lesson.navigation?.next) : -1;
@@ -444,17 +426,8 @@ export function CCNABook() {
       <article className="space-y-5" aria-live="polite">
         {lesson.id === '8.02' && <VlanAccessJourney stage={stage} level={level} />}
         {lesson.id === '8.04' && <TrunkJourney stage={stage} level={level} />}
-        {lesson.id !== '8.02' && lesson.id !== '8.04' && <CourseLessonJourney lesson={lesson} stage={stage} level={level} />}
-        {stage === 'assessment' && (lesson.id === '8.02' || lesson.id === '8.04') && <section className="space-y-3" data-testid="ccna-book-assessment">
-          <div><h2 className="text-[17px] font-semibold">{lesson.learningJourney?.kind === 'assessment' ? lesson.title : 'Topic check'}</h2><p className="text-[13px] text-muted">{assessment.length} questions · answer every question, then submit to see explanations.</p></div>
-          {assessment.map((question, questionIndex) => <fieldset key={question.id} disabled={submitted} className="space-y-2 border-b border-line pb-3 last:border-0" data-testid={`ccna-book-question-${question.id}`}>
-            <legend className="book-q">{questionIndex + 1}. {question.prompt}</legend>
-            <div className="grid gap-1.5">{question.options.map((option, optionIndex) => <label key={optionIndex} className={cx('flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-[13px]', answers[question.id] === optionIndex ? 'border-action bg-action/10' : 'border-line hover:border-line-strong', submitted && optionIndex === question.answerIndex && 'border-healthy bg-healthy/10', submitted && answers[question.id] === optionIndex && optionIndex !== question.answerIndex && 'border-down bg-down/10')}><input type="radio" name={question.id} checked={answers[question.id] === optionIndex} onChange={() => setAnswers((current) => ({ ...current, [question.id]: optionIndex }))} className="mt-0.5 accent-blue-500" />{option}</label>)}</div>
-            {submitted && <p className="text-[12.5px] text-muted">{question.explanation}</p>}
-          </fieldset>)}
-          {submitted ? <div className="flex flex-wrap items-center gap-3"><p className="font-semibold" data-testid="ccna-book-score">Score: {correctCount}/{assessment.length} · {Math.round(correctCount / Math.max(assessment.length, 1) * 100)}%</p><Button type="button" onClick={() => { setAnswers({}); setSubmitted(false); }}>Try again</Button></div> : <Button type="button" variant="primary" disabled={!allAnswered} onClick={submitQuiz}>Submit answers</Button>}
-        </section>}
-        {stage === 'assessment' && lesson.id !== '8.02' && lesson.id !== '8.04' && <BookRecall key={`${lesson.id}-${level}`} lessonId={lesson.id} level={level} onComplete={() => setCompleted((current) => current.includes(lesson.id) ? current : [...current, lesson.id])} />}
+        {lesson.id !== '8.02' && lesson.id !== '8.04' && <CourseLessonJourney lesson={lesson} stage={stage} level={level} reviewTopics={reviewTopics} />}
+        {stage === 'recap' && <div className="flex items-center gap-3 rounded-lg border border-line-strong bg-pane p-4"><Button type="button" variant="primary" onClick={() => setCompleted((current) => current.includes(lesson.id) ? current : [...current, lesson.id])}>{completed.includes(lesson.id) ? 'Lesson read' : 'Mark lesson read'}</Button><span className="text-[13px] text-muted">Reading progress only. Practice and scenario questions are in their own Learn sections.</span></div>}
       </article>
 
       <footer className="flex items-center justify-between pt-2">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 type Props = { stage: string; level: 'beginner' | 'technical' };
 
@@ -9,13 +9,11 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function TrunkJourney({ stage, level }: Props) {
-  const [command, setCommand] = useState('');
-  const [checked, setChecked] = useState(false);
   const beginner = level === 'beginner';
 
   if (stage === 'meaning') return <>
     <Card title="The problem after the access ports are correct"><p>STAFF-PC on SW1 and STAFF-PRINTER on SW2 are each on a working access port in VLAN 20. They still cannot reach each other. The switches are joined by Gi0/1, and that physical link is up.</p><p>{beginner ? 'The port on each end puts its device in the right group. Now ask whether the group can cross the link between switches.' : 'The endpoint access VLANs and physical interswitch link are verified. Investigate whether VLAN 20 has an operational Layer 2 path across the interswitch link.'}</p></Card>
-    <Card title="Make a prediction"><p>If the link between switches carries VLAN 10 but excludes VLAN 20, will a green link light help the two VLAN 20 devices communicate? Hold your answer until you read the trunk evidence.</p></Card>
+    <Card title="Why the link light is insufficient"><p>A link can carry VLAN 10 while excluding VLAN 20. Its green light confirms the physical connection, but the VLAN 20 endpoints still have no Layer 2 path between switches.</p></Card>
   </>;
 
   if (stage === 'mental-model') return <>
@@ -34,7 +32,7 @@ export function TrunkJourney({ stage, level }: Props) {
 
   if (stage === 'verification') return <>
     <Card title="Now the evidence should agree"><pre className="overflow-auto rounded-md bg-ink p-4 font-mono text-[12px] leading-6 text-text">{'SW1# show interfaces trunk\nPort   Mode  Encapsulation  Status     Native vlan\nGi0/1  on    802.1q         trunking   1\n\nPort   Vlans allowed on trunk\nGi0/1  10,20,30\n\nPort   Vlans allowed and active in management domain\nGi0/1  10,20,30\n\nPort   Vlans in spanning tree forwarding state and not pruned\nGi0/1  10,20,30'}</pre><p>VLAN 20 is allowed, active, and forwarding on SW1 Gi0/1. Repeat on SW2. Then check endpoint addresses and test connectivity; this single output does not prove end-to-end success.</p></Card>
-    <Card title="Your turn: preserve the existing VLANs"><p>A second trunk allows VLANs 10 and 30. Type the IOS-style interface command that adds VLAN 20 without removing the other two. You may omit the switch prompt.</p><input value={command} onChange={(event) => { setCommand(event.target.value); setChecked(false); }} aria-label="Command to add VLAN 20 to the trunk" spellCheck={false} className="w-full rounded-md border border-line-strong bg-ink p-3 font-mono text-[14px] text-text" placeholder="switchport trunk ..." /><button type="button" onClick={() => setChecked(true)} className="rounded-md bg-action px-4 py-2 text-[13px] font-semibold text-white">Check command</button>{checked && <p role="status" className={/^switchport\s+trunk\s+allowed\s+vlan\s+add\s+20\s*$/i.test(command.trim()) ? 'text-healthy' : 'text-down'}>{/^switchport\s+trunk\s+allowed\s+vlan\s+add\s+20\s*$/i.test(command.trim()) ? 'Correct. `add` preserves the current allowed list. Verify both ends afterward.' : 'Check the `switchport trunk allowed vlan add` form. Replacing the list could remove VLANs 10 and 30.'}</p>}</Card>
+    <Card title="Preserve the existing VLANs"><p>If another trunk allows VLANs 10 and 30, <code>switchport trunk allowed vlan add 20</code> adds VLAN 20 without replacing the existing list. Replacing the list with only 20 could silently remove both other VLANs. Verify the resulting list on both ends.</p></Card>
   </>;
 
   if (stage === 'troubleshooting') return <>
@@ -42,9 +40,9 @@ export function TrunkJourney({ stage, level }: Props) {
     <Card title="Do not fix the wrong layer"><p>If VLAN 20 hosts can reach each other across switches but cannot reach a VLAN 30 host, the trunk has performed its job. Investigate inter-VLAN routing and policy instead of repeatedly changing the trunk.</p></Card>
   </>;
 
-  if (stage === 'interview') return <>
-    <Card title="Explain the evidence to a teammate"><p>Two correct VLAN 20 access ports sit on different switches. Their link is up. What would you inspect on the interswitch ports, and how would each line of <code>show interfaces trunk</code> narrow the fault?</p><details className="rounded-md border border-line p-3"><summary className="cursor-pointer font-semibold">Compare with a model answer</summary><p className="mt-3">I would verify the correct interswitch interfaces and operational trunk status on both ends. Then I would check that VLAN 20 is allowed, active, and forwarding on the relevant path. If it is missing from the allowed list, I would add it without dropping other required VLANs, verify again, and test the endpoints. A green link light alone proves none of those VLAN conditions.</p></details></Card>
-    <Card title="The next idea"><p>The next lesson examines the native VLAN. Keep tagged VLAN traffic and native VLAN behavior distinct; they can fail in different ways.</p></Card>
+  if (stage === 'recap') return <>
+    <Card title="Read the trunk as a series of gates"><p>The port must be operationally trunking; the VLAN must be allowed, active, and forwarding along the chosen path. Each condition is a separate line of evidence. The same check belongs on the opposite switch.</p></Card>
+    <Card title="Keep the boundary clear"><p>A trunk extends one VLAN across switches but does not route between VLANs. The next lesson examines the native VLAN, whose untagged behavior deserves a separate check.</p></Card>
   </>;
 
   return null;

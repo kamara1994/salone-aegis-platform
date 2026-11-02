@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 type Props = { stage: string; level: 'beginner' | 'technical' };
 
@@ -18,13 +18,11 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function VlanAccessJourney({ stage, level }: Props) {
-  const [choice, setChoice] = useState<string | null>(null);
-  const [transfer, setTransfer] = useState<string | null>(null);
   const beginner = level === 'beginner';
 
   if (stage === 'meaning') return <>
-    <Card title="A green link light, but the wrong network"><p>STAFF-PC is plugged into switch port Gi0/2. Its cable works, yet it receives a guest address and cannot reach staff services. The design says Gi0/2 belongs to staff VLAN 20; guests use VLAN 30.</p><p>{beginner ? 'The first question is: which group does the switch port put this PC into? A working cable does not answer that question.' : 'Form a testable hypothesis: Gi0/2 is operational but classified into VLAN 30, so its DHCP traffic reaches the guest broadcast domain.'}</p></Card>
-    <Card title="Before you read on"><p>Predict the first useful check. Would you inspect the cable, the PC name, or the switch port’s access VLAN? Keep your prediction in mind as you work through the evidence.</p></Card>
+    <Card title="A green link light, but the wrong network"><p>STAFF-PC is plugged into switch port Gi0/2. Its cable works, yet it receives a guest address and cannot reach staff services. The design says Gi0/2 belongs to staff VLAN 20; guests use VLAN 30.</p><p>{beginner ? 'The switch port determines which group the PC joins. A working cable confirms the physical connection but says nothing about that group.' : 'Gi0/2 is operational but may be classified into VLAN 30, so its DHCP traffic enters the guest broadcast domain.'}</p></Card>
+    <Card title="The first useful check"><p>Read the port’s operational access VLAN. The cable and PC name cannot establish which Layer 2 domain receives the frames.</p></Card>
   </>;
 
   if (stage === 'mental-model') return <>
@@ -48,18 +46,18 @@ export function VlanAccessJourney({ stage, level }: Props) {
 
   if (stage === 'verification') return <>
     <Card title="Read the switch evidence"><pre className="overflow-auto rounded-md bg-ink p-4 font-mono text-[12px] leading-6 text-text">{'SW1# show vlan brief\n20   STAFF    active    Gi0/2\n30   GUEST    active    Gi0/3\n\nSW1# show interfaces Gi0/2 switchport\nOperational Mode: static access\nAccess Mode VLAN: 20 (STAFF)\n\nSW1# show interfaces Gi0/2 status\nGi0/2  STAFF-PC  connected  20  a-full  a-1000'}</pre><p><strong>Read it together:</strong> VLAN 20 exists, Gi0/2 is assigned to it, and the link is connected. These lines do not prove the PC has a current Staff IP lease or that routing is present.</p></Card>
-    <Card title="Your turn: complete the missing command"><p>Another verified access port, Gi0/4, must join VLAN 20. After entering <code>interface Gi0/4</code> and <code>switchport mode access</code>, what command assigns its data VLAN?</p><div className="grid gap-2 sm:grid-cols-2">{['switchport access vlan 20', 'switchport trunk allowed vlan 20', 'ip address 192.168.20.4', 'name STAFF'].map((option) => <button key={option} type="button" onClick={() => setChoice(option)} aria-pressed={choice === option} className={`rounded-md border p-3 text-left font-mono text-[13px] ${choice === option ? 'border-action bg-action/10' : 'border-line hover:border-line-strong'}`}>{option}</button>)}</div>{choice && <p role="status" className={choice === 'switchport access vlan 20' ? 'text-healthy' : 'text-down'}>{choice === 'switchport access vlan 20' ? 'Correct. That assigns the selected access port to VLAN 20. Verify its operational VLAN afterward.' : 'Try again. You need to assign the selected access port, not change a trunk, an IP address, or only the VLAN name.'}</p>}</Card>
+    <Card title="Apply the same rule to another port"><p>Gi0/4 also needs to join VLAN 20. After selecting <code>interface Gi0/4</code> and setting <code>switchport mode access</code>, the command <code>switchport access vlan 20</code> assigns its data VLAN. A trunk allowed list changes a different kind of port, while an IP address or VLAN name does not assign the access port.</p></Card>
     <Card title="Finish the end-to-end check"><p>Renew STAFF-PC’s DHCP lease if needed. Check its address and gateway, then test an intended host in VLAN 20. If it must reach VLAN 30, separately verify that inter-VLAN routing and policy allow it.</p><a href="/lab?workbook=vlans-trunking" className="inline-flex rounded-md bg-action px-4 py-2 text-[13px] font-semibold text-white">Practice in the VLAN lab</a></Card>
   </>;
 
   if (stage === 'troubleshooting') return <>
-    <Card title="New situation: same symptom, different cause"><p>Gi0/2 reports VLAN 20 and <code>connected</code>, but STAFF-PC still shows a guest address. Which explanation fits the evidence so far?</p><div className="grid gap-2 sm:grid-cols-2">{['The PC may retain an old DHCP lease', 'The switch port must still be in VLAN 30', 'The cable is definitely broken'].map((option) => <button key={option} type="button" onClick={() => setTransfer(option)} aria-pressed={transfer === option} className={`rounded-md border p-3 text-left text-[13px] ${transfer === option ? 'border-action bg-action/10' : 'border-line hover:border-line-strong'}`}>{option}</button>)}</div>{transfer && <p role="status" className={transfer === 'The PC may retain an old DHCP lease' ? 'text-healthy' : 'text-down'}>{transfer === 'The PC may retain an old DHCP lease' ? 'Yes. Renew the lease, then check the new address, gateway, and DHCP scope. If renewal fails, trace the DHCP path.' : 'The current switch evidence does not support that conclusion. Check the client lease before changing the switch again.'}</p>}</Card>
+    <Card title="Same symptom, different cause"><p>Gi0/2 now reports VLAN 20 and <code>connected</code>, but STAFF-PC still shows its former guest address. The switch evidence supports the new port membership. The client may retain its previous DHCP lease; renew it and inspect the resulting address and gateway before changing the switch again. If renewal fails, trace the DHCP path.</p></Card>
     <Card title="Compare two faults"><div className="overflow-x-auto"><table className="w-full text-left text-[13px]"><thead><tr><th className="p-2">Evidence</th><th className="p-2">Likely next action</th></tr></thead><tbody><tr className="border-t border-line"><td className="p-2">Access Mode VLAN: 30; design says 20</td><td className="p-2">Correct Gi0/2 access VLAN, then verify.</td></tr><tr className="border-t border-line"><td className="p-2">Access Mode VLAN: 20; old guest IP remains</td><td className="p-2">Renew the client lease; investigate DHCP if it fails.</td></tr><tr className="border-t border-line"><td className="p-2">VLAN 20 and Staff IP correct; VLAN 30 unreachable</td><td className="p-2">Check whether routing and policy should permit that traffic.</td></tr></tbody></table></div></Card>
   </>;
 
-  if (stage === 'interview') return <>
-    <Card title="Explain the diagnosis"><p>{beginner ? 'A coworker says, “The light is green, so the network must be fine.” Explain why that conclusion is too early. Say what you would check on Gi0/2 and on the PC.' : 'A user reports a healthy physical link and a guest address on a staff PC. State your hypothesis, the commands that test it, the smallest justified change, and the independent client and reachability checks.'}</p><details className="rounded-md border border-line p-3"><summary className="cursor-pointer font-semibold">Compare with a model answer</summary><p className="mt-3">Identify the actual port. Check <code>show interfaces Gi0/2 switchport</code> for the access VLAN and <code>show interfaces Gi0/2 status</code> for link state. If it is in VLAN 30, assign VLAN 20 on that port and verify again. Renew the PC lease if necessary; then check its subnet, gateway, and intended reachability. A green light proves only a physical link.</p></details></Card>
-    <Card title="Carry this idea forward"><p>Next, ask how VLAN 20 crosses a link between switches: that is a trunk. Then ask how traffic moves from VLAN 20 to VLAN 30: that requires Layer 3 routing and appropriate policy. Each next topic adds one job to the model you built here.</p></Card>
+  if (stage === 'recap') return <>
+    <Card title="Carry the diagnosis forward"><p>A green light proves the physical link. The operational access VLAN determines which Layer 2 domain receives the PC’s traffic. The client lease and any inter-VLAN route must be checked separately.</p></Card>
+    <Card title="The next ideas"><p>A trunk carries VLAN 20 between switches while preserving its separation from VLAN 30. Communication between those VLANs requires Layer 3 routing and policy.</p></Card>
   </>;
 
   return null;

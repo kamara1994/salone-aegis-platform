@@ -890,3 +890,39 @@ body {
 .lesson-lab { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; color: #fff; background: var(--action); box-shadow: 0 10px 24px -14px var(--action); transition: translate 0.2s, box-shadow 0.2s; }
 .lesson-lab:hover { translate: 0 -1px; box-shadow: 0 14px 28px -12px var(--action); }
 .lesson-notes { padding: 10px 14px; border-radius: 14px; border: 1px dashed var(--line); }
+
+/* ---- Practice exam studio ---- */
+.exam-label { margin-bottom: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--faint); }
+.exam-hero.is-pass { background: radial-gradient(90% 140% at 0% 0%, color-mix(in srgb, #38d9a9 18%, transparent), transparent 55%), var(--pane); border-color: color-mix(in srgb, #38d9a9 35%, var(--line)); }
+.exam-hero.is-fail { background: radial-gradient(90% 140% at 0% 0%, color-mix(in srgb, #ff6b81 14%, transparent), transparent 55%), var(--pane); }
+.exam-resume { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--action) 45%, var(--line)); background: color-mix(in srgb, var(--action) 9%, transparent); }
+.exam-mode { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--pane); transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, translate 0.2s; }
+.exam-mode:hover { translate: 0 -2px; border-color: var(--line-strong); }
+.exam-mode.is-on { border-color: var(--action); background: linear-gradient(160deg, color-mix(in srgb, var(--action) 14%, transparent), transparent 70%), var(--pane); box-shadow: 0 0 0 1px var(--action), 0 18px 40px -26px var(--action); }
+.exam-mode-icon { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 12px; color: var(--muted); background: color-mix(in srgb, var(--pane-2) 80%, transparent); transition: color 0.2s, background 0.2s; }
+.exam-mode.is-on .exam-mode-icon { color: #fff; background: var(--action); box-shadow: 0 0 18px -4px var(--action); }
+.exam-source { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 12px; text-align: left; border: 1px solid var(--line); transition: border-color 0.2s, background 0.2s; }
+.exam-source:hover:not(:disabled) { border-color: var(--line-strong); }
+.exam-source.is-on { border-color: var(--action); background: color-mix(in srgb, var(--action) 12%, transparent); }
+.exam-source:disabled { opacity: 0.45; cursor: not-allowed; }
+.exam-tool { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: var(--muted); border: 1px solid var(--line); transition: color 0.2s, background 0.2s, border-color 0.2s; }
+.exam-tool:hover { color: var(--text); border-color: var(--line-strong); }
+.exam-tool.is-on { color: var(--action); border-color: var(--action); background: color-mix(in srgb, var(--action) 12%, transparent); }
+.exam-strike { position: absolute; top: 50%; right: 10px; translate: 0 -50%; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--faint); opacity: 0; transition: opacity 0.2s, color 0.2s, background 0.2s; }
+.group:hover .exam-strike, .exam-strike:focus-visible, .exam-strike.is-on { opacity: 1; }
+.exam-strike:hover { color: var(--text); background: color-mix(in srgb, var(--pane-2) 80%, transparent); }
+.flash-opt.is-struck { opacity: 0.42; }
+.flash-opt.is-struck span { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--down) 70%, transparent); text-decoration-thickness: 1.5px; }
+.flash-opt:disabled { cursor: default; }
+.flash-opt:disabled:hover { transform: none; }
+.exam-conf { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); transition: color 0.2s, background 0.2s, border-color 0.2s; }
+.exam-conf:hover { color: var(--c); }
+.exam-conf.is-on { color: var(--c); border-color: color-mix(in srgb, var(--c) 55%, transparent); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.exam-cal { display: flex; flex-direction: column; gap: 1px; padding: 12px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--c) 30%, var(--line)); background: linear-gradient(160deg, color-mix(in srgb, var(--c) 12%, transparent), transparent 70%); }
+.exam-cal b { font-size: 24px; line-height: 1.1; color: var(--c); font-variant-numeric: tabular-nums; }
+.exam-pad { position: sticky; top: 64px; align-self: start; padding: 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--pane); animation: rates-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.exam-nav button[data-state='right'] { color: var(--healthy); background: color-mix(in srgb, var(--healthy) 16%, transparent); border-color: color-mix(in srgb, var(--healthy) 40%, transparent); }
+.exam-nav button[data-state='wrong'] { color: var(--down); background: color-mix(in srgb, var(--down) 16%, transparent); border-color: color-mix(in srgb, var(--down) 40%, transparent); }
+.exam-q { animation: exam-in 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes exam-in { from { opacity: 0; translate: 0 6px; } }
+.exam-q.is-paused > *:not(:last-child) { filter: blur(6px); }
