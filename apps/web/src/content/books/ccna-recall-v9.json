@@ -11,7 +11,7 @@
       "technicalAnswer": "Give each endpoint valid addresses in the same IPv4 subnet and allow printer traffic. Test a print job; no internet access or router is inherently required for local communication. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Could two laptops sharing files over an isolated switch form a network? Explain.",
+      "prompt": "Two computers must share a printer without internet. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The internet is a network of networks, not a requirement for every network. A local network allows local communication without the internet.",
       "technicalAnswer": "If ping fails, first check the link, IP addresses, host firewall and VLAN membership. Internet access is not the first test. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -28,7 +28,7 @@
       "technicalAnswer": "An access switch and edge router are intermediary devices because they forward network traffic. A wireless AP bridges clients onto the LAN; the same device may also be an endpoint for its own management session. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "In a diagram containing a PC, AP, router and server, identify the data endpoints.",
+      "prompt": "Identify which devices forward traffic in a small office. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A router can also be an endpoint for management traffic addressed to the router itself. A device's role depends on the traffic being considered.",
       "technicalAnswer": "A router can originate management traffic even though its usual role is forwarding. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -45,7 +45,7 @@
       "technicalAnswer": "Office Wi-Fi: WLAN; it is also part of a local-area network. Branches connected across cities: WAN; the same organization may manage LANs at each site. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Why can a WLAN also be a LAN?",
+      "prompt": "Classify a phone + earbuds, office Wi-Fi, and two branch offices. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The types are not all mutually exclusive, and WAN does not mean internet. One deployment can fit more than one network-type label.",
       "technicalAnswer": "Do not call every wireless connection a WAN or every large VLAN a WAN. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -62,7 +62,7 @@
       "technicalAnswer": "Assign compatible IP subnet information to the devices. Try printing locally even if the ISP connection is unplugged. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Does an office LAN stop being a LAN when the internet fails?",
+      "prompt": "Four PCs in one lab must share a network printer. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "LAN is not defined by a strict maximum building size. The LAN continues working when the internet connection fails, if local services remain available.",
       "technicalAnswer": "An active Ethernet port does not prove the correct VLAN, subnet mask, or firewall settings. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -79,7 +79,7 @@
       "technicalAnswer": "Use routed connectivity across a carrier circuit or an internet VPN. Verify both directions have routes and security rules permit required traffic. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "A company joins offices with a private carrier circuit. LAN or WAN?",
+      "prompt": "A headquarters in Boise must reach a branch in Denver. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A private leased connection is still a WAN even if it never touches the public internet. WAN access does not automatically mean public internet access.",
       "technicalAnswer": "Do not assume “WAN” means “the internet”; identify who owns the network path and what services it reaches. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -96,7 +96,7 @@
       "technicalAnswer": "Inspect IP address, subnet mask, gateway, and DNS settings. Test the gateway, then server IP, then server name to separate WLAN, routing, and DNS faults. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "What does an access point do that an Ethernet cable does not?",
+      "prompt": "A laptop joins an office WLAN but cannot reach the server. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Wi-Fi does not automatically mean internet; an offline WLAN can still connect devices. Being connected to Wi-Fi is not proof of end-to-end connectivity.",
       "technicalAnswer": "Connected to an SSID does not automatically mean IP configuration or internet access is healthy. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -113,7 +113,7 @@
       "technicalAnswer": "The short-range connection is a PAN; it is not automatically an internet-connected LAN. Test music playback even with cellular data disabled. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "How can headphones communicate with a phone if there is no Wi-Fi?",
+      "prompt": "Connect a phone to wireless earbuds. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Bluetooth headphones are not necessarily connected directly to the internet. PAN describes close-range personal connectivity.",
       "technicalAnswer": "Bluetooth headphones are not necessarily connected directly to the internet. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -130,7 +130,7 @@
       "technicalAnswer": "Fiber transport between buildings may form a MAN in geographic terms. Check whether traffic uses a private routed network or a carrier service rather than assuming it is internet. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "How is a citywide fiber network different from a local office LAN?",
+      "prompt": "A city government links buildings with a fiber ring. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Coverage terms are descriptive categories, not strict legal distance limits. MAN describes a metropolitan reach, not a specific routing protocol.",
       "technicalAnswer": "Coverage terms are descriptive categories, not strict legal distance limits. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -147,7 +147,7 @@
       "technicalAnswer": "Add a second uplink or switch for resilience only after planning loop prevention. Describe the consequences when a PC cable fails versus when the central switch fails. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "In a star topology, what single device failure affects all attached endpoints?",
+      "prompt": "Choose a physical topology for twelve office computers. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A physical star can still carry multiple logical VLANs or routed networks. Topology affects fault isolation and availability.",
       "technicalAnswer": "A network drawing alone may not reveal VLAN boundaries, IP subnets or spanning-tree blocked links. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -164,7 +164,7 @@
       "technicalAnswer": "Large campus: access, distribution, and core layers separate user access, aggregation and fast backbone transit. Compare scaling, redundancy and operational complexity before choosing. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Why might a large campus use a separate core layer?",
+      "prompt": "Choose between two-tier and three-tier campus designs. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Two-tier and three-tier describe functional roles, not necessarily the number of physical devices. Network tiers refer to functional design layers, not OSI layers.",
       "technicalAnswer": "Two-tier and three-tier describe functional roles, not necessarily the number of physical devices. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -181,7 +181,7 @@
       "technicalAnswer": "Check TCP/UDP transport and the application's required port and protocol. Use DNS and HTTPS tests to isolate a name or application problem. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Explain why a laptop and server must agree on protocol rules.",
+      "prompt": "A client cannot open a website even though it can ping its server. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "TCP/IP is a family of protocols, not one single protocol. Protocols define different jobs; working IP does not prove working application traffic.",
       "technicalAnswer": "TCP/IP is a family of protocols, not one single protocol. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -198,7 +198,7 @@
       "technicalAnswer": "Check Ethernet/Wi-Fi connectivity, IP/gateway, and DNS separately. Use the OSI model to group the symptoms, not as a rigid sequence every packet follows. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "A PC has no physical link light. Which layer do you investigate first?",
+      "prompt": "A browser cannot open a website. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "OSI is a reference model; actual software protocols do not always fit one layer perfectly. OSI is a troubleshooting model; real TCP/IP protocols do not map perfectly to its seven layers.",
       "technicalAnswer": "OSI layers are a conceptual model, not seven separate physical boxes. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -215,7 +215,7 @@
       "technicalAnswer": "Inspect physical indicators such as link, speed or optical levels. Avoid changing IP addresses to fix a cable that cannot establish a link. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Which checks would you make when Ethernet link light is off?",
+      "prompt": "A switch port is physically down. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A successful Wi-Fi association involves more than just the physical layer. Layer 1 carries signals, not IP addresses.",
       "technicalAnswer": "A successful Wi-Fi association involves more than just the physical layer. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -232,7 +232,7 @@
       "technicalAnswer": "The switch learns the source MAC on the incoming port. It uses the destination MAC to forward, flood, or filter within the relevant VLAN. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Which address does an ordinary Layer 2 switch use to forward a unicast frame?",
+      "prompt": "Two hosts use Ethernet on the same VLAN. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A Layer 2 MAC address is not the same thing as a routed IP address. Layer 2 switching makes local forwarding decisions using frame headers.",
       "technicalAnswer": "A Layer 2 MAC address is not the same thing as a routed IP address. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -249,7 +249,7 @@
       "technicalAnswer": "It sends the packet toward its configured default gateway. A router or Layer 3 switch forwards the IP packet based on its routing table. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Why is a router needed to reach a different IP subnet?",
+      "prompt": "A host at 192.168.10.20/24 contacts 192.168.20.20. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A frame normally changes when a packet crosses a router; the IP destination ordinarily remains the same. Traffic between IP subnets needs routing.",
       "technicalAnswer": "A frame normally changes when a packet crosses a router; the IP destination ordinarily remains the same. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -266,7 +266,7 @@
       "technicalAnswer": "TCP destination ports identify different transport endpoints for HTTPS versus SSH. Test each port independently; a blocked port does not mean the whole host is offline. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "How does a server distinguish web traffic from SSH traffic on one IP address?",
+      "prompt": "A TCP service is reachable on 443 but not on 22. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Transport ports are not physical switch ports. Layer 4 services use port numbers, not just IP addresses.",
       "technicalAnswer": "Transport ports are not physical switch ports. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -283,7 +283,7 @@
       "technicalAnswer": "Look at which actual application protocol handles reconnection or session tokens. Do not assume the internet uses a separate standardized Layer 5 packet header. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "What would an application need to remember during a multi-step login?",
+      "prompt": "A user reconnects to a remote application after a dropped session. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A TCP connection and an application session are related but not always the same thing. OSI layers 5–7 are often combined in practical TCP/IP application protocols.",
       "technicalAnswer": "A TCP connection and an application session are related but not always the same thing. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -300,7 +300,7 @@
       "technicalAnswer": "TLS protects the application exchange while applications interpret the data format. Presentation-layer functions are conceptual and often implemented in application libraries. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Why must a sender and receiver agree on text encoding?",
+      "prompt": "A browser exchanges encrypted JSON over HTTPS. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "In real TCP/IP applications these functions are usually implemented by application protocols or libraries. OSI presentation functions are not a separate mandatory internet protocol.",
       "technicalAnswer": "In real TCP/IP applications these functions are usually implemented by application protocols or libraries. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -317,7 +317,7 @@
       "technicalAnswer": "Check the web server certificate or application error, not just route availability. Use an HTTPS-aware test because Layer 7 failures can exist with working IP connectivity. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "If IP reachability works but a domain name fails, what service would you test?",
+      "prompt": "An HTTPS browser request fails after DNS resolves. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An application-layer problem can occur even when ping works. Application-layer behavior is more than basic packet delivery.",
       "technicalAnswer": "An application-layer problem can occur even when ping works. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -334,7 +334,7 @@
       "technicalAnswer": "Transport: TCP or QUIC/UDP carries the application exchange. Internet and link: IP selects remote addresses; Wi-Fi sends local frames. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Where does IP routing fit in the TCP/IP model?",
+      "prompt": "Open a website over a home Wi-Fi network. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A four-layer teaching model is common; sources may show a five-layer variation. The four-layer teaching model groups several OSI functions together.",
       "technicalAnswer": "Do not memorize one model’s layer names without understanding what each function actually does. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -351,7 +351,7 @@
       "technicalAnswer": "The transport layer packages it as a TCP segment or UDP datagram. IP carries the transport unit in an IP packet; Ethernet may carry the packet in a frame; the link sends bits. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Which contains which: an Ethernet frame or an IP packet?",
+      "prompt": "Identify the encapsulation when browsing a site. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The precise names and headers vary with protocol; UDP uses datagrams, not TCP segments. Packet and frame are not interchangeable terms.",
       "technicalAnswer": "Not every application uses TCP; DNS and HTTP/3 may use UDP-based transports. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -368,7 +368,7 @@
       "technicalAnswer": "Frames carry payloads such as IP packets between link neighbors. A switch reads Layer 2 headers to forward frames within its switching domain. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Can an Ethernet frame carry an IPv4 packet?",
+      "prompt": "Explain why Ethernet frames are needed on a LAN. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Ethernet and IP solve different problems: local framing versus routing across IP networks. Ethernet links are local delivery mechanisms, not IP routing protocols.",
       "technicalAnswer": "Ethernet and IP solve different problems: local framing versus routing across IP networks. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -385,7 +385,7 @@
       "technicalAnswer": "Fiber supports high-speed uplinks and electrical isolation but uses matched transceivers. Radio links connect wireless stations and must account for interference and RF coverage. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Why use fiber between buildings instead of a very long copper cable?",
+      "prompt": "Select the transmission medium for an AP and a server rack. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Wi-Fi is transmission media, not necessarily a separate WAN. Media choice affects throughput, distance, power and reliability.",
       "technicalAnswer": "Wi-Fi is transmission media, not necessarily a separate WAN. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -402,7 +402,7 @@
       "technicalAnswer": "If PC-B’s MAC is unknown, unknown-unicast flooding may occur within the VLAN. When PC-B replies, its MAC can be learned on port 7; later unicast frames can use that table entry. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Why does a switch learn from the source address but forward using the destination?",
+      "prompt": "PC-A is on port 3; PC-B is on port 7 of a Layer 2 switch. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Switches do not guarantee that every frame goes to only one port; broadcasts behave differently. A switch learns source MAC addresses but forwards according to destination MAC addresses.",
       "technicalAnswer": "Switches do not always send traffic to exactly one port: unknown unicasts and broadcasts can flood. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -419,7 +419,7 @@
       "technicalAnswer": "Read the destination MAC field to see the next Layer 2 recipient. Across a router, new link-layer addressing is normally used for the next hop. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "What does a switch learn from source MAC 00aa.1111.2222 on Gi0/3?",
+      "prompt": "Identify sender and receiver in a captured Ethernet frame. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "MAC addresses can be locally administered or changed; they are not all permanently burned into hardware. MAC addresses work on a local link; end-to-end destination IP usually remains unchanged unless translated.",
       "technicalAnswer": "MAC addresses can be changed; do not call them permanent unique serial numbers. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -436,7 +436,7 @@
       "technicalAnswer": "The payload can contain the IPv4 packet. The Frame Check Sequence (FCS) helps detect errors in the received frame. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "Which field of a frame helps a switch select a destination port?",
+      "prompt": "A PC sends an IPv4 packet across an Ethernet link. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The FCS detects corruption; it is not encryption or guaranteed recovery. A frame carries a packet; a switch normally forwards based on the frame header.",
       "technicalAnswer": "An Ethernet frame is not the same thing as an IP packet. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -453,7 +453,7 @@
       "technicalAnswer": "The router selects a route matching 192.168.20.10. The router forwards a new link-layer frame carrying the IP packet on the next link. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "What should a PC use when its destination is outside its own subnet?",
+      "prompt": "PC-A 192.168.10.10/24 must reach server 192.168.20.10. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A router is not needed for every same-subnet conversation. Router forwards packets using destination IP prefixes and a routing table.",
       "technicalAnswer": "A router is not needed for every same-subnet conversation. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -470,7 +470,7 @@
       "technicalAnswer": "Its prefix tells the host the destination is on another subnet. The host sends toward the default gateway rather than directly delivering a same-subnet Ethernet frame. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "What does /24 tell you about IPv4 address 192.168.10.20/24?",
+      "prompt": "A host must send to 192.168.20.15 from 192.168.10.15/24. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An IP address and a MAC address serve different layers and purposes. IP addresses provide logical network-layer addressing.",
       "technicalAnswer": "An IP address and a MAC address serve different layers and purposes. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -487,7 +487,7 @@
       "technicalAnswer": "ARP learns the gateway MAC; the first Ethernet frame carries the server's IP packet to the gateway. The Layer 3 device routes the packet and forwards it over the server-side link. Trace one message and identify where it stays local versus crosses networks."
     },
     {
-      "prompt": "What MAC is used in the first-hop frame sent to a remote subnet?",
+      "prompt": "A laptop in VLAN 10 accesses a server in VLAN 20. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The IP destination stays the remote server while the immediate Ethernet destination is the gateway. IP destinations and Ethernet MAC next hops serve different roles.",
       "technicalAnswer": "The IP destination stays the remote server while the immediate Ethernet destination is the gateway. Trace one message and identify where it stays local versus crosses networks."
     }
@@ -521,7 +521,7 @@
       "technicalAnswer": "Use a router or Layer 3 device for inter-network forwarding. Place firewall policy at a chosen trust boundary; one physical appliance can combine functions. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "Which device should you inspect for a blocked policy rather than a missing route?",
+      "prompt": "A small office needs filtering and wireless access. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Not every device described as a router is a dedicated physical box; software can route too. Device names describe roles; one product can do several roles.",
       "technicalAnswer": "Not every device described as a router is a dedicated physical box; software can route too. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -538,7 +538,7 @@
       "technicalAnswer": "A Layer 2 switch learns MAC addresses and normally forwards known unicasts selectively. A NIC provides the endpoint's link connection, and a modem converts access-network signals. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "Why does a switch scale better than a hub in a busy office?",
+      "prompt": "Identify the difference between a hub and a modern switch. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A traditional hub shares one collision domain and does not learn MAC addresses. Legacy hubs do not learn MAC tables.",
       "technicalAnswer": "A traditional hub shares one collision domain and does not learn MAC addresses. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -555,7 +555,7 @@
       "technicalAnswer": "Select a suitable twisted-pair cable category and termination. For standard 1000BASE-T structured channels, the typical maximum channel length is 100 m. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "What would you check before buying cable for a 10-gigabit link?",
+      "prompt": "An office needs a copper Ethernet run from a switch to a desk. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Cat6 does not guarantee 10 Gb/s at any distance; installation and standard limits still matter. Cable standards and distance matter; a link light alone is not a performance guarantee.",
       "technicalAnswer": "A cable marked Cat6 is not proof the installed channel performs correctly if it is damaged or terminated badly. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -572,7 +572,7 @@
       "technicalAnswer": "Use a cable tester to find opens, shorts, split pairs, or wrong pinouts. Consider auto-MDIX support, but do not use it as a substitute for sound termination. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "What cable result do you expect from T568A on one end and T568B on the other?",
+      "prompt": "A freshly terminated cable produces no link. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Incorrect pairing is more important than simply matching wire colors by eye. Electrical continuity and correct pairing must be verified.",
       "technicalAnswer": "Do not assume every cable with differently colored jackets is wired differently. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -589,7 +589,7 @@
       "technicalAnswer": "Check multimode versus single-mode requirements and supported fiber distance. Inspect receiver optical power against supported ranges and clean connectors safely. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "What must match before connecting two switches with fiber?",
+      "prompt": "A fiber uplink shows link down after swapping an optic. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An optical connector fitting physically does not prove the transceiver and link are compatible. Correct transceivers, fiber, and acceptable optical power must all agree.",
       "technicalAnswer": "Working light is not proof that the power margin and error rate are healthy. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -606,7 +606,7 @@
       "technicalAnswer": "Check matching wavelength, supported cable fiber type and speed on both sides. Inspect module diagnostics and vendor compatibility; reseating blindly is not evidence. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "Can a 1G optic always connect to a 10G-only peer without compatibility checks?",
+      "prompt": "A 10G fiber link will not come up despite matched cable ends. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "SFP is a transceiver form factor, not one guaranteed speed or optical standard. Connector shape alone does not guarantee optical compatibility.",
       "technicalAnswer": "SFP is a transceiver form factor, not one guaranteed speed or optical standard. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -623,7 +623,7 @@
       "technicalAnswer": "Modern switched full-duplex links are normally point-to-point and isolate collision domains. Check topology and duplex state when diagnosing unexpected collisions. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "Why can two wireless clients affect each other’s throughput?",
+      "prompt": "Compare shared medium and point-to-point Ethernet. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Wi-Fi shares radio airtime even when devices connect to one access point. A switch port does not turn an old shared segment into its own independent collision domain without a separate link.",
       "technicalAnswer": "Wi-Fi shares radio airtime even when devices connect to one access point. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -640,7 +640,7 @@
       "technicalAnswer": "Inspect interface errors, CRC, late collisions, and resets. Replace suspect cabling or correct mismatched settings, then retest. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "What two interface settings would you compare when error counters rise?",
+      "prompt": "A switch port is connected but performance is unexpectedly poor. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A slow link may be caused by negotiation or errors, not only insufficient internet bandwidth. Duplex mismatch may leave the link up while causing serious packet loss.",
       "technicalAnswer": "Low application throughput does not prove a duplex mismatch. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -657,7 +657,7 @@
       "technicalAnswer": "Inspect show power inline or equivalent PoE output and available power budget. Check cable integrity and phone power needs, then confirm link and VLAN placement separately. Use interface or cable test evidence to distinguish media problems from addressing problems."
     },
     {
-      "prompt": "Why can an AP fail to power on even when its Ethernet cable is connected?",
+      "prompt": "A VoIP phone is not powering on from a switch. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Not every switch port provides PoE, and the total switch power budget is limited. PoE supplies electrical power over Ethernet cabling; link service still needs configuration.",
       "technicalAnswer": "Not every switch port provides PoE, and the total switch power budget is limited. Use interface or cable test evidence to distinguish media problems from addressing problems."
     }
@@ -696,7 +696,7 @@
       "technicalAnswer": "Configure a management IP and SSH with appropriate authentication. Prefer SSH over Telnet because Telnet sends session data without encryption. Use show output to verify before saving or changing configuration."
     },
     {
-      "prompt": "Which method would you use when a new switch has no management IP?",
+      "prompt": "An administrator needs remote encrypted switch access. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A console session can work even when the device has no working network IP address. Reachability, authentication, and transport security all matter for management.",
       "technicalAnswer": "A console session can work even when the device has no working network IP address. Use show output to verify before saving or changing configuration."
     }
@@ -713,7 +713,7 @@
       "technicalAnswer": "Enter enable to reach Switch#; enter configure terminal to reach Switch(config)#. Use interface gigabitethernet0/1 to reach interface mode, then exit/end appropriately. Use show output to verify before saving or changing configuration."
     },
     {
-      "prompt": "What prompt mode is normally used before entering configure terminal?",
+      "prompt": "Enter interface configuration mode in a lab. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A show command and a configuration command may require different modes. The IOS prompt tells you which commands are valid.",
       "technicalAnswer": "Do not mistake a prompt for a command output line. Use show output to verify before saving or changing configuration."
     }
@@ -730,7 +730,7 @@
       "technicalAnswer": "Use show commands to inspect current settings before modifying anything. Note whether the prompt is privileged EXEC, global config, or interface config. Use show output to verify before saving or changing configuration."
     },
     {
-      "prompt": "Why run show interfaces status before modifying an access port?",
+      "prompt": "A switch administrator forgets the correct interface command. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A command accepted by the CLI does not guarantee the desired operation is active. IOS help depends on the current command mode.",
       "technicalAnswer": "A command accepted by the CLI does not guarantee the desired operation is active. Use show output to verify before saving or changing configuration."
     }
@@ -747,7 +747,7 @@
       "technicalAnswer": "Check show startup-config for the saved setting. Save with copy running-config startup-config and verify after the lab reload. Use show output to verify before saving or changing configuration."
     },
     {
-      "prompt": "What happens to unsaved running-config changes after a reload?",
+      "prompt": "A switch hostname change disappears after a reboot. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Saving a faulty config makes the fault persistent; verify first. Configuration in RAM is not necessarily saved to NVRAM.",
       "technicalAnswer": "Saving a faulty config makes the fault persistent; verify first. Use show output to verify before saving or changing configuration."
     }
@@ -764,7 +764,7 @@
       "technicalAnswer": "Configure an enable secret and restrict remote access to appropriate methods. Verify login in a separate session before ending the original console session. Use show output to verify before saving or changing configuration."
     },
     {
-      "prompt": "Why is SSH preferred over Telnet for device management?",
+      "prompt": "Secure a lab switch management account. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An enable secret does not automatically secure unencrypted Telnet access. A management lockout can occur when remote authentication is misconfigured.",
       "technicalAnswer": "Telnet sends its session unencrypted and should not be chosen for routine remote management. Use show output to verify before saving or changing configuration."
     }
@@ -781,7 +781,7 @@
       "technicalAnswer": "Save to startup configuration using copy running-config startup-config. Before testing a reload, confirm the correct file is saved; never erase production devices as practice. Use show output to verify before saving or changing configuration."
     },
     {
-      "prompt": "Why should you confirm console access before testing a management ACL?",
+      "prompt": "Safely save lab configuration changes. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Erase/reload can interrupt active users, so examples should stay in isolated labs. A reload reads persistent configuration, not unsaved live changes.",
       "technicalAnswer": "Erase/reload can interrupt active users, so examples should stay in isolated labs. Use show output to verify before saving or changing configuration."
     }
@@ -820,7 +820,7 @@
       "technicalAnswer": "The switch associates that source with Gi0/3 in its VLAN. Host B replies from Gi0/7 and its MAC can be learned there; verify show mac address-table. Predict the egress port, then verify the MAC table and interface state."
     },
     {
-      "prompt": "Which address field builds the MAC table?",
+      "prompt": "A switch starts with an empty MAC table. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A switch does not first learn an unknown destination by checking the destination MAC alone. Source addresses teach; destination addresses guide forwarding.",
       "technicalAnswer": "The switch does not learn the source from an IP address. Predict the egress port, then verify the MAC table and interface state."
     }
@@ -837,7 +837,7 @@
       "technicalAnswer": "Compare the learned port with the actual physical topology and recent traffic. If the MAC moved, investigate legitimate mobility, trunks, loops or spoofing. Predict the egress port, then verify the MAC table and interface state."
     },
     {
-      "prompt": "What could an unexpected MAC on an uplink indicate?",
+      "prompt": "A switch's MAC table has an unexpected port for one host. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Entries can age out; an empty entry is not evidence a device never existed. Dynamic MAC entries age and can move; do not treat every movement as an attack.",
       "technicalAnswer": "Entries can age out; an empty entry is not evidence a device never existed. Predict the egress port, then verify the MAC table and interface state."
     }
@@ -854,7 +854,7 @@
       "technicalAnswer": "If unknown unicast, flood eligible ports in the same VLAN except ingress. If the destination is known on the ingress port, filter it rather than send it back. Predict the egress port, then verify the MAC table and interface state."
     },
     {
-      "prompt": "What happens to a frame addressed to a MAC the switch has never learned?",
+      "prompt": "An Ethernet frame arrives at Gi0/1 for a particular destination MAC. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Broadcast flooding is limited to the VLAN and can be constrained by port state and policy. The destination lookup determines unicast forwarding behavior.",
       "technicalAnswer": "Flooding does not mean forwarding through every physical port on the whole switch. Predict the egress port, then verify the MAC table and interface state."
     }
@@ -871,7 +871,7 @@
       "technicalAnswer": "All ports in the same VLAN ordinarily share one Layer 2 broadcast domain. A router/L3 interface separates broadcasts into different subnets and VLANs as designed. Predict the egress port, then verify the MAC table and interface state."
     },
     {
-      "prompt": "Will a broadcast from VLAN 10 automatically reach VLAN 20?",
+      "prompt": "Two hosts on different switch ports receive the same broadcast. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Routers and Layer 3 interfaces normally separate IP broadcast domains. Collision domains and broadcast domains are different concepts.",
       "technicalAnswer": "Routers and Layer 3 interfaces normally separate IP broadcast domains. Predict the egress port, then verify the MAC table and interface state."
     }
@@ -888,7 +888,7 @@
       "technicalAnswer": "Use interface configuration and no shutdown only when permitted in the lab. Recheck link and line protocol; a port can be enabled but still have no physical connection. Predict the egress port, then verify the MAC table and interface state."
     },
     {
-      "prompt": "What does administratively down tell you compared with notconnect?",
+      "prompt": "A switch port is administratively down. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Forcing one side to full duplex while the other autonegotiates can create a mismatch. Administrative enablement does not establish a working cable link.",
       "technicalAnswer": "Forcing one side to full duplex while the other autonegotiates can create a mismatch. Predict the egress port, then verify the MAC table and interface state."
     }
@@ -905,7 +905,7 @@
       "technicalAnswer": "Distinguish administratively down from no physical carrier. Check cable, transceiver, speed/duplex and error counters; then test again. Predict the egress port, then verify the MAC table and interface state."
     },
     {
-      "prompt": "What do rising CRC errors suggest you should check?",
+      "prompt": "Gi0/2 is down and a user cannot access the network. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An interface listed up/up can still have CRC errors or poor performance. Always distinguish configuration state from physical fault evidence.",
       "technicalAnswer": "Do not assume that successful ping means no physical errors. Intermittent errors can coexist with partial connectivity. Predict the egress port, then verify the MAC table and interface state."
     }
@@ -944,7 +944,7 @@
       "technicalAnswer": "1=00000001, 10=00001010. Combine as 11000000.10101000.00000001.00001010. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "What is binary 11000000 in decimal?",
+      "prompt": "Convert 192.168.1.10 into a binary IPv4 address. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Binary bit values represent powers of two, not decimal place values. Each IPv4 octet contains 8 bits, so the entire address contains 32 bits.",
       "technicalAnswer": "Binary bit values represent powers of two, not decimal place values. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -961,7 +961,7 @@
       "technicalAnswer": "Six host bits remain, giving 2^6=64 addresses in the block. The actual subnet is 192.168.1.64/26; compute it from the mask, not by guessing from the last octet. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "How many octets are in an IPv4 address?",
+      "prompt": "Identify the network and host bits in 192.168.1.70/26. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The same dotted decimal IP can belong to different subnets depending on its mask. A host IP by itself does not tell you the subnet boundary; the prefix is essential.",
       "technicalAnswer": "The same dotted decimal IP can belong to different subnets depending on its mask. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -978,7 +978,7 @@
       "technicalAnswer": "The interesting octet has a block size of 256 − 192 = 64. Blocks begin at 0, 64, 128, 192; 70 belongs to the 64–127 block. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "Why is 192.168.1.1/26 not in the same subnet as 192.168.1.70/26?",
+      "prompt": "Identify the CIDR subnet of 192.168.1.70/26. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A prefix is not just a label: it directly changes local address boundaries and next-hop decisions. Network address 192.168.1.64; broadcast .127; usable .65–.126.",
       "technicalAnswer": "A /26 has 64 total IPv4 addresses, typically 62 usable, not 64 usable. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -995,7 +995,7 @@
       "technicalAnswer": "Broadcast = 192.168.1.127 (last address in the /26 block). Conventional usable hosts = .65 through .126, 62 addresses. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "Identify the first usable address in 192.168.1.64/26.",
+      "prompt": "Compute the four key fields for 192.168.1.70/26. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "/31 and /32 are special cases; the usual minus-two rule does not apply in the same way. Do not give the network or broadcast address to ordinary hosts on this /26.",
       "technicalAnswer": "/31 point-to-point and /32 host routes have special address-use behavior. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -1012,7 +1012,7 @@
       "technicalAnswer": "169.254.10.10 is IPv4 link-local/APIPA, often selected when DHCP fails. Do not assume a public-looking address is globally reachable without routes and policy. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "What does an unexpected 169.254.8.20 address suggest?",
+      "prompt": "Identify a public, private and APIPA IPv4 address. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "169.254.x.x link-local/APIPA is not an ordinary routed private LAN address. Address category differs from actual connectivity.",
       "technicalAnswer": "169.254.x.x link-local/APIPA is not an ordinary routed private LAN address. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -1029,7 +1029,7 @@
       "technicalAnswer": "Modern CIDR lets administrators use prefixes such as /20, /26 and /30 regardless of class boundaries. Always use the assigned prefix or subnet mask rather than inferring it from the first octet. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "Can 10.1.2.3/27 be valid even though 10.0.0.0 was historically Class A?",
+      "prompt": "Understand why the historical Class A/B/C model is insufficient today. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Never derive a modern interface subnet mask from the first octet alone. Classful defaults are historical context; current routing decisions use explicit prefixes.",
       "technicalAnswer": "Never derive a modern interface subnet mask from the first octet alone. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -1046,7 +1046,7 @@
       "technicalAnswer": "Each routed hop decrements TTL; expired TTL triggers a drop and commonly ICMP Time Exceeded. Traceroute uses hop-limit behavior to infer the path where responses are allowed. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "Why does traceroute use changing TTL values?",
+      "prompt": "An IPv4 packet fails after crossing many routers. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "TTL belongs to IP packets, not ordinary Ethernet frame forwarding. IPv4 TTL limits loops; it is not an exact travel time.",
       "technicalAnswer": "TTL belongs to IP packets, not ordinary Ethernet frame forwarding. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -1063,7 +1063,7 @@
       "technicalAnswer": "It broadcasts an ARP request to discover the destination IPv4-to-MAC mapping. The peer replies with its MAC; PC A caches the mapping and sends a unicast Ethernet frame. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "Which MAC does a host need when contacting a remote website?",
+      "prompt": "PC A needs to send an IPv4 packet to a local peer. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "For a remote IP destination, the host resolves the default gateway MAC, not the remote server MAC. For remote destinations, the host typically ARPs for the gateway MAC, not the remote server MAC.",
       "technicalAnswer": "ARP is IPv4-specific; IPv6 uses Neighbor Discovery. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -1080,7 +1080,7 @@
       "technicalAnswer": "It needs a default gateway address reachable in its own subnet. The IP destination remains 192.168.20.50 while the first Ethernet frame targets the gateway MAC. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "A PC is 192.168.10.70/26. Can gateway 192.168.10.1 be reached as an on-link neighbor?",
+      "prompt": "192.168.10.10/24 sends data to 192.168.20.50. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The gateway must generally be reachable on the host’s local link. Default gateway is a first-hop forwarding device, not a DNS server.",
       "technicalAnswer": "The default gateway is a next hop, not the final IP destination. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -1097,7 +1097,7 @@
       "technicalAnswer": "Configure the SVI address, ensure the VLAN and operational path are active. Verify show ip interface brief; specify a management default gateway when routing is disabled. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "Why might a switch SVI stay down although its IP address is configured?",
+      "prompt": "Configure a Layer 3 switch management interface. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Configuring an IP address alone does not create end-to-end connectivity without correct routing and interfaces. An SVI can be configured yet remain down if its VLAN has no active forwarding member.",
       "technicalAnswer": "Configuring an IP address alone does not create end-to-end connectivity without correct routing and interfaces. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -1114,7 +1114,7 @@
       "technicalAnswer": "Compare the gateway with the host's calculated local subnet. After correcting authorized settings, verify ping to the gateway and a remote IP. Derive the network, valid host range and gateway membership before applying addresses."
     },
     {
-      "prompt": "What are the first three IPv4 fields you would compare against a known-good host?",
+      "prompt": "A Windows host has an incorrect gateway. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A client may be connected to Wi-Fi but still have the wrong subnet or DNS server. A valid-looking gateway on another subnet is normally not usable as the local next hop.",
       "technicalAnswer": "A client may be connected to Wi-Fi but still have the wrong subnet or DNS server. Derive the network, valid host range and gateway membership before applying addresses."
     }
@@ -1153,7 +1153,7 @@
       "technicalAnswer": "Choose the longest matching installed prefix and next hop. Transmit toward the next link using a suitable Layer 2 frame if link and policy allow. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "Which destination field does a router normally consult?",
+      "prompt": "A router receives a packet bound for a remote subnet. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A routing table can choose a path but cannot repair a broken physical link. Routers do not broadcast unknown packets out every interface like a hub.",
       "technicalAnswer": "A routing table can choose a path but cannot repair a broken physical link. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1170,7 +1170,7 @@
       "technicalAnswer": "Use no shutdown if the interface is administratively down. Verify both interface state and relevant connected route in show ip route. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "Which command commonly enables an administratively shut interface?",
+      "prompt": "Bring up one lab router interface. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A configured interface address is not reachable while the interface stays administratively shut. Successful configuration requires proof of operational state.",
       "technicalAnswer": "A configured interface address is not reachable while the interface stays administratively shut. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1187,7 +1187,7 @@
       "technicalAnswer": "Choose the longest matching prefix installed in the routing table. Use the next-hop and outgoing interface to send the packet; AD/metric influence route installation, not the length comparison of already-installed routes. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "When would a static default route be used?",
+      "prompt": "A routing table includes C 10.1.1.0/24, S 10.2.0.0/16 via 10.1.1.2, and a default route. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A listed route does not prove an upstream next hop or the final host is healthy. The selected route is based on the most specific matching prefix.",
       "technicalAnswer": "A route with lower administrative distance does not beat a more-specific prefix. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1204,7 +1204,7 @@
       "technicalAnswer": "The connected route describes 192.168.10.0/24 and the local /32 identifies the interface address. Compare route codes C and L in show ip route. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "Why can both a /24 and /32 route appear for one configured interface?",
+      "prompt": "Why does a /32 local route appear in a router's table? What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Local host routes and connected network routes are different entries. A local route and a connected subnet route serve different purposes.",
       "technicalAnswer": "Local host routes and connected network routes are different entries. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1221,7 +1221,7 @@
       "technicalAnswer": "Compare their prefix lengths: 8, 16, 24. Pick /24, the longest prefix; this is more specific than either /16 or /8. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "Which route is chosen for 10.2.3.9 when /8, /16 and /24 entries exist?",
+      "prompt": "A packet for 10.2.3.9 matches 10.0.0.0/8, 10.2.0.0/16 and 10.2.3.0/24. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Administrative distance compares competing sources for the same route, not different prefix lengths. Administrative distance and metric do not make a shorter installed prefix beat a longer matching one.",
       "technicalAnswer": "Metric and administrative distance do not override prefix specificity. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1238,7 +1238,7 @@
       "technicalAnswer": "In a lab configure: ip route 192.168.20.0 255.255.255.0 10.0.0.2. Check show ip route and test connectivity in both directions. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "A branch can reach HQ but HQ cannot reply. What route might be missing?",
+      "prompt": "A router must send traffic toward 192.168.20.0/24 via 10.0.0.2. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A static route on one side does not automatically create a return route. A static route only configures one router; the return route may still be missing.",
       "technicalAnswer": "A correct outbound route alone is not proof of bidirectional reachability. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1255,7 +1255,7 @@
       "technicalAnswer": "Install a second static route to the same prefix with a higher administrative distance. Verify the backup appears when the primary path/route is removed; test both directions. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "Which route wins for 10.2.3.4 if /24 and default routes exist?",
+      "prompt": "Add backup routing after a primary static route. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A default route does not override a matching more-specific route. A floating static route needs higher administrative distance than the primary route.",
       "technicalAnswer": "A default route does not override a matching more-specific route. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1272,7 +1272,7 @@
       "technicalAnswer": "Router forwards the packet toward a matching route and re-encapsulates for the next link. Server replies; valid return routing and security are necessary for the application to succeed. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "Does a packet from PC to server keep the same destination IP across routers?",
+      "prompt": "Follow one packet from PC A to a remote server. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "MAC addresses are hop-local; the destination IP is not normally replaced by the next-hop IP. A hop changes Layer 2 framing while keeping the logical destination IP unless translated.",
       "technicalAnswer": "MAC addresses are hop-local; the destination IP is not normally replaced by the next-hop IP. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1289,7 +1289,7 @@
       "technicalAnswer": "Try traceroute and a service-specific TCP test where allowed. Do not infer host failure solely from unanswered ICMP Echo messages. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "Why can a server load HTTPS while refusing ping?",
+      "prompt": "Ping fails but the application still works. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An ICMP timeout alone does not prove a host is offline or that a route is absent. Different test protocols measure different properties.",
       "technicalAnswer": "An ICMP timeout alone does not prove a host is offline or that a route is absent. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1306,7 +1306,7 @@
       "technicalAnswer": "On the gateway, check show ip route for 10.20.0.10. Verify the next hop, return path, ACLs, and interface state instead of adding routes blindly. Choose the longest match; check next hop, outgoing interface, and return route."
     },
     {
-      "prompt": "What would you inspect when packets reach a server but replies never return?",
+      "prompt": "Host can reach its default gateway but not 10.20.0.10. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "One-way connectivity often arises from missing return routes or asymmetric filtering. Routing faults can exist in either direction.",
       "technicalAnswer": "One-way connectivity often arises from missing return routes or asymmetric filtering. Choose the longest match; check next hop, outgoing interface, and return route."
     }
@@ -1345,7 +1345,7 @@
       "technicalAnswer": "Each /26 has 64 total addresses and typically 62 usable host addresses. Networks are 192.168.1.0/26, .64/26, .128/26, and .192/26. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     },
     {
-      "prompt": "How many /26 networks fit inside one /24?",
+      "prompt": "Divide a /24 office network into four equally sized subnets. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Subnetting describes address allocation, not the act of splitting an individual host address. Borrowing two host bits creates four equal-sized /26 subnets.",
       "technicalAnswer": "Subnetting describes address allocation, not the act of splitting an individual host address. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     }
@@ -1362,7 +1362,7 @@
       "technicalAnswer": "Block size = 256 − 192 = 64; boundaries are 0,64,128,192. 70 falls in 64–127: network .64, broadcast .127, hosts .65–.126. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     },
     {
-      "prompt": "What /26 subnet contains 192.168.1.140?",
+      "prompt": "Which subnet contains 192.168.1.70/26? What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The block-size shortcut works in the octet where the mask is neither 0 nor 255. 192.168.1.70 belongs to 192.168.1.64/26.",
       "technicalAnswer": "The block increment applies in the interesting octet; do not always use the fourth octet. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     }
@@ -1379,7 +1379,7 @@
       "technicalAnswer": "The third octet advances by 256 − 240 = 16: 0,16,32,48… 28 is in 16–31, so network is 172.16.16.0/20 and broadcast is 172.16.31.255. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     },
     {
-      "prompt": "What subnet contains 172.16.35.10/20?",
+      "prompt": "Find the /20 subnet for 172.16.28.15/20. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Do not always calculate in the fourth octet; /20 uses the third octet. Look for the interesting octet; a block size may be in the second or third octet.",
       "technicalAnswer": "You cannot derive network from the last octet only when prefix is shorter than /24. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     }
@@ -1396,7 +1396,7 @@
       "technicalAnswer": "Find the subnet of 172.16.28.15/20: also 172.16.16.0/20. Same prefix and network address means both are in the same IP subnet. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     },
     {
-      "prompt": "Compare 172.16.31.2/20 and 172.16.32.2/20.",
+      "prompt": "Are 172.16.17.30/20 and 172.16.28.15/20 in the same subnet? What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Hosts with inconsistent masks may disagree about whether each other is local. Do not compare only the first three octets; the mask determines subnet membership.",
       "technicalAnswer": "“Same first three numbers” is not a valid subnet rule. Always calculate with the configured prefix. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     }
@@ -1413,7 +1413,7 @@
       "technicalAnswer": "12 hosts need /28 (14 usable addresses). 2 hosts need /30 (2 usable addresses) for a conventional subnet; /31 is often suitable for supported point-to-point links. Allocate nonoverlapping, correctly aligned network blocks. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     },
     {
-      "prompt": "Choose the smallest conventional prefix for 100 hosts.",
+      "prompt": "Design subnets for 50, 12, and 2 conventional hosts. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Leave room for gateways and growth; avoid counting network/broadcast as conventional hosts. Choose the smallest subnet that meets the host requirement; leave room for growth where needed.",
       "technicalAnswer": "Host count alone is not the whole design: leave room for management and growth. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     }
@@ -1430,7 +1430,7 @@
       "technicalAnswer": "Next, 192.168.10.64/28 for 12 hosts. Finally, 192.168.10.80/30 for 2 hosts; verify blocks do not overlap. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     },
     {
-      "prompt": "Why should you place a /25 before a /28 when designing a /24 allocation?",
+      "prompt": "Allocate VLSM for 50, 12, and 2 hosts inside 192.168.10.0/24. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Two different prefixes can overlap even if their network labels look different. VLSM uses different prefix lengths to avoid wasting addresses.",
       "technicalAnswer": "A valid VLSM plan must avoid overlap and honor network boundaries. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     }
@@ -1447,7 +1447,7 @@
       "technicalAnswer": "255−255=0 and 255−192=63. Wildcard is 0.0.0.63, suitable for matching a /26 block in a wildcard-aware feature. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     },
     {
-      "prompt": "What wildcard matches 192.168.10.0/24?",
+      "prompt": "Find the wildcard mask of 255.255.255.192. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A wildcard is not used everywhere that a regular subnet mask is used. A wildcard mask is the bitwise inverse of the subnet mask.",
       "technicalAnswer": "An ACL wildcard is not the same thing as a subnet mask, even if you derive it from one. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     }
@@ -1464,7 +1464,7 @@
       "technicalAnswer": "Gateway 192.168.10.1 is outside that subnet. Correct the gateway to a valid routed interface in 192.168.10.64/26, or adjust design appropriately; retest. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     },
     {
-      "prompt": "What would you inspect first if a host can ping itself but not its gateway?",
+      "prompt": "Host A 192.168.10.70/26 cannot reach gateway 192.168.10.1. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A successful ping to the local IP does not prove that the default gateway is reachable. A default gateway must be reachable through the host’s local routing/link design.",
       "technicalAnswer": "Do not change VLAN and subnet simultaneously when isolating a fault. Calculate the aligned network block, broadcast and host range; test another address against the same boundary."
     }
@@ -1503,7 +1503,7 @@
       "technicalAnswer": "Assign relevant access ports to the VLANs. Provide routing through a Layer 3 interface if the VLANs must communicate. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "Can devices in VLAN 10 and VLAN 20 communicate without Layer 3 routing?",
+      "prompt": "Separate students and staff on one access switch. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "VLAN separation is not the same as a complete firewall security policy. VLANs split Layer 2 broadcast domains; a VLAN is not itself a router.",
       "technicalAnswer": "VLAN ID is not an IP subnet; they are commonly mapped but logically distinct. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1520,7 +1520,7 @@
       "technicalAnswer": "Under Gi0/2 configure switchport mode access and switchport access vlan 10. Verify with show vlan brief and show interfaces gi0/2 switchport. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "How would you verify a printer is assigned to VLAN 20?",
+      "prompt": "Gi0/2 should be an access port for VLAN 10. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Adding a VLAN ID does not automatically assign an IP subnet or inter-VLAN route. A VLAN created in the database is not enough; the correct access port must belong to it.",
       "technicalAnswer": "Changing only the PC’s IP address does not change the access switch port’s VLAN. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1537,7 +1537,7 @@
       "technicalAnswer": "Verify PoE supply and LLDP-MED/CDP discovery as appropriate. Check that voice DHCP and gateway reachability work independently from desktop data. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "Why would an IP phone and a PC share one physical switch port but need different VLANs?",
+      "prompt": "An IP phone and desktop share one edge switch port. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Voice VLANs do not by themselves guarantee QoS or security. Voice VLAN is a separate logical traffic segment, not merely a port description.",
       "technicalAnswer": "Voice VLANs do not by themselves guarantee QoS or security. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1554,7 +1554,7 @@
       "technicalAnswer": "Ensure VLANs 10 and 20 exist and are permitted across the trunk. Verify show interfaces trunk and test endpoints in each VLAN. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "What problem occurs if VLAN 20 is missing from an inter-switch trunk allowed list?",
+      "prompt": "Carry VLANs 10 and 20 between two switches. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Native-VLAN handling differs from tagged data VLANs and must agree on both ends. A trunk carries multiple VLANs but does not provide routing between them.",
       "technicalAnswer": "A trunk does not route between VLANs. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1571,7 +1571,7 @@
       "technicalAnswer": "The native VLAN is the VLAN associated with untagged frames on that trunk in common configurations. Confirm both sides agree on native VLAN and allowed VLANs. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "What happens when one trunk end uses native VLAN 10 and the other uses 20?",
+      "prompt": "One trunk sends untagged frames and another uses VLAN tags. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A native VLAN mismatch can create connectivity and security problems. Mismatched native VLANs can leak traffic or cause confusing connectivity faults.",
       "technicalAnswer": "A native VLAN mismatch can create connectivity and security problems. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1588,7 +1588,7 @@
       "technicalAnswer": "Verify switch model supports the relevant protocol and mode. Where possible, use deliberate trunk configurations instead of relying on opaque negotiation. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "Why might administrators disable automatic trunk negotiation on user access ports?",
+      "prompt": "A trunk does not appear despite both switches being connected. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Unintended DTP negotiation or VTP changes can cause unexpected VLAN behavior. DTP and VTP are distinct: trunk negotiation versus VLAN distribution.",
       "technicalAnswer": "Unintended DTP negotiation or VTP changes can cause unexpected VLAN behavior. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1605,7 +1605,7 @@
       "technicalAnswer": "Configure router subinterfaces with encapsulation dot1Q 10 and 20 and gateway IPs. Make hosts use the IP of their VLAN gateway, then test across VLANs. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "What interface setup makes VLAN 10 and VLAN 20 reach one router cable?",
+      "prompt": "Route between VLAN 10 and VLAN 20 using one router interface. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A VLAN alone does not enable inter-VLAN communication. Router-on-a-stick uses tagged subinterfaces to route multiple VLANs over one physical link.",
       "technicalAnswer": "Router subinterfaces do not work if trunk VLANs are absent. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1622,7 +1622,7 @@
       "technicalAnswer": "Assign an IP gateway to each SVI and enable ip routing. Verify show ip interface brief, show ip route and inter-VLAN pings. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "What kind of interface usually provides the gateway for VLAN 30?",
+      "prompt": "A Layer 3 switch must route between two VLANs. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An SVI can be down if its VLAN has no eligible active forwarding ports. SVIs need an active VLAN and appropriate switch state to be operational.",
       "technicalAnswer": "An SVI can be down if its VLAN has no eligible active forwarding ports. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1639,7 +1639,7 @@
       "technicalAnswer": "Verify the inter-switch trunk operational state and allowed VLAN list. Check STP forwarding state and MAC learning, then retest. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     },
     {
-      "prompt": "Which show command tells you what VLANs a trunk is carrying?",
+      "prompt": "Two PCs in the same VLAN but on different switches cannot reach each other. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Always check the VLAN, subnet and gateway before assuming a routing-protocol failure. Inspect the Layer 2 path before blaming IP routing.",
       "technicalAnswer": "Never diagnose a trunk by checking only that the physical interface is up. Check whether the destination is in the same VLAN or needs Layer 3 routing."
     }
@@ -1678,7 +1678,7 @@
       "technicalAnswer": "STP creates a loop-free logical forwarding topology by blocking redundant paths. Do not disable STP as a troubleshooting shortcut. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "Why is a Layer 2 loop especially dangerous for broadcasts?",
+      "prompt": "Two access switches are connected with two physical links. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Multiple physical paths are not automatically beneficial unless a loop-control design is in place. Redundancy is useful only with loop-prevention or bundled logical links.",
       "technicalAnswer": "Multiple physical paths are not automatically beneficial unless a loop-control design is in place. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1695,7 +1695,7 @@
       "technicalAnswer": "If priorities are equal, compare switch MAC address as part of bridge ID. Check show spanning-tree vlan 10 to identify the root for VLAN 10. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "What wins when two bridges have the same STP priority?",
+      "prompt": "Two switches compete to become the STP root. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A physically redundant network can still forward loops without STP or an equivalent loop-control mechanism. STP elects one logical root bridge for each spanning-tree instance.",
       "technicalAnswer": "A physically redundant network can still forward loops without STP or an equivalent loop-control mechanism. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1712,7 +1712,7 @@
       "technicalAnswer": "The best root port wins according to STP tie-breakers. Read the designated/alternate/root roles and forwarding/discarding states on each interface. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "What is a root port on a non-root switch?",
+      "prompt": "A switch has two possible paths to the root bridge. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "STP path cost is not the same as OSPF route metric. Port role explains why a link is physically up but not forwarding frames.",
       "technicalAnswer": "STP path cost is not the same as OSPF route metric. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1729,7 +1729,7 @@
       "technicalAnswer": "Ports negotiate designated/root/alternate roles and forwarding/discarding states. Verify root and per-port status using show spanning-tree vlan 10. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "Why does a redundant link not necessarily forward user frames at all times?",
+      "prompt": "A redundant Layer 2 topology uses Rapid PVST+. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "PortFast should be used for intended edge ports, not indiscriminately on switch uplinks. Rapid PVST+ should be verified per VLAN, not assumed from physical link status.",
       "technicalAnswer": "PortFast applies to suitable edge ports, not arbitrary switch-to-switch links. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1746,7 +1746,7 @@
       "technicalAnswer": "Configure the desired primary/secondary priority strategy in a lab. Verify show spanning-tree root or show spanning-tree vlan to confirm election. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "How can you prove the intended switch became STP root?",
+      "prompt": "Make the distribution switch the intended STP root. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The primary-root command affects root election; it does not automatically make all links forwarding. Configured priority is a means; actual root election is the evidence.",
       "technicalAnswer": "The primary-root command affects root election; it does not automatically make all links forwarding. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1763,7 +1763,7 @@
       "technicalAnswer": "Use PortFast only on appropriate edge ports not expected to form switching loops. Verify it moves to forwarding promptly while BPDU protection remains appropriate. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "Why is PortFast useful when a desktop begins DHCP discovery?",
+      "prompt": "A user PC takes a long time to receive network access. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Do not blindly enable edge behavior on a link to another switch. PortFast is not a general replacement for STP.",
       "technicalAnswer": "Do not blindly enable edge behavior on a link to another switch. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1780,7 +1780,7 @@
       "technicalAnswer": "BPDU Guard can disable an edge port that unexpectedly receives a BPDU. Investigate the event rather than disabling BPDU guard universally. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "What would unexpected BPDUs on a user desk port suggest?",
+      "prompt": "A user plugs an unmanaged switch into an edge port. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "BPDU Filter can hide BPDUs and create loops when misused; it is not simply another guard. BPDU filtering can hide useful loop-detection information and needs careful evaluation.",
       "technicalAnswer": "BPDU Filter can hide BPDUs and create loops when misused; it is not simply another guard. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1797,7 +1797,7 @@
       "technicalAnswer": "Loop Guard helps protect against loss of expected BPDUs on certain non-designated ports. Verify protection status and the topology before resetting any disabled/inconsistent port. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "Which guard addresses an unexpectedly superior BPDU arriving from a downstream port?",
+      "prompt": "A downstream switch tries to claim root unexpectedly. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "The two guard features protect different conditions and should not be treated as interchangeable. Different STP guards stop different failure modes.",
       "technicalAnswer": "The two guard features protect different conditions and should not be treated as interchangeable. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1814,7 +1814,7 @@
       "technicalAnswer": "LACP negotiates bundles and helps avoid unsafe mismatches. Traffic load balancing can spread flows, but one flow may not use the total combined capacity. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "Why might adding a second member not double one file transfer speed?",
+      "prompt": "Two parallel Ethernet links need more aggregate bandwidth. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An individual flow is not normally striped byte by byte across every member link. Aggregation does not automatically double one TCP flow's speed.",
       "technicalAnswer": "An individual flow is not normally striped byte by byte across every member link. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1831,7 +1831,7 @@
       "technicalAnswer": "Configure channel-group 1 mode active on participating ports in a lab. Verify show etherchannel summary lists members bundled rather than suspended. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "Why must both sides agree on channel settings?",
+      "prompt": "Combine Gi0/1 and Gi0/2 in an LACP EtherChannel. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Adding two cables does not guarantee a working bundle or double performance for a single traffic flow. Physical members must be compatible; an EtherChannel is a logical bundle.",
       "technicalAnswer": "Two links plugged in do not automatically mean they formed one LACP port channel. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1848,7 +1848,7 @@
       "technicalAnswer": "Create a Layer 3 port-channel and assign its IP address. Verify show etherchannel summary, interface state and routing adjacency. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "What command output would show whether the Layer 3 bundle is operational?",
+      "prompt": "A port-channel must be a routed link between Layer 3 switches. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A Layer 3 port-channel is not an 802.1Q trunk carrying user VLANs by default. Layer 3 EtherChannel uses a routed logical interface instead of a Layer 2 trunk.",
       "technicalAnswer": "A Layer 3 port-channel is not an 802.1Q trunk carrying user VLANs by default. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1865,7 +1865,7 @@
       "technicalAnswer": "Set voice VLAN and PoE for phones where supported. Determine whether AP requires an access or trunk port based on its configuration. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "Which edge-port requirements differ between a basic printer and a multi-SSID AP?",
+      "prompt": "Connect a phone, a printer and an AP to different edge ports. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Applying the same port template to every device can break services or expose unwanted VLANs. A single generic access-port template is not correct for every endpoint.",
       "technicalAnswer": "Applying the same port template to every device can break services or expose unwanted VLANs. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1882,7 +1882,7 @@
       "technicalAnswer": "Match the VLAN tagging requirements and port-channel configuration. Verify that both physical links are bundled and host traffic continues in authorized lab failure tests. Verify loop prevention or LACP membership before making topology changes."
     },
     {
-      "prompt": "What should you verify before wiring a hypervisor to two switches?",
+      "prompt": "A hypervisor host uses two uplinks to one switch. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Connecting to two unrelated switches without a supported multi-chassis design can break connectivity. Hypervisor networking must agree with switch EtherChannel settings.",
       "technicalAnswer": "Connecting to two unrelated switches without a supported multi-chassis design can break connectivity. Verify loop prevention or LACP membership before making topology changes."
     }
@@ -1921,7 +1921,7 @@
       "technicalAnswer": "Dynamic protocols exchange route information and update when topology changes. Select based on scale, resiliency, management and control requirements. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Why use a routing protocol instead of static routes at a large multi-site network?",
+      "prompt": "Choose between static and dynamic routing for multiple sites. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Convergence can take time, and a bad advertisement can spread incorrect routes. Dynamic routing does not remove the need to verify routing tables.",
       "technicalAnswer": "Convergence can take time, and a bad advertisement can spread incorrect routes. Check that neighbors form and desired routes appear in the table."
     }
@@ -1938,7 +1938,7 @@
       "technicalAnswer": "OSPF floods link-state information within an area and computes shortest paths. Compare path-selection behavior and convergence requirements, not just names. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Which type best describes OSPF, and why?",
+      "prompt": "Compare RIP-like distance vector with OSPF link state. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Distance-vector versus link-state describes families; behavior varies by implementation. Routing protocols differ in their information model and algorithms.",
       "technicalAnswer": "Distance-vector versus link-state describes families; behavior varies by implementation. Check that neighbors form and desired routes appear in the table."
     }
@@ -1955,7 +1955,7 @@
       "technicalAnswer": "Metric helps select among candidates within a routing protocol. Longest-prefix match acts later when forwarding toward destinations across installed prefixes. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Which decides between /24 and /16 matches: metric or prefix length?",
+      "prompt": "A router learns the same prefix by two routing sources. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Longest prefix match must not be confused with administrative distance. AD and metric are not alternatives to longest-prefix match.",
       "technicalAnswer": "Longest prefix match must not be confused with administrative distance. Check that neighbors form and desired routes appear in the table."
     }
@@ -1972,7 +1972,7 @@
       "technicalAnswer": "Add another static route to the same prefix with higher AD. Verify failover using an authorized lab fault; restoring primary should make it preferred again. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Why is a floating static route normally absent from the active routing table?",
+      "prompt": "A primary static route must be backed up by another next hop. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A higher distance does not monitor application health unless extra tracking is configured. Floating routes are backups only if the primary route becomes unavailable.",
       "technicalAnswer": "A higher distance does not monitor application health unless extra tracking is configured. Check that neighbors form and desired routes appear in the table."
     }
@@ -1989,7 +1989,7 @@
       "technicalAnswer": "They discover neighbors using OSPF Hellos and synchronize link-state information. They run SPF to calculate paths and install eligible routes. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "How is OSPF different from entering static routes manually?",
+      "prompt": "Two routers exchange network reachability. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Neighbor adjacency and usable routing require compatible area and interface settings. OSPF is link-state routing; adjacency does not guarantee an expected route is installed.",
       "technicalAnswer": "Neighbor adjacency and usable routing require compatible area and interface settings. Check that neighbors form and desired routes appear in the table."
     }
@@ -2006,7 +2006,7 @@
       "technicalAnswer": "Enable OSPF with compatible area and timers; give each router a distinct router ID. Verify show ip ospf neighbor and show ip route ospf; ping a remote learned subnet. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Which two show commands confirm OSPF neighbors and learned routes?",
+      "prompt": "R1 and R2 should form OSPFv2 adjacency on area 0. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Configuring OSPF on a router does not guarantee adjacency across every interface. Neighbor FULL is evidence of adjacency, but routes also need checking.",
       "technicalAnswer": "A neighbor in INIT or EXSTART is not equivalent to a FULL adjacency. Check that neighbors form and desired routes appear in the table."
     }
@@ -2023,7 +2023,7 @@
       "technicalAnswer": "Assign distinct 32-bit router identifiers and restart processes if required by platform. Verify neighbors form and routes populate again. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Why choose stable, unique OSPF router IDs?",
+      "prompt": "Two OSPF routers accidentally use identical router IDs. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An OSPF router ID looks like IPv4 but need not be a reachable interface address. Router ID is an identifier, not necessarily a reachable interface address.",
       "technicalAnswer": "An OSPF router ID looks like IPv4 but need not be a reachable interface address. Check that neighbors form and desired routes appear in the table."
     }
@@ -2040,7 +2040,7 @@
       "technicalAnswer": "Inspect MTU mismatch and router ID uniqueness; also check area and timers. Repair the identified mismatch in a lab and watch the adjacency transition. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Which command would you use to inspect OSPF neighbors?",
+      "prompt": "show ip ospf neighbor displays EXSTART rather than FULL. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A neighbor stuck in an intermediate state does not prove the whole network is unreachable. Interpret the specific neighbor state instead of repeatedly restarting OSPF.",
       "technicalAnswer": "A neighbor stuck in an intermediate state does not prove the whole network is unreachable. Check that neighbors form and desired routes appear in the table."
     }
@@ -2057,7 +2057,7 @@
       "technicalAnswer": "Check interface network type and priorities as well as neighbor states. A point-to-point interface does not use the same DR/BDR behavior. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "On which OSPF network type is a DR election generally expected?",
+      "prompt": "Three routers share an Ethernet broadcast segment. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Seeing a DR/BDR role on Ethernet is not proof of a routing failure. OSPF network type influences neighbor adjacency and election rules.",
       "technicalAnswer": "Seeing a DR/BDR role on Ethernet is not proof of a routing failure. Check that neighbors form and desired routes appear in the table."
     }
@@ -2074,7 +2074,7 @@
       "technicalAnswer": "Use appropriate reference bandwidth for realistic cost calculation. Verify the passive state and neighbors on router-facing interfaces. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Why should a PC-facing interface usually be passive under OSPF?",
+      "prompt": "A LAN interface advertises a subnet but should not form OSPF neighbors with hosts. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Making the router-to-router interface passive can prevent adjacency. Passive interface suppresses OSPF Hellos on the interface but can still advertise the connected network.",
       "technicalAnswer": "Making the router-to-router interface passive can prevent adjacency. Check that neighbors form and desired routes appear in the table."
     }
@@ -2091,7 +2091,7 @@
       "technicalAnswer": "Inspect show ip ospf interface for area, passive state, and Hello/Dead timers. Check ACL filtering, authentication if configured, and distinct router IDs. Check that neighbors form and desired routes appear in the table."
     },
     {
-      "prompt": "Which interface settings should you compare when OSPF neighbors never form?",
+      "prompt": "OSPF neighbors never appear. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A router ID conflict can also interfere with stable operation. Start with evidence from neighbor/interface output before changing OSPF configuration.",
       "technicalAnswer": "Do not reset OSPF blindly; use observed state to narrow the cause. Check that neighbors form and desired routes appear in the table."
     }
@@ -2130,7 +2130,7 @@
       "technicalAnswer": "HSRP/VRRP can offer a shared virtual gateway IP backed by multiple routers. Verify actual role and failover, not merely the protocol configuration. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     },
     {
-      "prompt": "How could two routers fail over without changing hundreds of client gateway settings?",
+      "prompt": "Users lose connectivity when their default gateway router fails. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Redundant default gateways do not automatically protect a failed WAN provider or application server. First-hop redundancy protects the default gateway role, not the entire WAN path.",
       "technicalAnswer": "Redundant default gateways do not automatically protect a failed WAN provider or application server. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     }
@@ -2147,7 +2147,7 @@
       "technicalAnswer": "Use priority and preempt configuration where supported to select the desired active device. Verify show standby brief and controlled failover only in a lab. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     },
     {
-      "prompt": "How can hosts keep the same gateway IP after router R1 fails?",
+      "prompt": "R1 should be active and R2 should be standby for one VLAN. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Redundancy does not remove all failure modes, and a misconfigured shared gateway can still fail. HSRP is Cisco's first-hop redundancy protocol with Active/Standby roles.",
       "technicalAnswer": "HSRP protects first-hop gateway availability, not every possible link, internet service or application. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     }
@@ -2164,7 +2164,7 @@
       "technicalAnswer": "Interpret Master and Backup roles from status output. Test host reachability before and after authorized gateway failover. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     },
     {
-      "prompt": "What does the host gateway configuration look like during a VRRP failover?",
+      "prompt": "Two routers provide a virtual default gateway with VRRP. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "VRRP is not identical to HSRP even though both provide first-hop redundancy. VRRP and HSRP differ in terminology but address a similar first-hop problem.",
       "technicalAnswer": "VRRP is not identical to HSRP even though both provide first-hop redundancy. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     }
@@ -2181,7 +2181,7 @@
       "technicalAnswer": "GLBP can balance hosts across multiple gateway forwarders while keeping a shared virtual gateway service. Treat GLBP as additional background unless required by the target exam/platform. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     },
     {
-      "prompt": "How is GLBP’s sharing of traffic different from basic HSRP active/standby behavior?",
+      "prompt": "Compare GLBP with HSRP and VRRP conceptually. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "GLBP support and its relevance vary by platform and current exam scope. Gateway redundancy protocols differ in load-sharing design and vendor support.",
       "technicalAnswer": "GLBP support and its relevance vary by platform and current exam scope. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     }
@@ -2198,7 +2198,7 @@
       "technicalAnswer": "Check the Active/Standby states and the peer priorities/preemption rules. Test a controlled failover only in an authorized lab and confirm a single Active gateway. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     },
     {
-      "prompt": "What evidence confirms that the standby router took over after primary failure?",
+      "prompt": "A show standby brief output shows router A Active, router B Standby. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A virtual IP may still be misconfigured despite both routers appearing connected. FHRPs provide virtual-gateway continuity, not complete end-to-end application high availability.",
       "technicalAnswer": "A router can have a higher priority without currently being active if preemption is not configured. Read Active/Standby or Master/Backup state and consider a controlled failover test."
     }
@@ -2237,7 +2237,7 @@
       "technicalAnswer": "Identify whether the application uses TCP or UDP and required ports. Inspect transport-specific failures and network filtering. Separate basic reachability from port/service availability."
     },
     {
-      "prompt": "Why can a server use one IP address for both HTTPS and SSH?",
+      "prompt": "A host can reach a server but an application still times out. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An IP address alone does not identify the application that should receive a message. Layer 4 communication adds service endpoints and delivery behavior.",
       "technicalAnswer": "An IP address alone does not identify the application that should receive a message. Separate basic reachability from port/service availability."
     }
@@ -2254,7 +2254,7 @@
       "technicalAnswer": "TCP sequence numbers track bytes sent and received; acknowledgments support recovery. Receivers reorder the byte stream and missing segments are retransmitted as needed. Separate basic reachability from port/service availability."
     },
     {
-      "prompt": "Why does TCP need sequence numbers?",
+      "prompt": "Understand why TCP can provide ordered delivery. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "TCP reliability does not guarantee low latency or application correctness. TCP does not guarantee that an application itself processes a request successfully.",
       "technicalAnswer": "TCP is a byte-stream service, not a promise that one application write maps to one TCP segment. Separate basic reachability from port/service availability."
     }
@@ -2271,7 +2271,7 @@
       "technicalAnswer": "The application or higher layer must handle retries where needed. For DNS, TCP may also be used for large answers, zone transfers, or specific conditions. Separate basic reachability from port/service availability."
     },
     {
-      "prompt": "Why might real-time voice traffic use UDP?",
+      "prompt": "A DNS query is sent over UDP. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "UDP does not mean data will always arrive faster or without loss. UDP simplicity does not mean it never carries important data.",
       "technicalAnswer": "UDP does not mean data will always arrive faster or without loss. Separate basic reachability from port/service availability."
     }
@@ -2288,7 +2288,7 @@
       "technicalAnswer": "Verify the server is listening on 443 and investigate ACL/firewall policies. Test TCP connectivity to port 443, not only ICMP ping. Separate basic reachability from port/service availability."
     },
     {
-      "prompt": "Which side usually uses the temporary source port in a web connection?",
+      "prompt": "A user can reach 192.0.2.10 but HTTPS fails. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Transport ports differ from the physical sockets on a network switch. IP address locates a host/interface; port numbers locate a transport endpoint on it.",
       "technicalAnswer": "Transport ports differ from the physical sockets on a network switch. Separate basic reachability from port/service availability."
     }
@@ -2305,7 +2305,7 @@
       "technicalAnswer": "80/TCP is conventional HTTP and 443/TCP commonly HTTPS; HTTP/3 may use UDP/443. Check both actual service configuration and firewall rules rather than relying on defaults. Separate basic reachability from port/service availability."
     },
     {
-      "prompt": "If DNS resolves but TCP 443 is closed, which layer of the service failed?",
+      "prompt": "Identify the service behind port 22, 53, 80 and 443. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A name resolving successfully does not prove the web server is working. Port numbers indicate likely services but applications can use other ports.",
       "technicalAnswer": "A name resolving successfully does not prove the web server is working. Separate basic reachability from port/service availability."
     }
@@ -2344,7 +2344,7 @@
       "technicalAnswer": "IPv6 supports large address space and mechanisms such as SLAAC and NDP. Plan dual stack and security rather than treating IPv6 as automatically safe. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "What problem does IPv6 address-space expansion address?",
+      "prompt": "Explain why an enterprise uses IPv6. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "IPv6 is not merely IPv4 written with longer numbers. IPv6 addressing changes packet and discovery behavior, not every application.",
       "technicalAnswer": "IPv6 is not merely IPv4 written with longer numbers. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2361,7 +2361,7 @@
       "technicalAnswer": "Replace one longest run of zero hextets with :: once. Result: 2001:db8::1; you cannot use :: twice in one address. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "Shorten 2001:0db8:0000:0000:0000:0000:0000:0001.",
+      "prompt": "Compress 2001:0db8:0000:0000:0000:0000:0000:0001. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An IPv6 address may contain :: only once in its shortened form. IPv6 short form saves writing but does not change the 128-bit address.",
       "technicalAnswer": ":: means one or more entire zero groups, not any arbitrary characters. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2378,7 +2378,7 @@
       "technicalAnswer": "Zero remaining 64 host/interface bits. Subnet is 2001:db8:10:20::/64; do not use IPv4 broadcast conventions. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "How many interface-identifier bits remain in a /64?",
+      "prompt": "Find the /64 subnet of 2001:db8:10:20:abcd::1/64. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "IPv6 does not have IPv4-style subnet broadcast addresses. IPv6 has no broadcast address.",
       "technicalAnswer": "IPv6 does not have IPv4-style subnet broadcast addresses. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2395,7 +2395,7 @@
       "technicalAnswer": "fc00::/7 covers unique-local addresses typically used for private IPv6 scopes. Address type alone doesn't prove an address is reachable on the public internet. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "Which type would you expect on an internet-reachable IPv6 server?",
+      "prompt": "Determine if 2001:db8::1 or fd00::1 is a global/unique-local type. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Unique-local addresses are not the IPv6 version of NAT-dependent public addresses. IPv6 type and actual routing reachability are separate.",
       "technicalAnswer": "Unique-local addresses are not the IPv6 version of NAT-dependent public addresses. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2412,7 +2412,7 @@
       "technicalAnswer": "Multicast replaces IPv4-like broadcast signaling in IPv6 discovery. Anycast assigns the same unicast address to multiple possible receivers. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "Why do IPv6 routers use ff02:: multicast groups?",
+      "prompt": "A device talks to a router using fe80:: addressing. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "IPv6 has no general broadcast address. IPv6 addressing types serve different roles.",
       "technicalAnswer": "IPv6 has no general broadcast address. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2429,7 +2429,7 @@
       "technicalAnswer": "Invert the universal/local bit as the modified EUI-64 procedure specifies. Recognize that many modern clients use privacy or stable interface IDs instead. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "What extra bytes appear when converting a 48-bit MAC to a modified EUI-64 identifier?",
+      "prompt": "Generate an IPv6 interface identifier from a 48-bit MAC using modified EUI-64. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Modern IPv6 hosts frequently use privacy or stable-random addresses instead of EUI-64. An IPv6 address need not encode its actual MAC address.",
       "technicalAnswer": "Modern IPv6 hosts frequently use privacy or stable-random addresses instead of EUI-64. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2446,7 +2446,7 @@
       "technicalAnswer": "Neighbor Solicitation/Advertisement resolves local IPv6 neighbors at link layer. Check NDP cache and RA settings before investigating an IPv6 default-gateway failure. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "Which ICMPv6 exchange helps find a neighbor MAC address?",
+      "prompt": "Host needs gateway and neighbor discovery in IPv6. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "IPv6 uses NDP, not ARP, for address resolution. IPv6 uses NDP, not ARP.",
       "technicalAnswer": "Blocking all ICMPv6 can break normal IPv6 operations. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2463,7 +2463,7 @@
       "technicalAnswer": "DHCPv6 may provide addresses and/or additional options depending on network design. Verify both assigned address and IPv6 default route; DHCPv6 does not provide IPv6 default-router option in the same way DHCPv4 does. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "How can a host get an IPv6 address without a DHCPv6 server?",
+      "prompt": "A host receives an IPv6 Router Advertisement. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "DHCPv6 and SLAAC are not necessarily mutually exclusive. SLAAC and DHCPv6 can coexist.",
       "technicalAnswer": "DHCPv6 and SLAAC are not necessarily mutually exclusive. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2480,7 +2480,7 @@
       "technicalAnswer": "Bring interface operationally up and verify show ipv6 interface brief. Use ping ipv6 and inspect neighbor cache to confirm local reachability. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "What table confirms a connected IPv6 prefix is installed?",
+      "prompt": "Set an IPv6 /64 on a lab router port. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "IPv6 link-local operation alone does not prove global prefix routing works. IPv6 interface configuration is not proof of reachable remote prefixes.",
       "technicalAnswer": "IPv6 link-local operation alone does not prove global prefix routing works. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2497,7 +2497,7 @@
       "technicalAnswer": "Confirm local neighbor reachability and router IPv6 forwarding. Test destination IP directly before assuming DNS failure. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "How would you tell whether an IPv6 host has a usable default router?",
+      "prompt": "IPv6 host receives an address but cannot reach another subnet. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "There is no IPv6 broadcast address to ping as a generic discovery method. Local IPv6 address does not guarantee default-router information.",
       "technicalAnswer": "There is no IPv6 broadcast address to ping as a generic discovery method. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2514,7 +2514,7 @@
       "technicalAnswer": "Install an ipv6 route for 2001:db8:20::/64 to the reachable next hop. Verify show ipv6 route and test the return path and interface status. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "Why might a static IPv6 route need both exit interface and next-hop information?",
+      "prompt": "Route 2001:db8:20::/64 through next hop 2001:db8:10::2. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Link-local next hops may require an outgoing interface because the same link-local value can appear on different links. IPv6 static routing still depends on reachable next hops and return routes.",
       "technicalAnswer": "Link-local next hops may require an outgoing interface because the same link-local value can appear on different links. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2531,7 +2531,7 @@
       "technicalAnswer": "Enable OSPFv3 on matching area interfaces with unique router IDs, using platform syntax. Verify neighbor FULL state and show ipv6 route ospf (or platform equivalents). Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "What output proves two IPv6 OSPF neighbors have formed?",
+      "prompt": "Two routers need OSPFv3 IPv6 route exchange. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "OSPFv3 interface activation syntax and address-family options vary across IOS versions. IPv6 link-local neighbor connectivity matters to OSPFv3 adjacencies.",
       "technicalAnswer": "OSPFv2 and OSPFv3 syntax varies by platform and address-family configuration. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2548,7 +2548,7 @@
       "technicalAnswer": "Inspect link-local next hop/interface identifiers and OSPFv3 neighbor state if applicable. Confirm return path and security policies before adding routes. Verify IPv6 interface state, link-local next hop and routing information."
     },
     {
-      "prompt": "What happens if a firewall blocks Neighbor Discovery messages?",
+      "prompt": "Remote IPv6 subnet fails after an interface change. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Blocking all ICMPv6 can break essential IPv6 functions, not merely ping. IPv6 troubleshooting still needs both directions verified.",
       "technicalAnswer": "Blocking all ICMPv6 can break essential IPv6 functions, not merely ping. Verify IPv6 interface state, link-local next hop and routing information."
     }
@@ -2587,7 +2587,7 @@
       "technicalAnswer": "Choose standard or extended ACL based on match fields needed. Evaluate each packet against ordered rules, including implicit deny. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     },
     {
-      "prompt": "What happens if a packet matches no permit in an interface ACL?",
+      "prompt": "A lab router must block unauthorized traffic. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An ACL does not automatically inspect full application sessions like a stateful firewall. An ACL filters traffic; it does not authenticate a user.",
       "technicalAnswer": "An ACL does not automatically inspect full application sessions like a stateful firewall. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     }
@@ -2604,7 +2604,7 @@
       "technicalAnswer": "Create an ACL with deny for that source followed by an explicit permit for other intended sources. Apply it in the correct direction and verify counters and permitted traffic. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     },
     {
-      "prompt": "What extra fields require an extended rather than standard ACL?",
+      "prompt": "Block one source IPv4 subnet using a standard ACL. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A standard ACL cannot distinguish HTTP from SSH on the same source host. ACLs are processed top-to-bottom with an implicit deny at the end.",
       "technicalAnswer": "An implicit deny means unmatched packets will be denied when the ACL is applied. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     }
@@ -2621,7 +2621,7 @@
       "technicalAnswer": "Apply it in the intended interface direction while considering return traffic. Verify using packet tests and show access-lists hit counters. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     },
     {
-      "prompt": "What happens when an ACL has no permit matching a packet?",
+      "prompt": "Allow only HTTPS traffic from 192.0.2.0/24 to 198.51.100.10. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "ACL entries are read top-to-bottom and include an implicit deny for unmatched traffic. An extended ACL can match source, destination, protocol and transport ports.",
       "technicalAnswer": "ACL counters alone do not prove the application completed successfully. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     }
@@ -2638,7 +2638,7 @@
       "technicalAnswer": "Insert the new ACE with appropriate sequence/position in a lab. Verify show access-lists counters and test permitted and denied flows. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     },
     {
-      "prompt": "Why might an added permit statement fail to allow traffic?",
+      "prompt": "A named ACL needs one rule inserted without rebuilding the whole list. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An inserted permit rule below a broader deny may never be reached. ACL sequence order changes which rule matches first.",
       "technicalAnswer": "An inserted permit rule below a broader deny may never be reached. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     }
@@ -2655,7 +2655,7 @@
       "technicalAnswer": "Read ACEs in order; check UDP/TCP 53 and return traffic expectations. Compare match counters while sending a test query, then correct only the offending rule. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     },
     {
-      "prompt": "How do you decide whether an ACL belongs inbound or outbound?",
+      "prompt": "An ACL blocks DNS queries unexpectedly. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Placing a correct ACL on the wrong interface/direction can block unrelated users. Rule placement, order and implicit deny all matter.",
       "technicalAnswer": "Placing a correct ACL on the wrong interface/direction can block unrelated users. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     }
@@ -2672,7 +2672,7 @@
       "technicalAnswer": "Apply it to the correct VTY access-class direction. Verify allowed and blocked source sessions before ending console access. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     },
     {
-      "prompt": "What would you verify before restricting SSH access to a production router?",
+      "prompt": "Restrict SSH administration to one management subnet. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A VTY filter is not the same thing as a data-plane ACL on a routed interface. VTY access control is different from a data-plane interface ACL.",
       "technicalAnswer": "A VTY filter is not the same thing as a data-plane ACL on a routed interface. Walk the ACL top-down, note the first match and implicit deny, then verify counters."
     }
@@ -2711,7 +2711,7 @@
       "technicalAnswer": "Compare neighbor identity and local/remote port fields with the diagram. Document any mismatches; discovery protocols may be disabled and do not prove all endpoints. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "What discrepancy would show that a cable was plugged into a different switch port?",
+      "prompt": "Documentation says Switch A Gi0/1 connects to Router B Gi0/0. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "They do not discover every endpoint or map the complete routed network automatically. Neighbor-discovery output validates directly connected infrastructure only.",
       "technicalAnswer": "They do not discover every endpoint or map the complete routed network automatically. Query service state, configuration and client results before changing settings."
     }
@@ -2728,7 +2728,7 @@
       "technicalAnswer": "Inspect association, clock and NTP sync status before using timestamps as evidence. Avoid interpreting log sequence until clock synchronization is reliable. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Why do mismatched device clocks make troubleshooting difficult?",
+      "prompt": "Two routers show inconsistent timestamps. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A device showing a plausible clock is not proof it is NTP-synchronized. Accurate time is essential for incident correlation.",
       "technicalAnswer": "A device showing a plausible clock is not proof it is NTP-synchronized. Query service state, configuration and client results before changing settings."
     }
@@ -2745,7 +2745,7 @@
       "technicalAnswer": "Compare DNS answers to approved records and verify MX target address records. Do not assume working web DNS proves correct mail DNS. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Which record would you check if inbound email stops?",
+      "prompt": "Users report that a website works but mail delivery is failing. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A website loading does not prove its domain MX records are correct. Different DNS record types serve different applications.",
       "technicalAnswer": "DNS answers may be cached; one resolver’s result may not reflect the authoritative record yet. Query service state, configuration and client results before changing settings."
     }
@@ -2762,7 +2762,7 @@
       "technicalAnswer": "Check CNAME targets and compare results with expected published records. Test connectivity to the returned IP and check cache/TTL effects. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "What does it mean when an IP works but the hostname fails?",
+      "prompt": "A browser cannot reach app.example.com by name but the server IP responds. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Successful ping to a numeric IP does not prove DNS works. Separate name resolution from network reachability.",
       "technicalAnswer": "Successful ping to a numeric IP does not prove DNS works. Query service state, configuration and client results before changing settings."
     }
@@ -2779,7 +2779,7 @@
       "technicalAnswer": "Request selects a lease; Acknowledge confirms allocation. Check pool scope, gateway option and lease duration on both client and server. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Which DHCP message does the client send first in a normal initial lease exchange?",
+      "prompt": "A laptop requests an IPv4 address from DHCP. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "DHCP assigns configuration; it is not the service that resolves names to IP addresses. DHCP settings are more than the assigned IP address.",
       "technicalAnswer": "DHCP assigns configuration; it is not the service that resolves names to IP addresses. Query service state, configuration and client results before changing settings."
     }
@@ -2796,7 +2796,7 @@
       "technicalAnswer": "Configure ip helper-address on the VLAN 20 routed interface, pointing to the authorized DHCP server. Verify pool scope, relay source interface, replies, and client lease details. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Where should an IOS helper address usually be configured?",
+      "prompt": "Clients on VLAN 20 cannot obtain DHCP leases from a server on VLAN 10. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "DHCP broadcast discovery usually does not cross a router without relay support. DHCP broadcasts do not normally traverse routers without a relay.",
       "technicalAnswer": "Putting ip helper-address on the server’s interface rather than the client gateway is a common configuration error. Query service state, configuration and client results before changing settings."
     }
@@ -2813,7 +2813,7 @@
       "technicalAnswer": "Inspect server pool exhaustion, relay configuration, and authorized DHCP reachability. Check exclusions, snooping/ACL controls and verify a successful new lease. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Which relay configuration is commonly checked when DHCP is across subnets?",
+      "prompt": "DHCP clients receive APIPA 169.254.x.x addresses. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An incorrect subnet or VLAN can block DHCP even if the server itself is healthy. APIPA commonly signals that a usable DHCP lease was not obtained.",
       "technicalAnswer": "A DHCP relay does not automatically provide DHCP addresses itself. Query service state, configuration and client results before changing settings."
     }
@@ -2830,7 +2830,7 @@
       "technicalAnswer": "Read interface operational status and counters with configured OIDs. Compare polling data and syslog context before concluding there is a fault. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Which SNMP version is commonly chosen when authentication and encryption are required?",
+      "prompt": "An NMS needs switch interface counters. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "SNMPv1/v2c community strings are not equivalent to strong SNMPv3 security. SNMP monitors network devices; it does not itself guarantee security or reachability.",
       "technicalAnswer": "SNMPv1/v2c community strings are not equivalent to strong SNMPv3 security. Query service state, configuration and client results before changing settings."
     }
@@ -2847,7 +2847,7 @@
       "technicalAnswer": "Read the rest of the message to find the affected interface and transition. Correlate the timestamp with interface counters and topology changes. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Which is more severe: syslog 2 or syslog 6?",
+      "prompt": "Read a Cisco syslog code %LINK-3-UPDOWN. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A severity number is not the number of failures; smaller syslog severity values indicate more serious levels. A syslog message helps identify what happened; it does not alone prove the root cause.",
       "technicalAnswer": "A severity number is not the number of failures; smaller syslog severity values indicate more serious levels. Query service state, configuration and client results before changing settings."
     }
@@ -2864,7 +2864,7 @@
       "technicalAnswer": "Use local or AAA authentication and restrict VTY transport input to SSH. Test from an authorized client and keep console access for recovery. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "What must be verified after disabling Telnet on VTY lines?",
+      "prompt": "Make SSH work on a management SVI. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Enabling a password without selecting SSH does not disable Telnet automatically. SSH setup needs both network reachability and secure authentication.",
       "technicalAnswer": "Enabling a password without selecting SSH does not disable Telnet automatically. Query service state, configuration and client results before changing settings."
     }
@@ -2881,7 +2881,7 @@
       "technicalAnswer": "Transfer the configuration in a lab and verify file integrity/access controls. Document the location and protect backup secrets. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Which protocols use SSH to protect file transfers?",
+      "prompt": "Back up a switch configuration securely. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A successful transfer does not guarantee the transferred IOS image matches the intended device. Secure file transfer does not make an unencrypted backup safe if stored openly.",
       "technicalAnswer": "A successful transfer does not guarantee the transferred IOS image matches the intended device. Query service state, configuration and client results before changing settings."
     }
@@ -2898,7 +2898,7 @@
       "technicalAnswer": "Transfer a verified image and set the correct boot variable. Confirm installed version and interface operation after a controlled reload. Query service state, configuration and client results before changing settings."
     },
     {
-      "prompt": "Why verify an image checksum before changing boot variables?",
+      "prompt": "A lab switch will be upgraded to a new IOS image. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Reloading with an incompatible image can make the device unreachable. Do not upgrade production infrastructure without change planning and tested recovery.",
       "technicalAnswer": "Reloading with an incompatible image can make the device unreachable. Query service state, configuration and client results before changing settings."
     }
@@ -2937,7 +2937,7 @@
       "technicalAnswer": "PAT lets multiple clients share a public address with distinct transport sessions. Determine whether the application needs static inbound mapping or only outbound sessions. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "Why might private 192.168.x.x traffic need translation to reach an IPv4 internet service?",
+      "prompt": "Inside devices use private IPv4 but reach public destinations. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "NAT is not, by itself, a complete firewall policy. NAT is address/port translation, not a complete security policy.",
       "technicalAnswer": "NAT is not, by itself, a complete firewall policy. Read the translation/policy counters and isolate the failure point."
     }
@@ -2954,7 +2954,7 @@
       "technicalAnswer": "Inside global is the address representing that host outside after translation. Use show ip nat translations to associate both views with the same flow. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "Which term describes the public-side translated identity of an internal client?",
+      "prompt": "Identify inside local and inside global on a NAT router. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Inside/outside terms refer to NAT roles, not necessarily trust levels. NAT naming depends on address perspective.",
       "technicalAnswer": "Inside/outside terms refer to NAT roles, not necessarily trust levels. Read the translation/policy counters and isolate the failure point."
     }
@@ -2971,7 +2971,7 @@
       "technicalAnswer": "Create the intended static translation with correct inside local/global addresses. Verify show ip nat translations and test traffic in both directions where policy allows. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "Why might a static translation exist while an outside client still cannot connect?",
+      "prompt": "Map inside 192.168.10.10 to a dedicated public address 203.0.113.10. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Static NAT alone does not permit traffic through every firewall policy. Static NAT maintains a predictable address mapping but does not replace firewall rules.",
       "technicalAnswer": "Static NAT alone does not permit traffic through every firewall policy. Read the translation/policy counters and isolate the failure point."
     }
@@ -2988,7 +2988,7 @@
       "technicalAnswer": "Dynamic NAT allocates an available address for translation while the mapping is active. Verify pool usage; unlike PAT, address-only dynamic NAT may exhaust a limited pool sooner. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "What would happen when all pool addresses are in use?",
+      "prompt": "A company dynamically maps clients to a pool of public IPs. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A finite dynamic NAT pool may exhaust available translated addresses. Dynamic NAT and PAT manage address resources differently.",
       "technicalAnswer": "A finite dynamic NAT pool may exhaust available translated addresses. Read the translation/policy counters and isolate the failure point."
     }
@@ -3005,7 +3005,7 @@
       "technicalAnswer": "PAT translates them into distinct outside IP/port combinations. Verify the NAT table shows unique translations for concurrent flows. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "How can two laptops simultaneously connect to port 443 on the same website through one public IP?",
+      "prompt": "Many private hosts share one public IPv4 address. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A translated address alone is insufficient to distinguish concurrent connections sharing one public IP. PAT distinguishes sessions using transport port information.",
       "technicalAnswer": "NAT alone is not a firewall policy and does not guarantee internet reachability. Read the translation/policy counters and isolate the failure point."
     }
@@ -3022,7 +3022,7 @@
       "technicalAnswer": "Inspect NAT ACL/classifier and show ip nat translations counters. Test reachability by IP and by DNS name to isolate translation versus name resolution. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "What would you check if show ip nat translations stays empty during outgoing traffic?",
+      "prompt": "A LAN can reach its gateway but cannot browse external sites. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A successful route lookup does not prove a packet matches a NAT rule. A NAT symptom may also be caused by missing routes or DNS failures.",
       "technicalAnswer": "A successful route lookup does not prove a packet matches a NAT rule. Read the translation/policy counters and isolate the failure point."
     }
@@ -3039,7 +3039,7 @@
       "technicalAnswer": "Classify time-sensitive traffic according to a policy. Use supported queuing, shaping or policing mechanisms at the real bottleneck. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "Why might voice quality improve with QoS when a WAN link is busy?",
+      "prompt": "VoIP calls sound choppy when the link is congested. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "QoS cannot create additional physical bandwidth. QoS prioritizes resource use but cannot create additional bandwidth.",
       "technicalAnswer": "QoS cannot create additional physical bandwidth. Read the translation/policy counters and isolate the failure point."
     }
@@ -3056,7 +3056,7 @@
       "technicalAnswer": "Apply an appropriate marking policy near a trusted boundary. Verify remarking and actual queue treatment on egress. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "What is the difference between identifying voice traffic and giving it priority?",
+      "prompt": "Mark voice versus backup traffic. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A packet marked high priority still requires devices to honor the marking. A DSCP mark is a request for treatment, not a guarantee.",
       "technicalAnswer": "A packet marked high priority still requires devices to honor the marking. Read the translation/policy counters and isolate the failure point."
     }
@@ -3073,7 +3073,7 @@
       "technicalAnswer": "Shaping buffers traffic to control rate; policing enforces limits by dropping or remarking above the threshold. Check actual queue counters and application effects before adjusting policy. Read the translation/policy counters and isolate the failure point."
     },
     {
-      "prompt": "Which is more likely to buffer traffic rather than drop bursts immediately?",
+      "prompt": "An overloaded WAN link drops packets. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Shaping can add delay; policing can cause loss. Policing and shaping behave differently under excess traffic.",
       "technicalAnswer": "Shaping can add delay; policing can cause loss. Read the translation/policy counters and isolate the failure point."
     }
@@ -3112,7 +3112,7 @@
       "technicalAnswer": "Integrity prevents or detects unauthorized data changes. Availability keeps services accessible when needed, including during failures. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "Which CIA goal is violated by an unauthorized change to routing configuration?",
+      "prompt": "A medical application needs confidentiality, integrity and availability. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A system can be available but still leak confidential information. A security control may improve one goal while affecting another.",
       "technicalAnswer": "A system can be available but still leak confidential information. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3129,7 +3129,7 @@
       "technicalAnswer": "Assess impact, exposure and preventive/detective controls. Verify indicators instead of assuming every suspicious message proves compromise. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "How is an exposed management password different from an attacker using it?",
+      "prompt": "An attacker sends a malicious email to a staff member. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A failed login attempt does not automatically prove a successful compromise. Threat, vulnerability, exploit, and incident have different meanings.",
       "technicalAnswer": "A failed login attempt does not automatically prove a successful compromise. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3146,7 +3146,7 @@
       "technicalAnswer": "Use awareness, patching, monitoring and incident response processes. Practice communication and recovery in a safe tabletop exercise. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "Why does recurring employee training matter alongside network firewalls?",
+      "prompt": "A network team handles suspected compromise. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A firewall alone is not a complete security program. Security programs are ongoing practices, not one appliance.",
       "technicalAnswer": "A firewall alone is not a complete security program. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3163,7 +3163,7 @@
       "technicalAnswer": "Certificates establish identity when validated through a trust chain. Biometrics can act as an authentication factor but need secure enrollment and fallback. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "Would password plus PIN count as two different authentication factors?",
+      "prompt": "Protect a management portal against stolen passwords. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Two passwords are the same factor type and do not automatically make MFA. MFA reduces risks but cannot stop every session theft or social-engineering attack.",
       "technicalAnswer": "Two passwords are the same factor type and do not automatically make MFA. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3180,7 +3180,7 @@
       "technicalAnswer": "Restrict management access through dedicated networks or ACLs. Keep time, logging and configuration backup in place for incident response. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "What controls would you add to keep students from managing a campus switch?",
+      "prompt": "Lock down a switch management plane. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Hiding an interface is not a substitute for authentication or authorization. Management-plane hardening protects control of the device, not all user traffic.",
       "technicalAnswer": "Hiding an interface is not a substitute for authentication or authorization. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3197,7 +3197,7 @@
       "technicalAnswer": "Verify method-list order and local fallback account in a lab. Review logs and test AAA reachability before adjusting global authentication. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "What difference exists between being able to log in and being allowed to change a VLAN?",
+      "prompt": "Switch SSH login fails when an external AAA server is unreachable. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Authentication success does not guarantee authorization to configure every command. Incorrect AAA configuration can lock administrators out of devices.",
       "technicalAnswer": "Enabling AAA without checking server reachability and fallback can lock administrators out. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3214,7 +3214,7 @@
       "technicalAnswer": "An intrusion-prevention system detects signatures/behaviors and may block suspicious packets. Test permitted and denied flows; neither technology provides perfect protection. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "Why would a legitimate HTTPS request fail even when IP routing is correct?",
+      "prompt": "Decide between a firewall and IPS. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Neither product guarantees detection of every attack. Different tools enforce policy and detect attacks in different ways.",
       "technicalAnswer": "Neither product guarantees detection of every attack. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3231,7 +3231,7 @@
       "technicalAnswer": "Site-to-site IPsec protects communications between network gateways. Distinguish tunnel versus transport modes and check authentication, encryption and tunnel selectors. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "What changes when a remote employee uses VPN to reach company subnets?",
+      "prompt": "Connect remote workers and branch offices securely. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "VPN encryption does not ensure the remote endpoint itself is trustworthy. VPN encryption protects traffic in transit, not compromised endpoints.",
       "technicalAnswer": "VPN encryption does not ensure the remote endpoint itself is trustworthy. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3248,7 +3248,7 @@
       "technicalAnswer": "Choose a documented violation action (protect/restrict/shutdown). Verify show port-security interface and test with authorized lab endpoints. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "What is a likely switch response when an unauthorized MAC appears?",
+      "prompt": "Only one approved endpoint should connect to Gi0/5. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Port security does not replace user authentication or a full segmentation design. Port security is port-level MAC admission control, not a substitute for 802.1X.",
       "technicalAnswer": "Port security does not replace user authentication or a full segmentation design. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3265,7 +3265,7 @@
       "technicalAnswer": "Trust only ports leading toward authorized DHCP servers/relay paths. Verify show ip dhcp snooping and the binding table with a real client lease. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "Why should an ordinary desk port usually be DHCP-snooping untrusted?",
+      "prompt": "A rogue DHCP server appears on an office access port. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Trusting the wrong port may let a rogue server respond or prevent legitimate leases. Incorrect trust boundaries can block legitimate leases.",
       "technicalAnswer": "Accidentally leaving a legitimate server uplink untrusted can block real DHCP leases. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3282,7 +3282,7 @@
       "technicalAnswer": "Configure Dynamic ARP Inspection for the VLAN, keeping the correct trust boundaries. Verify ARP inspection statistics and legitimate client connectivity. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "Why can DAI mistakenly block a static-IP device?",
+      "prompt": "An attacker spoofs a gateway ARP reply on a VLAN. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Static-IP networks need alternative validation arrangements; DHCP snooping alone may not have all bindings. DAI inspects ARP consistency; non-DHCP hosts may require explicit bindings or exceptions.",
       "technicalAnswer": "DAI without correct static-host planning can block valid ARP traffic. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3299,7 +3299,7 @@
       "technicalAnswer": "Apply a suitable lab storm-control level for broadcast/multicast/unknown unicast as supported. Verify counters/behavior and ensure legitimate discovery is not dropped excessively. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "What might trigger storm control on a switch uplink?",
+      "prompt": "A switch port experiences a sudden broadcast flood. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Too-aggressive limits can drop legitimate bursts. Rate limiting is not the same as finding the root cause of a loop.",
       "technicalAnswer": "Too-aggressive limits can drop legitimate bursts. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3316,7 +3316,7 @@
       "technicalAnswer": "Leave legitimate router-facing ports appropriately configured. Test that trusted RAs work and rogue RAs are blocked in a lab. Configure only a limited lab control, then test both authorized and blocked traffic."
     },
     {
-      "prompt": "Why should an ordinary client-facing access port usually reject router advertisements?",
+      "prompt": "A rogue IPv6 router advertisement is disrupting host gateways. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Incorrectly blocking legitimate router advertisements can break IPv6 autoconfiguration. RA Guard addresses rogue IPv6 RA messages, not all IPv6 security risks.",
       "technicalAnswer": "Overly broad policy can block legitimate router advertisements. Configure only a limited lab control, then test both authorized and blocked traffic."
     }
@@ -3355,7 +3355,7 @@
       "technicalAnswer": "The AP bridges client traffic into the configured network service. IP addressing and routed connectivity must still succeed after association. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "What must happen before a newly joined Wi-Fi client can browse by hostname?",
+      "prompt": "A phone joins an office Wi-Fi network. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Having strong radio signal does not guarantee correct password or DHCP settings. Wi-Fi association is only the first stage of end-to-end access.",
       "technicalAnswer": "Having strong radio signal does not guarantee correct password or DHCP settings. Check IP services and policy separately after association succeeds."
     }
@@ -3372,7 +3372,7 @@
       "technicalAnswer": "Consider wall attenuation, client capability, interference and neighboring AP channels. Adjust coverage and channel planning, then retest real throughput and roaming. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "Why might 2.4 GHz perform better through thick walls than 5 GHz?",
+      "prompt": "A room has weak 5 GHz reception but reliable 2.4 GHz. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Higher frequency does not automatically mean faster user experience everywhere. More spectrum does not automatically guarantee better coverage.",
       "technicalAnswer": "Higher frequency does not automatically mean faster experience at every distance. Check IP services and policy separately after association succeeds."
     }
@@ -3389,7 +3389,7 @@
       "technicalAnswer": "Check co-channel contention, microwave/other RF interference, user density. Adjust AP placement/channel selection and compare before/after measurements. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "Why might adding more APs without channel planning make performance worse?",
+      "prompt": "Users see slow Wi-Fi only during lunch. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Higher transmit power can increase interference rather than fix it. Low RSSI and high interference are different causes of poor Wi-Fi.",
       "technicalAnswer": "Higher transmit power can increase interference rather than fix it. Check IP services and policy separately after association succeeds."
     }
@@ -3406,7 +3406,7 @@
       "technicalAnswer": "An ESS joins multiple BSSs into a wider service with a common SSID. Check client roaming and VLAN/policy consistency across APs. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "What does an ESS provide that a single BSS cannot by itself?",
+      "prompt": "An office has one SSID across three APs. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "SSID alone does not prove identical authentication, VLAN or roaming policy. SSID is a network name; BSSID identifies a particular radio cell.",
       "technicalAnswer": "SSID alone does not prove identical authentication, VLAN or roaming policy. Check IP services and policy separately after association succeeds."
     }
@@ -3423,7 +3423,7 @@
       "technicalAnswer": "Wi-Fi 6E adds access to 6 GHz spectrum where allowed, while Wi-Fi 7 uses 802.11be. Choose based on client support, bands, channel widths and actual deployment constraints. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "Why can a Wi-Fi 6 laptop be slower than an older client in a different location?",
+      "prompt": "Select standards for mixed Wi-Fi clients. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Wi-Fi version number alone does not predict actual speed. Newest standard alone does not guarantee the best real-world performance.",
       "technicalAnswer": "Wi-Fi version number alone does not predict actual speed. Check IP services and policy separately after association succeeds."
     }
@@ -3440,7 +3440,7 @@
       "technicalAnswer": "Autonomous APs provide more local independent configuration. Compare data-plane switching modes, failover and scale before choosing architecture. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "Why might a university prefer centrally managed access points?",
+      "prompt": "An enterprise manages many APs centrally. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Not every Wi-Fi deployment needs a separate physical controller. A WLC architecture is not identical to every AP's actual data-forwarding path.",
       "technicalAnswer": "Not every Wi-Fi deployment needs a separate physical controller. Check IP services and policy separately after association succeeds."
     }
@@ -3457,7 +3457,7 @@
       "technicalAnswer": "Monitor/sniffer modes inspect RF/frames rather than act as normal client-serving APs. Verify the device-specific AP mode and controller compatibility. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "What happens to user association if an AP is configured solely for monitoring?",
+      "prompt": "Choose AP modes for a new deployment. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An AP in monitor mode may not provide ordinary client access. AP modes change operational behavior, not just labels.",
       "technicalAnswer": "An AP in monitor mode may not provide ordinary client access. Check IP services and policy separately after association succeeds."
     }
@@ -3474,7 +3474,7 @@
       "technicalAnswer": "Check AP IP/gateway/DNS or discovery method and controller reachability. Inspect CAPWAP/control join messages and correct the failing stage. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "Why can Wi-Fi authentication work while clients cannot reach their local gateway?",
+      "prompt": "A controller-based AP cannot join its WLC. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A correct SSID does not prove the wired uplink carries the client VLAN. An AP with power and an IP still may not be associated to a WLC.",
       "technicalAnswer": "A correct SSID does not prove the wired uplink carries the client VLAN. Check IP services and policy separately after association succeeds."
     }
@@ -3491,7 +3491,7 @@
       "technicalAnswer": "Test gateway, HTTPS/SSH service and role-based access settings. Review logs and certificate issues if IP reachability is sound. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "What evidence confirms an AP has actually joined its expected controller?",
+      "prompt": "A WLC GUI cannot be reached from management VLAN. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A client WLAN being healthy does not prove the management plane is reachable, or vice versa. Management accessibility is separate from client SSID service.",
       "technicalAnswer": "A client WLAN being healthy does not prove the management plane is reachable, or vice versa. Check IP services and policy separately after association succeeds."
     }
@@ -3508,7 +3508,7 @@
       "technicalAnswer": "Avoid WEP and obsolete TKIP-based configurations. Verify actual client negotiation and that management frames/security settings match policy. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "What differs between a shared Wi-Fi password and enterprise authentication?",
+      "prompt": "A guest Wi-Fi network must avoid weak legacy security. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A network using WPA2-PSK does not automatically provide individual user accountability. Encryption setting on the SSID must be supported by clients to connect.",
       "technicalAnswer": "A network using WPA2-PSK does not automatically provide individual user accountability. Check IP services and policy separately after association succeeds."
     }
@@ -3525,7 +3525,7 @@
       "technicalAnswer": "Enable WPA2-Personal with AES where supported, using a strong lab passphrase. Join a permitted client and verify IP, gateway, DNS and resource connectivity. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "Which two different stages would you check if a user joins Wi-Fi but cannot browse?",
+      "prompt": "Create a secure test WLAN with a shared passphrase. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A successful password exchange does not imply the DHCP server or gateway is correct. A successful SSID creation is not proof of full client connectivity.",
       "technicalAnswer": "A successful password exchange does not imply the DHCP server or gateway is correct. Check IP services and policy separately after association succeeds."
     }
@@ -3542,7 +3542,7 @@
       "technicalAnswer": "Check the client IP, subnet, gateway, DNS, and VLAN placement. Test gateway, destination IP, and DNS separately before changing AP settings. Check IP services and policy separately after association succeeds."
     },
     {
-      "prompt": "If Wi-Fi associates but the PC has 169.254.x.x, what service would you investigate?",
+      "prompt": "A laptop associates with Wi-Fi but gets no internet access. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Blindly changing DNS does not fix a failed Wi-Fi authentication handshake. Association, IP connectivity, DNS, and internet reachability are separate states.",
       "technicalAnswer": "Connected to Wi-Fi is not the same thing as having usable IP access. Check IP services and policy separately after association succeeds."
     }
@@ -3581,7 +3581,7 @@
       "technicalAnswer": "Distribution layer aggregates access and can route between VLANs. Core provides high-speed resilient transit; small designs may collapse distribution/core. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "Why can a small school use two tiers while a large campus uses three?",
+      "prompt": "Design a 200-device office campus. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "More tiers do not always make a small network better. Architecture is chosen for scale, fault containment, and manageability.",
       "technicalAnswer": "More tiers do not always make a small network better. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3598,7 +3598,7 @@
       "technicalAnswer": "Servers connect to leaf switches; routing can distribute traffic across spines. Verify redundancy and ECMP rather than simply counting cables. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "What happens to connectivity if a single spine fails in a properly redundant fabric?",
+      "prompt": "Build an east-west data center switching fabric. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Spine-leaf is a topology, not by itself an application or security design. Spine-leaf reduces predictable hop count inside the fabric but needs correct routing.",
       "technicalAnswer": "Spine-leaf is a topology, not by itself an application or security design. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3615,7 +3615,7 @@
       "technicalAnswer": "Connect local wired and wireless devices with valid address assignment. Test local printing separately from ISP access to isolate the fault. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "Why can one home router provide both Wi-Fi and a default gateway?",
+      "prompt": "Network a five-person home office. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A multi-function home router is not evidence that switching and routing are the same layer. SOHO describes scale/use, not a mandatory hardware model.",
       "technicalAnswer": "A multi-function home router is not evidence that switching and routing are the same layer. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3632,7 +3632,7 @@
       "technicalAnswer": "MPLS carries traffic using provider labels over suitable backbones. Define routing, isolation and service-level requirements before choosing WAN transport. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "Can two branches form a WAN over a private leased circuit?",
+      "prompt": "Connect two campuses over a carrier network. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A WAN is not synonymous with the public internet. WAN services connect sites, but do not automatically configure the enterprise routes.",
       "technicalAnswer": "A WAN is not synonymous with the public internet. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3649,7 +3649,7 @@
       "technicalAnswer": "SD-WAN can use several underlay transports and apply centralized policy/path selection. Inspect failure handling, security and app requirements before selecting. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "Why might voice traffic use a different WAN path from a file backup?",
+      "prompt": "Compare an IPsec VPN and SD-WAN overlay. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "SD-WAN does not automatically make a weak physical link fast. SD-WAN is an architecture; VPN is a secure connection mechanism.",
       "technicalAnswer": "Do not confuse an encrypted VPN tunnel with the physical WAN service carrying it. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3666,7 +3666,7 @@
       "technicalAnswer": "Guest VMs attach to virtual switches and may use VLANs/trunks to reach physical networks. Inspect both virtual and physical switch paths when troubleshooting. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "How does a VM reach a physical switch without its own physical cable?",
+      "prompt": "Host several guest operating systems on one server. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A virtual machine may still require VLAN, IP routing and firewall rules. A VM has its own network configuration even though it runs on shared hardware.",
       "technicalAnswer": "A virtual machine may still require VLAN, IP routing and firewall rules. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3683,7 +3683,7 @@
       "technicalAnswer": "A VM runs a guest OS and virtual hardware through a hypervisor. Compare deployment size, security boundaries, and network attachment requirements. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "Why can containers start faster than full virtual machines?",
+      "prompt": "Run two lightweight services on the same host. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A container normally is not equivalent to a full VM with its own guest kernel. Containers and VMs isolate workloads differently.",
       "technicalAnswer": "A container normally is not equivalent to a full VM with its own guest kernel. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3700,7 +3700,7 @@
       "technicalAnswer": "Routes in one VRF do not automatically appear in the other. Verify show ip route vrf NAME and test isolation before creating any route leaking. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "Why might two tenants use the same IP ranges on different VRFs?",
+      "prompt": "Two teams need independent routing tables on one network device. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A VRF alone is not a complete security boundary or firewall. VRF separates routing information on one device.",
       "technicalAnswer": "A VRF alone is not a complete security boundary or firewall. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3717,7 +3717,7 @@
       "technicalAnswer": "Determine whether instances need internet, private service access or on-prem connectivity. Verify reachability with platform logs and flow diagnostics, not just addressing. Choose architecture based on scale, resilience and management tradeoffs."
     },
     {
-      "prompt": "Why might two cloud VMs in different subnets fail to communicate despite being powered on?",
+      "prompt": "Move a service into public cloud networking. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Cloud labels differ, but reachability still requires valid routes and permitted traffic. Cloud networking still uses IP concepts but exposes them through virtual services.",
       "technicalAnswer": "Cloud labels differ, but reachability still requires valid routes and permitted traffic. Choose architecture based on scale, resilience and management tradeoffs."
     }
@@ -3756,7 +3756,7 @@
       "technicalAnswer": "Put the approved command into repeatable automation with target inventory. Compare outputs across devices and inspect failed executions before scheduling. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "What evidence would prove an automated change produced the intended result?",
+      "prompt": "Automate repeated switch inventory checks. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Automation can repeat a bad configuration faster than manual work. Automation scales mistakes as easily as good procedures.",
       "technicalAnswer": "Automation can repeat a bad configuration faster than manual work. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3773,7 +3773,7 @@
       "technicalAnswer": "Controller/cloud views may centralize policy and inventory across devices. IaC uses versioned declarative definitions; choose by governance, scale and rollback needs. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "How would you confirm a controller push actually reached a switch?",
+      "prompt": "Choose among device CLI, controller and IaC management. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A controller dashboard can show intent that differs from the real forwarding state. Management approaches are complementary rather than mutually exclusive.",
       "technicalAnswer": "A controller dashboard can show intent that differs from the real forwarding state. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3790,7 +3790,7 @@
       "technicalAnswer": "Data plane actually forwards packets using installed tables. Management plane provides configuration and operational access to administrators. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "Which plane handles OSPF neighbor exchanges?",
+      "prompt": "Explain which plane handles a routed packet. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A slow management GUI does not by itself mean the forwarding plane failed. Control, data, and management are functional roles, not separate physical ports.",
       "technicalAnswer": "Do not call every packet crossing a router “control traffic”; most is forwarded in the data plane. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3807,7 +3807,7 @@
       "technicalAnswer": "Overlay supplies logical segmentation and endpoint mobility over that transport. Controller APIs coordinate policy while devices forward packets in the data plane. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "Which layer would you check if an overlay tunnel fails because its physical underlay route disappeared?",
+      "prompt": "A controller builds overlay connectivity across a fabric. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Overlay reachability still depends on healthy underlay links and routing. An overlay cannot work if underlay reachability is broken.",
       "technicalAnswer": "Overlay reachability still depends on healthy underlay links and routing. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3824,7 +3824,7 @@
       "technicalAnswer": "The fabric can use underlay connectivity with overlay segmentation. Verify deployment components and actual policies; controllers do not eliminate device-level troubleshooting. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "What would you troubleshoot first if multiple fabric edge switches lose underlay reachability?",
+      "prompt": "Describe a Cisco SD-Access campus deployment. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A controller can provision intent but underlay routing must still function. Centralized intent must match operational state in the network.",
       "technicalAnswer": "A controller can provision intent but underlay routing must still function. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3841,7 +3841,7 @@
       "technicalAnswer": "Determine whether a field value is string, number, boolean or null. Validate syntax before extracting the device name and management IP. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "Why might a correctly formatted JSON API request still be rejected?",
+      "prompt": "Read an inventory API response. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Formatting or parsing success does not prove the configuration values make sense. Data formats are representations; the API defines their meaning.",
       "technicalAnswer": "Formatting or parsing success does not prove the configuration values make sense. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3858,7 +3858,7 @@
       "technicalAnswer": "Inspect HTTP status code and JSON body. Avoid mutating methods until authorized and validate the effect of each request. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "Which HTTP method would usually read device inventory without modifying it?",
+      "prompt": "An automation client reads interface state through REST. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "An HTTP 200 does not mean the returned configuration is correct; inspect response content and intent. REST uses HTTP semantics; GET is typically for retrieval.",
       "technicalAnswer": "An HTTP 200 does not mean the returned configuration is correct; inspect response content and intent. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3875,7 +3875,7 @@
       "technicalAnswer": "Terraform often manages declarative provider-managed resource state. A secure workflow uses version control, validation and approved changes for both. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "Which tool style is better suited to declaring a cloud network resource?",
+      "prompt": "Choose Ansible versus Terraform for a network task. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Infrastructure automation tools are not interchangeable in every situation. Tool choice depends on supported resources and management model.",
       "technicalAnswer": "Infrastructure automation tools are not interchangeable in every situation. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3892,7 +3892,7 @@
       "technicalAnswer": "Use cisco.ios.ios_command to run the read-only command. Inspect per-device results and failed tasks; do not assume all targets succeeded. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "How would you verify an Ansible show-command task made no configuration changes?",
+      "prompt": "Ansible must collect show ip interface brief from lab switches. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Avoid running unreviewed AI-generated playbooks against production devices. Inventory and authentication errors can make a correct playbook appear broken.",
       "technicalAnswer": "Never hardcode production credentials in shared playbooks or accept auto-generated changes blindly. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3909,7 +3909,7 @@
       "technicalAnswer": "Compare anomaly claims with errors, logs and baseline traffic patterns. Inspect false positives and hidden biases before making any automated change. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "What verification should follow an AI claim that an interface is down?",
+      "prompt": "An AI model flags a switch as anomalous. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A confident AI diagnosis can still be factually wrong. AI findings are hypotheses to validate, not direct configuration authority.",
       "technicalAnswer": "A confident AI diagnosis can still be factually wrong. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3926,7 +3926,7 @@
       "technicalAnswer": "Estimate change impact and identify devices that would lose VLAN reachability. Require approval, staged testing, backup and rollback before any configuration change. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "What permission check should occur before an AI agent changes a production ACL?",
+      "prompt": "An AI assistant proposes changing every switch trunk allowed VLAN list. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Automated success messages do not prove the network reached its intended state. Agentic recommendations are not automatically authorized or safe.",
       "technicalAnswer": "Automated success messages do not prove the network reached its intended state. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3943,7 +3943,7 @@
       "technicalAnswer": "Specify constraints: no configuration changes; identify evidence, hypotheses and next read-only checks. Verify every recommendation against device output and approved documentation. Validate automation/AI output against real device evidence and approval boundaries."
     },
     {
-      "prompt": "What should you ask an AI tool to show before accepting its proposed route change?",
+      "prompt": "Ask AI to interpret interface errors without exposing secrets. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Do not paste credentials or blindly execute generated commands. Good network prompts describe context, task, constraints, and evidence quality.",
       "technicalAnswer": "Do not paste credentials, tokens, full user records, or privileged network details into unapproved AI tools. Validate automation/AI output against real device evidence and approval boundaries."
     }
@@ -3982,7 +3982,7 @@
       "technicalAnswer": "Collect link, IP, DNS and route evidence from the affected endpoint and infrastructure. Change one variable at a time in a permitted environment; verify original symptom after the fix. Verify the fix with the original failing test and document the evidence."
     },
     {
-      "prompt": "Why should you record the original interface configuration before modifying it?",
+      "prompt": "A user says the network is down. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A symptom at the application layer may be caused by a lower-layer fault. Troubleshooting is an evidence-driven process, not random command execution.",
       "technicalAnswer": "A symptom at the application layer may be caused by a lower-layer fault. Verify the fix with the original failing test and document the evidence."
     }
@@ -3999,7 +3999,7 @@
       "technicalAnswer": "Ping the gateway and test an IP-based service to isolate routing. Query DNS for intranet.example and verify intended address and service port. Verify the fix with the original failing test and document the evidence."
     },
     {
-      "prompt": "If IP connectivity works but a website name does not, what is a likely next diagnostic step?",
+      "prompt": "Laptop has Wi-Fi but cannot load intranet.example. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A ping failure does not conclusively mean a host is offline; ICMP may be blocked. A structured ladder avoids random configuration changes.",
       "technicalAnswer": "A failed ping does not prove the destination service is offline; ICMP may be filtered. Verify the fix with the original failing test and document the evidence."
     }
@@ -4016,7 +4016,7 @@
       "technicalAnswer": "Use ping and extended ping with appropriate source to narrow reachability. Inspect logs and counters; distinguish ICMP limitations from service-specific failures. Verify the fix with the original failing test and document the evidence."
     },
     {
-      "prompt": "What outputs would you collect before changing a suspected trunk?",
+      "prompt": "A routed host cannot reach a remote service. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "Successful command execution is not the same thing as a healthy service. Command output must be interpreted alongside topology and expected traffic.",
       "technicalAnswer": "Successful command execution is not the same thing as a healthy service. Verify the fix with the original failing test and document the evidence."
     }
@@ -4033,7 +4033,7 @@
       "technicalAnswer": "Confirm ARP resolution precedes a TCP SYN to the correct IP and port. Interpret missing SYN-ACK or repeated retransmissions before forming a hypothesis. Verify the fix with the original failing test and document the evidence."
     },
     {
-      "prompt": "What might SYN retransmissions without SYN-ACK suggest?",
+      "prompt": "Analyze a packet capture with ARP then TCP. What common mistake could mislead your conclusion, and how would you check it?",
       "beginnerAnswer": "A capture only shows traffic visible at that capture point; missing packets may be elsewhere. Packet captures show what was observed at the capture point, not the whole network.",
       "technicalAnswer": "A packet observed at one point does not prove it reached its intended destination. Verify the fix with the original failing test and document the evidence."
     }

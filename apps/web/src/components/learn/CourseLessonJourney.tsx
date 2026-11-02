@@ -81,6 +81,7 @@ export function BookRecall({ lessonId, level, onComplete }: { lessonId: string; 
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [ratings, setRatings] = useState<Record<number, boolean>>({});
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
   const item = items[index];
   const finished = items.length > 0 && items.every((_, i) => ratings[i] !== undefined);
   const strong = finished && items.every((_, i) => ratings[i]);
@@ -95,9 +96,9 @@ export function BookRecall({ lessonId, level, onComplete }: { lessonId: string; 
   };
   return <section className="space-y-4" data-testid="ccna-book-recall">
     <div><h2 className="text-[18px] font-semibold">Explain it from memory</h2><p className="text-[13px] text-muted">Prompt {index + 1} of {items.length} · Think or speak your answer before revealing the model. This is a self-check; the Practice Exam provides scored questions.</p></div>
-    <Card title="Your prompt"><p>{item.prompt}</p></Card>
-    {!revealed ? <button type="button" onClick={() => setRevealed(true)} className="rounded-md bg-action px-4 py-2 text-[13px] font-semibold text-white">Show model response</button> : <><Card title="Model response"><p>{level === 'beginner' ? item.beginnerAnswer : item.technicalAnswer}</p></Card><div className="flex flex-wrap gap-2"><button type="button" onClick={() => rate(true)} className="rounded-md border border-healthy px-4 py-2 text-[13px] text-healthy">I could explain it</button><button type="button" onClick={() => rate(false)} className="rounded-md border border-line-strong px-4 py-2 text-[13px] text-text">Review this topic</button></div></>}
+    <Card title="Your prompt"><p>{item.prompt}</p><label className="block text-[13px] font-semibold" htmlFor="book-recall-draft">Your explanation (optional if speaking aloud)</label><textarea id="book-recall-draft" value={drafts[index] ?? ''} onChange={(event) => setDrafts((current) => ({ ...current, [index]: event.target.value }))} rows={3} className="w-full rounded-md border border-line-strong bg-ink p-3 text-[14px] text-text" placeholder="Explain your reasoning before looking at the model…" /></Card>
+    {!revealed ? <button type="button" onClick={() => setRevealed(true)} className="rounded-md bg-action px-4 py-2 text-[13px] font-semibold text-white">Show model response</button> : <><Card title="Compare your reasoning with the model">{drafts[index]?.trim() && <div className="rounded-md border border-line p-3"><p className="text-[12px] font-semibold uppercase text-muted">Your explanation</p><p className="whitespace-pre-wrap">{drafts[index]}</p></div>}<div className="rounded-md border border-line p-3"><p className="text-[12px] font-semibold uppercase text-muted">Model response</p><p>{level === 'beginner' ? item.beginnerAnswer : item.technicalAnswer}</p></div></Card><div className="flex flex-wrap gap-2"><button type="button" onClick={() => rate(true)} className="rounded-md border border-healthy px-4 py-2 text-[13px] text-healthy">I could explain it</button><button type="button" onClick={() => rate(false)} className="rounded-md border border-line-strong px-4 py-2 text-[13px] text-text">Review this topic</button></div></>}
     {index > 0 && <button type="button" onClick={() => { setIndex(index - 1); setRevealed(false); }} className="text-[13px] text-action underline">Previous prompt</button>}
-    {finished && <p role="status" className="text-[13px] text-muted">{strong ? 'You marked every prompt as explained. This lesson is recorded as reviewed.' : 'You marked at least one prompt for review. Revisit the lesson and try again when ready.'}</p>}
+    {finished && <div className="flex flex-wrap items-center gap-3"><p role="status" className="text-[13px] text-muted">{strong ? 'You marked every prompt as explained. This lesson is recorded as reviewed.' : 'You marked at least one prompt for review. Revisit the lesson and try again when ready.'}</p><button type="button" onClick={() => { setIndex(0); setRatings({}); setDrafts({}); setRevealed(false); }} className="text-[13px] text-action underline">Retry all prompts</button></div>}
   </section>;
 }
