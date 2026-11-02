@@ -765,3 +765,51 @@ body {
 .flash-heat i[data-l='f'] { background: transparent; }
 .flash-heat i.is-today { outline: 1px solid color-mix(in srgb, var(--text) 60%, transparent); outline-offset: 1px; }
 @media (prefers-reduced-motion: reduce) { .flash-tilt { transform: none; } .flash-face::after, .flash-face::before { display: none; } }
+
+/* ---- Flashcards: swipe, card tools, recap, flagged ---- */
+.flash-swipe { position: relative; touch-action: pan-y; transform: translateX(var(--dx, 0)) rotate(calc(var(--dx, 0px) / 28px * 1deg)); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+.flash-swipe.is-dragging { transition: none; }
+.flash-swipe.is-dragging .flash-face { box-shadow: 0 0 0 2px color-mix(in srgb, var(--swc) calc(var(--sw) * 100%), transparent), 0 20px 60px -20px var(--swc); }
+.flash-swipe-label { position: absolute; top: 42%; z-index: 5; padding: 6px 14px; border-radius: 10px; font-size: 15px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--swc); border: 2px solid var(--swc); background: rgba(10, 14, 30, 0.6); opacity: var(--sw); pointer-events: none; }
+.flash-swipe-label.is-right { left: 20px; rotate: -10deg; }
+.flash-swipe-label.is-left { right: 20px; rotate: 10deg; }
+.flash-tools { display: inline-flex; gap: 4px; opacity: 0.55; transition: opacity 0.2s; }
+.flash-card:hover .flash-tools, .flash-tools:focus-within { opacity: 1; }
+.flash-tools button { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: #fff; background: rgba(0, 0, 0, 0.28); transition: background 0.2s, color 0.2s; }
+.flash-tools button:hover { background: rgba(0, 0, 0, 0.5); }
+.flash-tools button.is-on { color: #ffa94d; background: rgba(255, 169, 77, 0.2); }
+.flash-recap { padding: 28px; border-radius: 22px; border: 1px solid var(--line); background: radial-gradient(90% 120% at 0% 0%, color-mix(in srgb, var(--action) 18%, transparent), transparent 60%), var(--pane); animation: rates-in 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+.flash-flagged { border: 1px solid color-mix(in srgb, #ffa94d 30%, transparent); background: color-mix(in srgb, #ffa94d 7%, transparent); }
+.flash-flagged.is-on { border-color: #ffa94d; background: color-mix(in srgb, #ffa94d 14%, transparent); }
+@media (hover: none) { .flash-tools { opacity: 1; } }
+
+/* ---- Learn with images ---- */
+.img-frame { position: relative; }
+.img-frame::before { content: ''; position: absolute; inset: -1px; border-radius: 17px; padding: 1px; background: linear-gradient(135deg, color-mix(in srgb, var(--hue) 70%, transparent), transparent 40%, transparent 60%, color-mix(in srgb, var(--hue) 40%, transparent)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 1; }
+.img-stage { box-shadow: 0 30px 70px -40px color-mix(in srgb, var(--hue, #22b8cf) 70%, transparent); }
+.img-stage img { transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+.img-frame .img-stage:hover img { transform: scale(1.015); }
+.img-answer { border-color: var(--line); background: radial-gradient(80% 120% at 0% 0%, color-mix(in srgb, var(--hue) 10%, transparent), transparent 60%), var(--pane); transition: border-color 0.3s, background 0.3s; }
+.img-answer.is-open { border-color: color-mix(in srgb, var(--hue) 45%, var(--line)); }
+.img-reveal { animation: rates-in 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+.img-lightbox { animation: img-fade 0.25s ease-out; }
+@keyframes img-fade { from { opacity: 0; } }
+
+/* ---- Scenario case files ---- */
+.case-file { position: relative; overflow: hidden; padding: 24px 26px; border-radius: 22px; border: 1px solid color-mix(in srgb, var(--hue) 30%, var(--line)); background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--hue) 22%, transparent), transparent 55%), var(--pane); box-shadow: 0 30px 60px -40px color-mix(in srgb, var(--hue) 60%, transparent); }
+.case-file::after { content: 'CASE FILE'; position: absolute; right: -6px; bottom: -14px; font-size: 64px; font-weight: 800; letter-spacing: 0.04em; color: color-mix(in srgb, var(--hue) 6%, transparent); pointer-events: none; z-index: 0; }
+.case-file > * { position: relative; z-index: 1; }
+.case-chip { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); }
+.case-brief { padding: 14px 16px; border-radius: 14px; border-left: 3px solid var(--hue); background: rgba(0, 0, 0, 0.22); }
+.case-section { padding: 18px 20px; border-radius: 18px; border: 1px solid var(--line); background: var(--pane); }
+.case-q { display: flex; gap: 12px; }
+.case-num { display: grid; place-items: center; flex: none; width: 24px; height: 24px; margin-top: 1px; border-radius: 99px; font-size: 11.5px; font-weight: 700; color: var(--hue); border: 1.5px solid color-mix(in srgb, var(--hue) 60%, transparent); transition: background 0.3s, color 0.3s; }
+.case-num[data-on] { color: var(--ink); background: var(--hue); box-shadow: 0 0 10px var(--hue); }
+.case-input { width: 100%; resize: vertical; min-height: 54px; padding: 9px 12px; border-radius: 11px; font-size: 13.5px; line-height: 1.5; color: var(--text); background: color-mix(in srgb, var(--ink) 70%, transparent); border: 1px solid var(--line); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+.case-input:focus { border-color: var(--hue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--hue) 18%, transparent); }
+.case-rubric { border-color: color-mix(in srgb, var(--hue) 35%, var(--line)); animation: rates-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.case-tick { display: flex; width: 100%; align-items: flex-start; gap: 10px; padding: 9px 11px; border-radius: 11px; font-size: 13.5px; line-height: 1.45; color: var(--muted); border: 1px solid transparent; transition: background 0.2s, border-color 0.2s, color 0.2s; }
+.case-tick:hover { background: color-mix(in srgb, var(--pane-2) 60%, transparent); color: var(--text); }
+.case-tick.is-on { color: var(--text); border-color: color-mix(in srgb, var(--hue) 35%, transparent); background: color-mix(in srgb, var(--hue) 9%, transparent); }
+.case-box { display: grid; place-items: center; flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 5px; border: 1.5px solid var(--line-strong); color: var(--ink); transition: background 0.2s, border-color 0.2s; }
+.case-tick.is-on .case-box { background: var(--hue); border-color: var(--hue); box-shadow: 0 0 8px var(--hue); }

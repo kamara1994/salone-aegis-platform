@@ -2,21 +2,21 @@
 
 // CCNA flashcard deck: Flip, Type it and Exam modes, spaced repetition, endless subnetting,
 // pictures with credits, and a topic-strength panel. Progress stays in this browser.
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Infinity as InfinityIcon, Keyboard, Layers, ListTree, PanelLeftClose, Play, RotateCcw, Timer, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, ClipboardCopy, Flag, Moon, Infinity as InfinityIcon, Keyboard, Layers, ListTree, PanelLeftClose, Play, RotateCcw, Timer, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Button, cx } from '@/components/ui';
 import deckJson from '@/content/flashcards/ccna.json';
 
 type Card = { t: string; q: string; a: string; k?: string[]; cli?: string; why?: string; img?: string; imgAlt?: string; imgKind?: string; imgCredit?: string; imgSource?: string; imgFallback?: string; gen?: boolean; d?: 'easy' | 'hard' };
 type Mode = 'flip' | 'type' | 'exam';
-type Stats = { box: Record<number, number>; next: Record<number, number>; /** last self-rating per card: 0 Again, 1 Hard, 2 Good, 3 Easy */ rated: Record<number, number>; /** cards reviewed per local day, yyyy-mm-dd */ days: Record<string, number>; seen: number; right: number; streak: number; best: number; topic: Record<string, { r: number; n: number }> };
+type Stats = { box: Record<number, number>; next: Record<number, number>; /** last self-rating per card: 0 Again, 1 Hard, 2 Good, 3 Easy */ rated: Record<number, number>; /** cards reviewed per local day, yyyy-mm-dd */ days: Record<string, number>; /** card -> day it is buried until the end of */ bury: Record<number, string>; /** cards marked wrong or unclear */ flags: Record<number, 1>; seen: number; right: number; streak: number; best: number; topic: Record<string, { r: number; n: number }> };
 
 const DECK = deckJson as Card[];
 const KEY = 'aegis.flash.ccna.v1';
 const GAP = [0, 60e3, 5 * 60e3, 30 * 60e3, 24 * 3600e3];
 const HUE: Record<string, string> = { OSI: '#7c5cff', Switching: '#22b8cf', VLANs: '#cc5de8', IPv4: '#ff922b', IPv6: '#20c997', Routing: '#ff6b6b', Services: '#4c6ef5', Security: '#fa5252', Wireless: '#339af0', Automation: '#12b886', Hardware: '#fcc419', Interview: '#94d82d', Subnetting: '#f06595' };
 const TOPICS = [...new Set(DECK.map((c) => c.t)), 'Subnetting'];
-const empty = (): Stats => ({ box: {}, next: {}, rated: {}, days: {}, seen: 0, right: 0, streak: 0, best: 0, topic: {} });
+const empty = (): Stats => ({ box: {}, next: {}, rated: {}, days: {}, bury: {}, flags: {}, seen: 0, right: 0, streak: 0, best: 0, topic: {} });
 /** The two review piles built from your own ratings. */
 /** Question level: Easy = core definitions, Hard = commands, math and scenarios. */
 export type Level = 'all' | 'easy' | 'hard';
@@ -27,12 +27,17 @@ const dayKey = (d = new Date()) => d.toLocaleDateString('en-CA');
 const nextBox = (b: number, r: number) => (r === 0 ? 0 : r === 1 ? Math.max(1, b) : r === 2 ? Math.min(4, b + 1) : Math.min(4, b + 2));
 const fmtGap = (ms: number) => (ms < 60e3 ? '<1m' : ms < 3600e3 ? `${Math.round(ms / 60e3)}m` : ms < 86400e3 ? `${Math.round(ms / 3600e3)}h` : `${Math.round(ms / 86400e3)}d`);
 const gapFor = (b: number, r: number) => (r === 0 ? 20e3 : GAP[nextBox(b, r)]);
+const SESSION = 20;
+type Sess = { n: number; right: number; miss: number[]; topic: Record<string, { r: number; n: number }> };
+const freshSess = (): Sess => ({ n: 0, right: 0, miss: [], topic: {} });
 const LEVEL_N = { easy: DECK.filter((c) => (c.d ?? 'easy') === 'easy').length, hard: DECK.filter((c) => c.d === 'hard').length };
 const load = (): Stats => {
   try {
     const v = { ...empty(), ...(JSON.parse(window.localStorage.getItem(KEY) ?? 'null') ?? {}) };
     v.rated ??= {};
     v.days ??= {};
+    v.bury ??= {};
+    v.flags ??= {};
     return v;
   } catch {
     return empty();
@@ -187,13 +192,22 @@ export function FlashDeck() {
       if (v === 'easy' || v === 'hard') setLevelRaw(v);
     } catch {}
   }, []);
+  /** A hand-picked list (your misses, your flagged cards) that overrides topic and level. */
+  const [custom, setCustom] = useState<null | { label: string; ids: number[] }>(null);
+  const [sess, setSess] = useState<Sess>(freshSess);
+  const [summary, setSummary] = useState(false);
+  const today = dayKey();
   const setLevel = (v: Level) => {
+    setCustom(null);
     setLevelRaw(v);
     try {
       window.localStorage.setItem(LEVEL_KEY, v);
     } catch {}
   };
-  const pool = useMemo(() => order.filter((i) => atLevel(i, level) && (topic === 'All' || DECK[i].t === topic)), [order, topic, level]);
+  const pool = useMemo(
+    () => (custom ? custom.ids : order.filter((i) => atLevel(i, level) && (topic === 'All' || DECK[i].t === topic) && S.bury[i] !== today)),
+    [order, topic, level, custom, S.bury, today], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const dueList = useCallback(() => {
     const now = Date.now();
     return pool.filter((i) => (mode !== 'type' || DECK[i].k?.length) && (S.box[i] ?? 0) < 4 && (S.next[i] ?? 0) <= now);
@@ -237,7 +251,7 @@ export function FlashDeck() {
   // New card whenever the topic or mode changes.
   useEffect(() => {
     if (mode !== 'exam') pick();
-  }, [topic, mode, level]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [topic, mode, level, custom]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (mode === 'type' && (cur >= 0 || gen)) setTimeout(() => inputRef.current?.focus(), 60);
   }, [cur, gen, mode]);
@@ -245,7 +259,9 @@ export function FlashDeck() {
   const card: Card | null = gen ?? (cur >= 0 ? DECK[cur] : null);
   /** Open one card from the topic list. */
   const openCard = (i: number) => {
+    setSummary(false);
     if (i < 0) {
+      setCustom(null);
       setTopic('Subnetting');
       return;
     }
@@ -272,7 +288,36 @@ export function FlashDeck() {
     return { ...base, box: { ...base.box, [cur]: nb }, rated: { ...base.rated, [cur]: r }, next: { ...base.next, [cur]: Date.now() + gapFor(b, r) } };
   };
 
-  const [undo, setUndo] = useState<null | { S: Stats; cur: number; label: string }>(null);
+  const [undo, setUndo] = useState<null | { S: Stats; cur: number; label: string; sess: Sess; summary: boolean }>(null);
+  /** Count one answer toward the current session; after SESSION cards, show the recap. */
+  const tally = (ok: boolean) => {
+    if (gen || cur < 0) return;
+    const t = DECK[cur].t;
+    const ts = sess.topic[t] ?? { r: 0, n: 0 };
+    const next: Sess = { n: sess.n + 1, right: sess.right + (ok ? 1 : 0), miss: ok || sess.miss.includes(cur) ? sess.miss : [...sess.miss, cur], topic: { ...sess.topic, [t]: { r: ts.r + (ok ? 1 : 0), n: ts.n + 1 } } };
+    setSess(next);
+    return next.n >= SESSION;
+  };
+  const toggleFlag = () => {
+    if (cur < 0) return;
+    const flags = { ...S.flags };
+    if (flags[cur]) delete flags[cur];
+    else flags[cur] = 1;
+    save({ ...S, flags });
+  };
+  const buryCard = () => {
+    if (cur < 0 || gen) return;
+    const i = cur;
+    go(1);
+    save({ ...S, bury: { ...S.bury, [i]: today } });
+  };
+  const studyList = (label: string, ids: number[]) => {
+    if (!ids.length) return;
+    if (mode === 'exam') setModeRaw('flip');
+    setSummary(false);
+    setSess(freshSess());
+    setCustom({ label, ids });
+  };
   useEffect(() => {
     if (!undo) return;
     const id = setTimeout(() => setUndo(null), 5000);
@@ -281,6 +326,8 @@ export function FlashDeck() {
   const undoLast = () => {
     if (!undo) return;
     save(undo.S);
+    setSess(undo.sess);
+    setSummary(undo.summary);
     setGen(null);
     setCur(undo.cur);
     setFly(null);
@@ -290,19 +337,27 @@ export function FlashDeck() {
   };
   const rate = (r: number) => {
     if (mode !== 'flip' || !flipped || !card) return;
-    if (!gen) setUndo({ S, cur, label: ['Again', 'Hard', 'Good', 'Easy'][r] });
+    if (!gen) setUndo({ S, cur, label: ['Again', 'Hard', 'Good', 'Easy'][r], sess, summary });
     save(score(card.t, r >= 2, schedule(r, S)));
+    const done = tally(r >= 2);
     setFly(r >= 2 ? 'right' : 'left');
-    setTimeout(() => go(1), 320);
+    setTimeout(() => {
+      go(1);
+      if (done) setSummary(true);
+    }, 320);
   };
   const check = () => {
     if (!card) return;
-    if (verdict !== null) return go(1);
+    if (verdict !== null) {
+      if (sess.n >= SESSION) setSummary(true);
+      return go(1);
+    }
     if (!typed.trim()) return;
     const ok = matches(card, typed.trim());
     setVerdict(ok);
     setFlipped(true);
     save(score(card.t, ok, schedule(ok ? 2 : 0, S)));
+    tally(ok);
   };
 
   // ---------- Exam ----------
@@ -359,6 +414,9 @@ export function FlashDeck() {
       if (e.key === 'ArrowRight') return go(1);
       if (e.key === 'ArrowLeft') return go(-1);
       if ((e.key === 'z' || e.key === 'u') && undo) return undoLast();
+      if (summary) return;
+      if (e.key === 'f' && mode === 'flip') return toggleFlag();
+      if (e.key === 'b' && mode === 'flip') return buryCard();
       if (mode === 'type') {
         if (e.key === 'Enter' && verdict !== null) go(1);
         return;
@@ -380,10 +438,54 @@ export function FlashDeck() {
   const rev = false;
   const showCliFront = !!card?.cli && refersToShown(card.q);
 
+  // ---------- Swipe (touch and pen) ----------
+  const drag = useRef<null | { x: number; y: number; moved: boolean }>(null);
+  const [dx, setDx] = useState(0);
+  const swipeLabel = flipped && mode === 'flip' ? (dx > 0 ? 'Good' : 'Again') : dx > 0 ? 'Back' : 'Next';
+  const swipe = {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType === 'mouse' || mode !== 'flip') return;
+      drag.current = { x: e.clientX, y: e.clientY, moved: false };
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const d = drag.current;
+      if (!d) return;
+      const x = e.clientX - d.x;
+      if (!d.moved && Math.abs(x) > 10 && Math.abs(x) > Math.abs(e.clientY - d.y)) d.moved = true;
+      if (d.moved) setDx(x);
+    },
+    onPointerUp: () => {
+      const d = drag.current;
+      if (!d) return;
+      if (d.moved && Math.abs(dx) > 90) {
+        if (flipped) rate(dx > 0 ? 2 : 0);
+        else go(dx > 0 ? -1 : 1);
+      }
+      setDx(0);
+      setTimeout(() => (drag.current = null), 0);
+    },
+    onPointerCancel: () => {
+      drag.current = null;
+      setDx(0);
+    },
+  };
+  const tools = !card?.gen && cur >= 0 && (
+    <span className="flash-tools" onClick={(e) => e.stopPropagation()}>
+      <button type="button" onClick={toggleFlag} className={cx(S.flags[cur] && 'is-on')} title={S.flags[cur] ? 'Unflag (F)' : 'Flag as wrong or unclear (F)'} aria-pressed={!!S.flags[cur]} data-testid="flash-flag">
+        <Flag className="size-3.5" />
+      </button>
+      {!custom && (
+        <button type="button" onClick={buryCard} title="Skip until tomorrow (B)" data-testid="flash-bury">
+          <Moon className="size-3.5" />
+        </button>
+      )}
+    </span>
+  );
+
   return (
     <div className="flash-deck flex min-w-0 gap-8" data-testid="flash-deck">
       {side ? (
-        <FlashTopics S={S} topic={topic} level={level} cur={gen ? -2 : cur} onTopic={(t) => { setTopic(t); if (mode === 'exam') setMode('flip'); }} onCard={openCard} onHide={() => setSideP(false)} />
+        <FlashTopics S={S} topic={topic} level={level} cur={gen ? -2 : cur} onTopic={(t) => { setCustom(null); setSummary(false); setTopic(t); if (mode === 'exam') setMode('flip'); }} onList={studyList} custom={custom?.label ?? null} onCard={openCard} onHide={() => setSideP(false)} />
       ) : (
         <button type="button" onClick={() => setSideP(true)} className="toc-open hidden h-fit items-center gap-1.5 rounded-lg border border-line-strong px-2.5 py-1.5 text-[12px] text-muted hover:text-text md:inline-flex" data-testid="flash-topics-show">
           <ListTree className="size-4" /> Topics
@@ -436,7 +538,8 @@ export function FlashDeck() {
         </div>
 
 
-        {mode !== 'exam' && card && (
+        {mode !== 'exam' && summary && <Recap sess={sess} onMisses={() => studyList('Your misses', sess.miss)} onMore={() => { setSess(freshSess()); setSummary(false); }} />}
+        {mode !== 'exam' && !summary && card && (
           <>
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-[12.5px] text-muted" data-testid="flash-position">
@@ -449,7 +552,12 @@ export function FlashDeck() {
                   <>
                     Card <b className="text-text">{pos + 1}</b> of {seq.length}
                     <span className="mx-1.5 text-faint">·</span>
-                    <span className="font-semibold text-text">{topic === 'All' ? 'All topics' : topic}</span>
+                    <span className="font-semibold text-text">{custom ? custom.label : topic === 'All' ? 'All topics' : topic}</span>
+                    {custom && (
+                      <button type="button" onClick={() => setCustom(null)} className="ml-1.5 rounded px-1 text-faint hover:text-text" title="Back to all cards" data-testid="flash-custom-clear">
+                        ✕
+                      </button>
+                    )}
                     {level !== 'all' && (
                       <span className={cx('ml-2 rounded-full px-2 py-0.5 text-[10.5px] font-semibold', level === 'hard' ? 'bg-[#ff6b81]/15 text-[#ff6b81]' : 'bg-[#38d9a9]/15 text-[#38d9a9]')} data-testid="flash-level-tag">
                         {level === 'hard' ? 'Hard' : 'Easy'}
@@ -468,6 +576,12 @@ export function FlashDeck() {
               </div>
             )}
             <div className={cx('flash-stage', pos >= 0 && seq.length - pos > 1 && 'has-stack')} style={{ '--hue': hue } as CSSProperties}>
+              <div
+                className={cx('flash-swipe', dx !== 0 && 'is-dragging')}
+                style={{ '--dx': `${dx}px`, '--sw': Math.min(1, Math.abs(dx) / 110), '--swc': flipped && mode === 'flip' ? (dx > 0 ? '#38d9a9' : '#ff6b81') : 'var(--hue)' } as CSSProperties}
+                {...swipe}
+              >
+                {dx !== 0 && <span className={cx('flash-swipe-label', dx > 0 ? 'is-right' : 'is-left')}>{swipeLabel}</span>}
               <div
                 className="flash-tilt"
                 onPointerMove={(e) => {
@@ -493,7 +607,7 @@ export function FlashDeck() {
                 role="button"
                 tabIndex={0}
                 aria-label="Flashcard. Press space to flip."
-                onClick={() => mode === 'flip' && setFlipped((f) => !f)}
+                onClick={() => mode === 'flip' && !drag.current?.moved && setFlipped((f) => !f)}
                 className={cx('flash-card', flipped && 'is-flipped', fly && `fly-${fly}`, card.img && 'has-pic')}
                 data-testid="flash-card"
               >
@@ -501,10 +615,13 @@ export function FlashDeck() {
                   <div className="flex items-center justify-between">
                     <span className="flash-tag">{card.gen ? 'Subnetting · generated' : card.t}</span>
                     {!card.gen && cur >= 0 && (
-                      <span className="flex gap-1" aria-label={`Box ${S.box[cur] ?? 0} of 4`}>
-                        {[0, 1, 2, 3].map((k) => (
-                          <i key={k} className={cx('size-2 rounded-[3px]', k < (S.box[cur] ?? 0) ? 'bg-white shadow-[0_0_6px_#fff]' : 'bg-white/20')} />
-                        ))}
+                      <span className="flex items-center gap-3">
+                        {tools}
+                        <span className="flex gap-1" aria-label={`Box ${S.box[cur] ?? 0} of 4`}>
+                          {[0, 1, 2, 3].map((k) => (
+                            <i key={k} className={cx('size-2 rounded-[3px]', k < (S.box[cur] ?? 0) ? 'bg-white shadow-[0_0_6px_#fff]' : 'bg-white/20')} />
+                          ))}
+                        </span>
                       </span>
                     )}
                   </div>
@@ -534,6 +651,7 @@ export function FlashDeck() {
                 </div>
                 <div className="flash-face back">
                   <div className="flex items-center gap-2">
+                    <span className="order-last ml-auto">{tools}</span>
                     <span className="flash-tag">{card.gen ? 'Subnetting' : card.t}</span>
                     {verdict !== null && (
                       <span className={cx('flex items-center gap-1 rounded-lg px-2 py-0.5 text-[12.5px] font-semibold', verdict ? 'bg-healthy/20 text-healthy' : 'bg-down/20 text-down')} data-testid="flash-verdict">
@@ -546,6 +664,7 @@ export function FlashDeck() {
                   {card.cli && !showCliFront && <pre className="flash-cli">{card.cli}</pre>}
                   {card.why && <p className="mt-auto border-t border-dashed border-white/15 pt-3 text-[13px] text-muted">💡 {card.why}</p>}
                 </div>
+              </div>
               </div>
               </div>
             </div>
@@ -597,11 +716,11 @@ export function FlashDeck() {
                 </button>
               </div>
             )}
-            <p className="text-center text-[11.5px] text-faint">{mode === 'flip' ? 'Space show / hide · 1–4 rate · Z undo · ← → back and next' : 'Enter to check, Enter again for the next card · ← → back and next'}</p>
+            <p className="text-center text-[11.5px] text-faint">{mode === 'flip' ? 'Space flip · 1–4 rate · Z undo · F flag · B skip today · ← → move' : 'Enter to check, Enter again for the next card · ← → back and next'}</p>
           </>
         )}
 
-        {mode !== 'exam' && !card && (
+        {mode !== 'exam' && !summary && !card && (
           <div className="rounded-2xl border border-line bg-pane p-10 text-center" data-testid="flash-done">
             <p className="text-[24px] font-semibold">Deck cleared 🎉</p>
             <p className="mt-1 text-muted">Every card here is mastered or scheduled for later. Pick another topic, or study them again.</p>
@@ -724,7 +843,7 @@ function MiniRing({ pct, size, stroke, color, children }: { pct: number; size: n
  * Topic list for the deck, built like the Learn by topic contents: a progress header, a Continue
  * button, filter chips, and each topic as an accordion of its cards on a glowing timeline.
  */
-function FlashTopics({ S, topic, level, cur, onTopic, onCard, onHide }: { S: Stats; topic: string; level: Level; cur: number; onTopic: (t: string) => void; onCard: (i: number) => void; onHide: () => void }) {
+function FlashTopics({ S, topic, level, custom, onList, cur, onTopic, onCard, onHide }: { S: Stats; topic: string; level: Level; custom: string | null; onList: (label: string, ids: number[]) => void; cur: number; onTopic: (t: string) => void; onCard: (i: number) => void; onHide: () => void }) {
   const [open, setOpen] = useState<Set<string>>(() => new Set([topic === 'All' ? (cur >= 0 ? DECK[cur].t : TOPICS[0]) : topic]));
   const [filter, setFilter] = useState<'all' | 'todo' | 'done'>('all');
   const currentRef = useRef<HTMLButtonElement>(null);
@@ -853,6 +972,7 @@ function FlashTopics({ S, topic, level, cur, onTopic, onCard, onHide }: { S: Sta
           </li>
         </ol>
       </nav>
+      <Flagged S={S} on={custom === 'Flagged cards'} onList={onList} />
       <Heatmap S={S} />
     </aside>
   );
@@ -915,6 +1035,87 @@ function Heatmap({ S }: { S: Stats }) {
           <i key={d.k} data-l={d.future ? 'f' : lvl(d.n)} className={cx(d.k === dayKey(today) && 'is-today')} title={d.future ? '' : `${d.k}: ${d.n} card${d.n === 1 ? '' : 's'}`} />
         ))}
       </div>
+    </div>
+  );
+}
+
+/** End-of-session recap: score, weakest topics, and a one-click review of the misses. */
+function Recap({ sess, onMisses, onMore }: { sess: Sess; onMisses: () => void; onMore: () => void }) {
+  const pct = sess.n ? Math.round((sess.right / sess.n) * 100) : 0;
+  const weak = Object.entries(sess.topic)
+    .map(([t, v]) => ({ t, p: v.n ? v.r / v.n : 0, ...v }))
+    .sort((a, b) => a.p - b.p || b.n - a.n)
+    .slice(0, 3);
+  const msg = pct >= 90 ? 'Sharp. You know this material.' : pct >= 70 ? 'Solid round. Clean up the misses and you are there.' : 'Good work showing up. The misses are where the points are.';
+  return (
+    <div className="flash-recap" data-testid="flash-recap">
+      <div className="flex flex-wrap items-center gap-6">
+        <MiniRing pct={pct} size={110} stroke={7} color={pct >= 70 ? '#38d9a9' : '#ffa94d'}>
+          <span className="text-[26px] font-bold">{pct}%</span>
+        </MiniRing>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold tracking-[0.2em] text-faint uppercase">Session complete</p>
+          <p className="mt-1 text-[22px] font-semibold text-text">
+            {sess.right} of {sess.n} right
+          </p>
+          <p className="mt-1 text-[13.5px] text-muted">{msg}</p>
+        </div>
+      </div>
+      {weak.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-2 text-[11px] font-semibold tracking-[0.18em] text-faint uppercase">Weakest this round</p>
+          <div className="space-y-2">
+            {weak.map((w) => (
+              <div key={w.t} className="flex items-center gap-3 text-[13px]">
+                <span className="w-28 truncate text-text">{w.t}</span>
+                <span className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-line">
+                  <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${w.p * 100}%`, background: HUE[w.t] ?? 'var(--action)' }} />
+                </span>
+                <span className="w-12 text-right text-faint tabular-nums">
+                  {w.r}/{w.n}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="mt-7 flex flex-wrap gap-2">
+        {sess.miss.length > 0 && (
+          <Button variant="primary" onClick={onMisses} data-testid="flash-recap-misses">
+            <RotateCcw className="size-4" /> Review your {sess.miss.length} miss{sess.miss.length === 1 ? '' : 'es'}
+          </Button>
+        )}
+        <Button onClick={onMore} data-testid="flash-recap-more">
+          Keep going <ArrowRight className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Cards you flagged as wrong or unclear: study them, or copy the list to fix the content. */
+function Flagged({ S, on, onList }: { S: Stats; on: boolean; onList: (label: string, ids: number[]) => void }) {
+  const ids = Object.keys(S.flags).map(Number).filter((i) => DECK[i]);
+  const [copied, setCopied] = useState(false);
+  if (!ids.length) return null;
+  const copy = () => {
+    const text = JSON.stringify(ids.map((i) => ({ index: i, topic: DECK[i].t, q: DECK[i].q, a: DECK[i].a })), null, 2);
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    }, () => {});
+  };
+  return (
+    <div className={cx('flash-flagged mt-2 flex items-center gap-2 rounded-xl px-2.5 py-2', on && 'is-on')} data-testid="flash-flagged">
+      <button type="button" onClick={() => onList('Flagged cards', ids)} className="flex min-w-0 flex-1 items-center gap-2 text-left text-[12.5px]">
+        <Flag className="size-3.5 shrink-0 text-[#ffa94d]" />
+        <span className="truncate text-text">Flagged cards</span>
+        <b className="text-[11.5px] text-muted">{ids.length}</b>
+      </button>
+      <button type="button" onClick={copy} className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted hover:bg-pane-2 hover:text-text" title="Copy the flagged cards as JSON to hand to Codex">
+        {copied ? <Check className="size-3.5 text-healthy" /> : <ClipboardCopy className="size-3.5" />}
+        {copied ? 'Copied' : 'Copy'}
+      </button>
     </div>
   );
 }

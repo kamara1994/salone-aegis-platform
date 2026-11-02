@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, ListTree, PanelLeftClose, Tags } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, ListTree, PanelLeftClose, Play, Tags } from 'lucide-react';
 import { Button, cx } from '@/components/ui';
 import { useBookLesson } from '@/state/bookLesson';
 import { useLearningPreferences } from '@/state/learning';
 import source from '@/content/books/ccna-v8.1.json';
+import { vlanAccessExemplar } from '@/content/books/vlan-access-exemplar';
+import { trunkExemplar } from '@/content/books/trunk-exemplar';
+import { VlanAccessJourney } from '@/components/learn/VlanAccessJourney';
+import { TrunkJourney } from '@/components/learn/TrunkJourney';
+import { CourseLessonJourney, BookRecall } from '@/components/learn/CourseLessonJourney';
 
 type Question = { id: string; prompt: string; options: string[]; answerIndex: number; explanation: string };
 type Lesson = {
@@ -174,6 +179,24 @@ function BookContents({ lessonId, completed, onOpen, onHide }: { lessonId: strin
     return () => clearTimeout(t);
   }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const byId = new Map(book.lessons.map((l) => [l.id, l]));
+  const [filter, setFilter] = useState<'all' | 'todo' | 'done'>('all');
+  // Next unfinished lesson after the one you are on (wrapping to the start).
+  const curPos = book.lessons.findIndex((l) => l.id === lessonId);
+  const nextUp = [...book.lessons.slice(curPos + 1), ...book.lessons.slice(0, curPos + 1)].find((l) => !done.has(l.id));
+  // Celebrate a chapter the moment its last lesson is finished.
+  const prevDone = useRef<Map<string, number> | null>(null);
+  const [burst, setBurst] = useState<string | null>(null);
+  useEffect(() => {
+    const now = new Map(book.chapters.map((c) => [c.id, c.lessonIds.filter((id) => done.has(id)).length]));
+    const before = prevDone.current;
+    prevDone.current = now;
+    if (!before) return;
+    const finished = book.chapters.find((c) => now.get(c.id) === c.lessonIds.length && (before.get(c.id) ?? 0) < c.lessonIds.length);
+    if (!finished) return;
+    setBurst(finished.id);
+    const t = setTimeout(() => setBurst(null), 1800);
+    return () => clearTimeout(t);
+  }, [completed]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <aside className="book-toc sticky top-0 hidden h-[calc(100dvh-96px)] w-[290px] shrink-0 flex-col self-start md:flex" aria-label="Course contents" data-testid="ccna-book-contents">
       <div className="toc-head relative mb-3 flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-3">
@@ -191,19 +214,49 @@ function BookContents({ lessonId, completed, onOpen, onHide }: { lessonId: strin
           <PanelLeftClose className="size-4" />
         </button>
       </div>
+      {nextUp && (
+        <button type="button" onClick={() => onOpen(nextUp.id)} className="toc-continue group mb-3 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left" data-testid="ccna-continue">
+          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-action text-white shadow-[0_0_14px_var(--action)]">
+            <Play className="size-3.5 translate-x-px fill-current" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-semibold tracking-[0.18em] text-action uppercase">Continue</span>
+            <span className="block truncate text-[12.5px] text-text">
+              <span className="font-mono text-[11px] text-faint">{nextUp.id}</span> {nextUp.title}
+            </span>
+          </span>
+          <ArrowRight className="size-4 text-muted transition-transform group-hover:translate-x-1" />
+        </button>
+      )}
+      <div className="mb-2 flex gap-1" role="radiogroup" aria-label="Show lessons">
+        {([['all', 'All'], ['todo', 'Not done'], ['done', 'Done']] as const).map(([k, label]) => (
+          <button key={k} type="button" role="radio" aria-checked={filter === k} onClick={() => setFilter(k)} className={cx('toc-chip rounded-full px-2.5 py-1 text-[11.5px]', filter === k ? 'is-on' : 'text-muted hover:text-text')} data-testid={`toc-filter-${k}`}>
+            {label}
+          </button>
+        ))}
+      </div>
       <nav className="toc-scroll min-h-0 flex-1 overflow-y-auto pr-1">
         <ol className="space-y-1">
           {book.chapters.map((c) => {
-            const lessons = c.lessonIds.map((id) => byId.get(id)).filter((l): l is Lesson => !!l);
-            const doneN = lessons.filter((l) => done.has(l.id)).length;
-            const isOpen = openCh.has(c.id);
+            const all = c.lessonIds.map((id) => byId.get(id)).filter((l): l is Lesson => !!l);
+            const doneN = all.filter((l) => done.has(l.id)).length;
+            const lessons = filter === 'all' ? all : all.filter((l) => (filter === 'done') === done.has(l.id));
+            if (!lessons.length) return null;
+            const isOpen = filter !== 'all' || openCh.has(c.id);
             const isCurrent = current?.chapterId === c.id;
             const hue = hueOf(c.number);
             const curIdx = lessons.findIndex((l) => l.id === lessonId);
             const lastDone = lessons.reduce((m, l, i) => (done.has(l.id) ? i : m), -1);
             const reach = Math.max(curIdx, lastDone);
             return (
-              <li key={c.id} className={cx('toc-chapter rounded-xl', isCurrent && 'is-current')} style={{ '--hue': hue } as React.CSSProperties}>
+              <li key={c.id} className={cx('toc-chapter relative rounded-xl', isCurrent && 'is-current', burst === c.id && 'is-burst')} style={{ '--hue': hue } as React.CSSProperties}>
+                {burst === c.id && (
+                  <span className="toc-burst" aria-hidden>
+                    {Array.from({ length: 16 }, (_, i) => (
+                      <i key={i} style={{ '--a': `${(i / 16) * 360}deg`, '--r': `${34 + (i % 3) * 14}px`, '--c': i % 2 ? hue : '#fff' } as React.CSSProperties} />
+                    ))}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => setOpenCh((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; })}
@@ -211,18 +264,18 @@ function BookContents({ lessonId, completed, onOpen, onHide }: { lessonId: strin
                   className="group flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left"
                   data-testid={`toc-chapter-${c.number}`}
                 >
-                  <Ring pct={lessons.length ? (doneN / lessons.length) * 100 : 0} size={28} stroke={2.5} color={hue}>
+                  <Ring pct={all.length ? (doneN / all.length) * 100 : 0} size={28} stroke={2.5} color={hue}>
                     <span className="text-[10.5px] font-semibold" style={{ color: isCurrent ? hue : undefined }}>{c.number}</span>
                   </Ring>
                   <span className="min-w-0 flex-1">
                     <span className={cx('block truncate text-[12.5px] leading-tight', isCurrent ? 'font-semibold text-text' : 'text-muted group-hover:text-text')}>{c.title}</span>
-                    <span className="block text-[10.5px] text-faint">{doneN}/{lessons.length} done</span>
+                    <span className="block text-[10.5px] text-faint">{doneN === all.length ? '✓ Complete' : `${doneN}/${all.length} done`}</span>
                   </span>
                   <ChevronRight className={cx('size-3.5 text-faint transition-transform duration-300', isOpen && 'rotate-90')} />
                 </button>
                 <div className={cx('grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(.16,1,.3,1)]', isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
                   <div className="min-h-0 overflow-hidden">
-                    <ol className="toc-line relative mt-0.5 mb-2 ml-[22px] pl-4" style={{ '--reach': lessons.length ? `${((reach + 0.5) / lessons.length) * 100}%` : '0%' } as React.CSSProperties}>
+                    <ol className="toc-line relative mt-0.5 mb-2 ml-[46px] pl-4" style={{ '--reach': lessons.length ? `${((reach + 0.5) / lessons.length) * 100}%` : '0%' } as React.CSSProperties}>
                       {lessons.map((l) => {
                         const on = l.id === lessonId;
                         const fin = done.has(l.id);
@@ -257,21 +310,19 @@ function BookContents({ lessonId, completed, onOpen, onHide }: { lessonId: strin
   );
 }
 
-function Panel({ title, children, tone = 'normal' }: { title: string; children?: ReactNode; tone?: 'normal' | 'remember' }) {
-  if (!children) return null;
-  return <section className="space-y-1.5"><h3 className={cx('text-[14px] font-semibold', tone === 'remember' && 'text-healthy')}>{title}</h3><div className="space-y-2 text-[14px] leading-relaxed text-text">{children}</div></section>;
-}
-
 export function CCNABook() {
   const { teach } = useLearningPreferences();
   const lessonId = useBookLesson((b) => b.lessonId);
   const setLessonId = useBookLesson((b) => b.open);
   const [stageIndex, setStageIndex] = useState(0);
+  // Furthest step reached in this lesson, so earlier steps show as seen.
+  const [reached, setReached] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [showAnswer, setShowAnswer] = useState(false);
   const [completed, setCompleted] = useState<string[]>([]);
   const [toc, setTocRaw] = useState(false);
+  const tocRef = useRef(false);
+  tocRef.current = toc;
   const setToc = (v: boolean) => {
     setTocRaw(v);
     try { window.localStorage.setItem('aegis.book.toc', v ? '1' : '0'); } catch { /* optional */ }
@@ -289,7 +340,8 @@ export function CCNABook() {
     setCompleted(saved.completed);
   }, []);
 
-  const lesson = book.lessons.find((entry) => entry.id === lessonId) ?? book.lessons[0];
+  const baseLesson = book.lessons.find((entry) => entry.id === lessonId) ?? book.lessons[0];
+  const lesson: Lesson | undefined = baseLesson?.id === '8.02' ? { ...baseLesson, ...vlanAccessExemplar } : baseLesson?.id === '8.04' ? { ...baseLesson, ...trunkExemplar } : baseLesson;
   const chapter = book.chapters.find((entry) => entry.id === lesson?.chapterId);
   const stages = lesson?.learningJourney?.stages?.length ? lesson.learningJourney.stages : ['meaning', 'mental-model', 'mechanism', 'worked-example', 'verification', 'troubleshooting', 'interview', 'assessment'];
   const safeStageIndex = Math.min(stageIndex, stages.length - 1);
@@ -310,7 +362,7 @@ export function CCNABook() {
   // A lesson picked from the toolbar starts at its first step.
   useEffect(() => {
     setStageIndex(0);
-    setShowAnswer(false);
+    setReached(0);
   }, [lessonId]);
 
   const openLesson = (id: string) => {
@@ -318,14 +370,30 @@ export function CCNABook() {
     setStageIndex(0);
     setAnswers({});
     setSubmitted(false);
-    setShowAnswer(false);
   };
   const setStage = (index: number) => {
-    setStageIndex(Math.max(0, Math.min(index, stages.length - 1)));
+    const i = Math.max(0, Math.min(index, stages.length - 1));
+    setStageIndex(i);
+    setReached((r) => Math.max(r, i));
     setAnswers({});
     setSubmitted(false);
-    setShowAnswer(false);
   };
+  // Keyboard: J next lesson, K previous lesson, C show or hide the contents.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) || t.isContentEditable || e.metaKey || e.ctrlKey || e.altKey) return;
+      const i = book.lessons.findIndex((l) => l.id === useBookLesson.getState().lessonId);
+      const k = e.key.toLowerCase();
+      if (k === 'j' && i < book.lessons.length - 1) openLesson(book.lessons[i + 1].id);
+      else if (k === 'k' && i > 0) openLesson(book.lessons[i - 1].id);
+      else if (k === 'c') setToc(!tocRef.current);
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
   const submitQuiz = () => {
     setSubmitted(true);
     if (correctCount / assessment.length >= 0.75) setCompleted((current) => current.includes(lesson.id) ? current : [...current, lesson.id]);
@@ -336,95 +404,62 @@ export function CCNABook() {
   const nextLesson = lesson.navigation?.next ? book.lessons.findIndex((entry) => entry.id === lesson.navigation?.next) : -1;
   const beginner = lesson.beginner;
   const technical = lesson.technical;
-  const teaching = lesson.teaching;
-  const guide = lesson.teachingGuide;
-  const masterclass = lesson.masterclass;
-  const depth = lesson.depthV8;
 
   return <div className="flex min-w-0 gap-8" data-testid="ccna-course-book">
     {toc && <BookContents lessonId={lesson.id} completed={completed} onOpen={openLesson} onHide={() => setToc(false)} />}
     <div className="min-w-0 flex-1 space-y-7">
-    <section className="space-y-3" aria-label="CCNA course">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-        {!toc && <button type="button" onClick={() => setToc(true)} className="toc-open mt-0.5 hidden items-center gap-1.5 rounded-lg border border-line-strong px-2.5 py-1.5 text-[12px] text-muted hover:text-text md:inline-flex" data-testid="ccna-contents-show"><ListTree className="size-4" /> Contents</button>}
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-action">Learn by topic · CCNA · v{book.version}</p>
-          <h2 className="mt-1 text-[17px] font-semibold">{book.title}</h2>
-        </div>
-        </div>
-        <div className="w-full max-w-xs sm:w-64">
-          <p className="mb-1 flex justify-between text-[11px] text-muted"><span>Course progress</span><span>{completed.length}/{book.lessons.length} · {progressPercent}%</span></p>
-          <div className="h-1.5 overflow-hidden rounded-full bg-pane-2" role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100} aria-label="Book progress"><div className="h-full bg-action" style={{ width: `${progressPercent}%` }} /></div>
-        </div>
-      </div>
-    </section>
+    {!toc && <button type="button" onClick={() => setToc(true)} className="toc-open hidden items-center gap-1.5 rounded-lg border border-line-strong px-2.5 py-1.5 text-[12px] text-muted hover:text-text md:inline-flex" data-testid="ccna-contents-show"><ListTree className="size-4" /> Contents</button>}
 
-    <main className="min-w-0 space-y-6" data-testid="ccna-book-reader">
+    <main className="book-prose min-w-0 space-y-7" data-testid="ccna-book-reader">
       <header>
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted"><span>Chapter {chapter?.number ?? '—'} of {book.chapters.length}</span><span>·</span><span>Lesson {lesson.id}</span><span>·</span><span>{stageNames[stage] ?? stage}</span><span className="ml-auto rounded border border-line px-2 py-1">{level === 'beginner' ? 'Beginner' : 'Technical / Expert'}</span></div>
-        <h1 className="mt-2 text-[24px] font-semibold" data-testid="ccna-book-title">{lesson.title}</h1>
-        {lesson.subtitle && <p className="mt-1 text-[14px] text-muted">{lesson.subtitle}</p>}
-        {stage !== 'assessment' && <p className="mt-3 text-[15px] leading-relaxed">{level === 'beginner' ? beginner.definition : technical.definition}</p>}
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted"><span>Chapter {chapter?.number ?? '—'} of {book.chapters.length}</span><span>·</span><span>Lesson {lesson.id}</span><span className="ml-auto rounded border border-line px-2 py-1">{level === 'beginner' ? 'Beginner' : 'Technical / Expert'}</span></div>
+        {lesson.id === '8.02' && <p className="mt-2 text-[12px] font-semibold text-action">CCNA v1.1 · 2.1.a Access ports · 2.1.b Default VLAN</p>}
+        {lesson.id === '8.04' && <p className="mt-2 text-[12px] font-semibold text-action">CCNA v1.1 · 2.2.a Trunk ports · 2.2.b 802.1Q</p>}
+        <h1 className="book-title" data-testid="ccna-book-title">{lesson.title}</h1>
+        {lesson.subtitle && lesson.subtitle !== lesson.why && <p className="book-sub">{lesson.subtitle}</p>}
+        {(stage === 'meaning' || stage === 'overview') && <p className="book-lead">{level === 'beginner' ? beginner.definition : technical.definition}</p>}
       </header>
 
-      <nav className="flex gap-1 overflow-x-auto" aria-label="Lesson steps">
-        {stages.map((name, index) => <button type="button" key={`${name}-${index}`} onClick={() => setStage(index)} aria-current={index === safeStageIndex ? 'step' : undefined} className={cx('shrink-0 rounded-md px-3 py-2 text-[12px]', index === safeStageIndex ? 'bg-action text-white' : 'text-muted hover:bg-pane-2 hover:text-text')} data-testid={`ccna-book-stage-${name}`}>{index + 1}. {stageNames[name] ?? name}</button>)}
+      <nav className="book-stepper sticky top-0 z-10" aria-label="Lesson steps" data-testid="ccna-book-stepper">
+        <div className="flex items-baseline gap-4">
+          <p className="text-[12.5px] text-muted">
+            Step <b className="text-text">{safeStageIndex + 1}</b> of {stages.length}
+            <span className="mx-1.5 text-faint">·</span>
+            <span className="font-semibold text-text">{stageNames[stages[safeStageIndex]] ?? stages[safeStageIndex]}</span>
+          </p>
+          {safeStageIndex < stages.length - 1 && <p className="hidden text-[11.5px] text-faint sm:block">Next: {stageNames[stages[safeStageIndex + 1]] ?? stages[safeStageIndex + 1]}</p>}
+        </div>
+        <ol className="book-segments">
+          {stages.map((name, index) => {
+            const state = index === safeStageIndex ? 'current' : index <= reached ? 'done' : 'todo';
+            return (
+              <li key={`${name}-${index}`}>
+                <button type="button" onClick={() => setStage(index)} aria-current={index === safeStageIndex ? 'step' : undefined} aria-label={`Step ${index + 1}: ${stageNames[name] ?? name}${state === 'done' ? ' (seen)' : ''}`} data-state={state} data-label={`${index + 1}. ${stageNames[name] ?? name}`} data-testid={`ccna-book-stage-${name}`} />
+              </li>
+            );
+          })}
+        </ol>
       </nav>
 
       <article className="space-y-5" aria-live="polite">
-        {stage === 'meaning' && <>
-          <Panel title="Why this matters"><p>{lesson.why ?? lesson.subtitle}</p></Panel>
-          {lesson.layerContext?.label && <p className="text-[12px] text-muted">Network context: <strong className="text-text">{lesson.layerContext.label}</strong> · {lesson.layerContext.explanation}</p>}
-          {!!lesson.wordHelp?.length && <details><summary className="cursor-pointer text-[13px] font-semibold">Terms to know</summary><dl className="mt-3 grid gap-2 sm:grid-cols-2">{lesson.wordHelp.map((item) => <div key={item.term}><dt className="font-mono text-[12px] font-semibold">{item.term}</dt><dd className="text-[13px] text-muted">{item.meaning}</dd></div>)}</dl></details>}
-        </>}
-        {stage === 'mental-model' && <>
-          <Panel title={level === 'beginner' ? 'A familiar way to picture it' : 'How the concept works'}><p>{level === 'beginner' ? beginner.analogy : technical.explanation}</p></Panel>
-          {level === 'beginner' && !!beginner.analogyParts?.length && <Panel title="Connect the analogy to the network"><dl className="grid gap-2 sm:grid-cols-2">{beginner.analogyParts.map((item) => <div key={item.analogy}><dt className="font-semibold">{item.analogy}</dt><dd className="text-muted">{item.meaning}</dd></div>)}</dl></Panel>}
-          <Panel title="Real-world example"><p>{beginner.example ?? technical.application}</p></Panel>
-        </>}
-        {stage === 'mechanism' && <>
-          <Panel title={level === 'beginner' ? 'The main idea' : 'Mechanism and decision rules'}><p>{level === 'beginner' ? guide?.concept ?? technical.explanation : depth?.concept ?? masterclass?.concept ?? technical.deepDive ?? technical.explanation}</p></Panel>
-          {level === 'technical' && technical.deepDive && <Panel title="Technical detail"><p>{technical.deepDive}</p></Panel>}
-          {level === 'beginner' && technical.explanation && <Panel title="In network terms"><p>{technical.explanation}</p></Panel>}
-          {teaching?.steps?.length ? <Panel title="Walkthrough"><ol className="list-decimal space-y-2 pl-5">{teaching.steps.map((step, index) => <li key={`${step.number ?? index}-${step.text}`}>{step.text}</li>)}</ol></Panel> : null}
-        </>}
-        {stage === 'worked-example' && <>
-          <Panel title="Situation"><p>{teaching?.problem ?? beginner.example}</p></Panel>
-          {teaching?.steps?.length ? <Panel title="Work through it"><ol className="list-decimal space-y-2 pl-5">{teaching.steps.map((step, index) => <li key={`${step.number ?? index}-${step.text}`}>{step.text}</li>)}</ol></Panel> : null}
-          <Panel title="What the result means"><p>{level === 'technical' ? depth?.workedExample ?? masterclass?.worked ?? teaching?.result : teaching?.result}</p></Panel>
-        </>}
-        {stage === 'verification' && <>
-          <Panel title="Try this"><p>{teaching?.practicePrompt ?? technical.application ?? beginner.example}</p></Panel>
-          <Panel title="How to verify"><p>{level === 'technical' ? depth?.verification ?? teaching?.verify : teaching?.verify ?? teaching?.method}</p></Panel>
-          {teaching?.evidence?.output && <details><summary className="cursor-pointer text-[13px] font-semibold">Example device evidence</summary>{teaching.evidence.command && <pre className="mt-3 overflow-auto rounded bg-ink p-3 font-mono text-[12px]">{teaching.evidence.command}</pre>}<pre className="mt-2 overflow-auto rounded bg-ink p-3 font-mono text-[12px]">{teaching.evidence.output}</pre>{teaching.evidence.interpretation && <p className="mt-2 text-[13px] text-muted">{teaching.evidence.interpretation}</p>}</details>}
-        </>}
-        {stage === 'troubleshooting' && <>
-          <Panel title="Common mistake"><p>{level === 'technical' ? depth?.commonError ?? masterclass?.diagnosis ?? guide?.commonTrap ?? lesson.commonMistake : guide?.commonTrap ?? lesson.commonMistake}</p></Panel>
-          <Panel title="Evidence and method"><p>{teaching?.method ?? technical.check}</p></Panel>
-          <Panel title="Verify the fix"><p>{teaching?.verify ?? depth?.verification}</p></Panel>
-        </>}
-        {stage === 'interview' && <>
-          <Panel title="Explain it in your own words"><p>{masterclass?.challenge ?? guide?.teachBack ?? lesson.interview?.question}</p></Panel>
-          <Button type="button" variant="secondary" onClick={() => setShowAnswer((current) => !current)}>{showAnswer ? 'Hide sample response' : 'Show sample response'}</Button>
-          {showAnswer && <Panel title="Sample response"><p>{lesson.interview?.sampleAnswer ?? technical.explanation}</p></Panel>}
-        </>}
-        {stage === 'overview' && <Panel title="Chapter review"><p>{lesson.why ?? lesson.subtitle ?? 'Review the chapter concepts, then complete the assessment.'}</p></Panel>}
-        {stage === 'assessment' && <section className="space-y-3" data-testid="ccna-book-assessment">
+        {lesson.id === '8.02' && <VlanAccessJourney stage={stage} level={level} />}
+        {lesson.id === '8.04' && <TrunkJourney stage={stage} level={level} />}
+        {lesson.id !== '8.02' && lesson.id !== '8.04' && <CourseLessonJourney lesson={lesson} stage={stage} level={level} />}
+        {stage === 'assessment' && (lesson.id === '8.02' || lesson.id === '8.04') && <section className="space-y-3" data-testid="ccna-book-assessment">
           <div><h2 className="text-[17px] font-semibold">{lesson.learningJourney?.kind === 'assessment' ? lesson.title : 'Topic check'}</h2><p className="text-[13px] text-muted">{assessment.length} questions · answer every question, then submit to see explanations.</p></div>
           {assessment.map((question, questionIndex) => <fieldset key={question.id} disabled={submitted} className="space-y-2 border-b border-line pb-3 last:border-0" data-testid={`ccna-book-question-${question.id}`}>
-            <legend className="pb-1 text-[14px] font-medium">{questionIndex + 1}. {question.prompt}</legend>
+            <legend className="book-q">{questionIndex + 1}. {question.prompt}</legend>
             <div className="grid gap-1.5">{question.options.map((option, optionIndex) => <label key={optionIndex} className={cx('flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-[13px]', answers[question.id] === optionIndex ? 'border-action bg-action/10' : 'border-line hover:border-line-strong', submitted && optionIndex === question.answerIndex && 'border-healthy bg-healthy/10', submitted && answers[question.id] === optionIndex && optionIndex !== question.answerIndex && 'border-down bg-down/10')}><input type="radio" name={question.id} checked={answers[question.id] === optionIndex} onChange={() => setAnswers((current) => ({ ...current, [question.id]: optionIndex }))} className="mt-0.5 accent-blue-500" />{option}</label>)}</div>
             {submitted && <p className="text-[12.5px] text-muted">{question.explanation}</p>}
           </fieldset>)}
           {submitted ? <div className="flex flex-wrap items-center gap-3"><p className="font-semibold" data-testid="ccna-book-score">Score: {correctCount}/{assessment.length} · {Math.round(correctCount / Math.max(assessment.length, 1) * 100)}%</p><Button type="button" onClick={() => { setAnswers({}); setSubmitted(false); }}>Try again</Button></div> : <Button type="button" variant="primary" disabled={!allAnswered} onClick={submitQuiz}>Submit answers</Button>}
         </section>}
-        {stageNames[stage] && lesson.beginner.remember && stage === 'meaning' && <Panel title="Remember" tone="remember"><p>{level === 'beginner' ? beginner.remember : technical.remember ?? beginner.remember}</p></Panel>}
+        {stage === 'assessment' && lesson.id !== '8.02' && lesson.id !== '8.04' && <BookRecall key={`${lesson.id}-${level}`} lessonId={lesson.id} level={level} onComplete={() => setCompleted((current) => current.includes(lesson.id) ? current : [...current, lesson.id])} />}
       </article>
 
       <footer className="flex items-center justify-between pt-2">
         <Button type="button" variant="secondary" onClick={() => safeStageIndex > 0 ? setStage(safeStageIndex - 1) : lesson.navigation?.previous && openLesson(lesson.navigation.previous)} disabled={safeStageIndex === 0 && !lesson.navigation?.previous}><ArrowLeft className="size-4" />Back</Button>
-        <span className="hidden text-[12px] text-muted sm:inline">{safeStageIndex + 1} of {stages.length} · progress saves on this computer</span>
+        <span className="hidden text-[12px] text-muted sm:inline">Progress saves on this computer</span>
         {safeStageIndex < stages.length - 1 ? <Button type="button" variant="primary" onClick={() => setStage(safeStageIndex + 1)}>Next <ArrowRight className="size-4" /></Button> : lesson.navigation?.next && nextLesson >= 0 ? <Button type="button" variant="primary" onClick={() => openLesson(lesson.navigation!.next!)}>Next lesson <ArrowRight className="size-4" /></Button> : <Button type="button" variant="primary" onClick={() => openLesson(book.lessons[0].id)}><BookOpen className="size-4" />Back to start</Button>}
       </footer>
       <section className="pt-2 text-[12px] text-muted" aria-label="Course quality notice"><p className="font-semibold text-text">Study draft · independent educational content</p><p className="mt-1">{book.qualityNotice}</p><p className="mt-1">{book.disclaimer}</p></section>

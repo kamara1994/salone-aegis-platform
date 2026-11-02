@@ -27,6 +27,7 @@ const Flashcards = dynamic(() => import('@/components/learn/Exams').then((module
 const TimedExam = dynamic(() => import('@/components/learn/Exams').then((module) => module.TimedExam), { loading: SectionLoading });
 const LessonLibrary = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonLibrary), { loading: SectionLoading });
 const LessonReader = dynamic(() => import('@/components/learn/Lessons').then((module) => module.LessonReader), { loading: SectionLoading });
+const FlashDeck = dynamic(() => import('@/components/learn/FlashDeck').then((module) => module.FlashDeck), { loading: SectionLoading });
 const CCNABook = dynamic(() => import('@/components/learn/CCNABook').then((module) => module.CCNABook), { loading: SectionLoading });
 const BookTopicPicker = dynamic(() => import('@/components/learn/CCNABook').then((module) => module.BookTopicPicker), { ssr: false });
 const Interview = dynamic(() => import('@/components/learn/Practice').then((module) => module.Interview), { loading: SectionLoading });
@@ -36,6 +37,7 @@ const ScenarioQuestions = dynamic(() => import('@/components/learn/ScenarioQuest
 const AITutor = dynamic(() => import('@/components/learn/AITutor').then((module) => module.AITutor), { loading: SectionLoading });
 const TopicPlayground = dynamic(() => import('@/components/learn/Topics').then((module) => module.TopicPlayground), { loading: SectionLoading });
 const TracksView = dynamic(() => import('@/components/learn/Tracks').then((module) => module.TracksView), { loading: SectionLoading });
+const ImageStudy = dynamic(() => import('@/components/learn/ImageStudy').then((module) => module.ImageStudy), { loading: SectionLoading });
 const VisualsView = dynamic(() => import('@/components/learn/Visuals').then((module) => module.VisualsView), { loading: SectionLoading });
 
 type Part = { key: string; label: string; hint?: string; icon: LucideIcon; hue: string };
@@ -147,6 +149,11 @@ export default function DashboardPage() {
   // The complete CCNA book is the Networking dashboard's Learn by topic experience.
   // Keep other Learn tools available as their own side-panel destinations.
   const useCcnabookAsTopics = (dash.id === 'networking' || dash.id === 'ccna') && section === 'learn' && part === 'topics';
+  const isCcna = dash.id === 'networking' || dash.id === 'ccna';
+  // Pages with their own contents sidebar, or that never use a topic, hide the toolbar topic search.
+  const ownNav = section === 'learn' && ((isCcna && ['flashcards', 'images', 'scenario-questions'].includes(part ?? '')) || ['interview', 'ai', 'subnetting', 'tracks', 'lessons'].includes(part ?? ''));
+  // Beginner / Technical only changes Learn by topic, the AI Tutor and Interview level.
+  const showMode = section === 'learn' && ['topics', 'ai-tutor', 'interview'].includes(part ?? '') || (section === 'learn' && !isCcna && ['images', 'scenario-questions'].includes(part ?? ''));
   const open = (s: DashSection, p?: string) => setItem(p ? `${s}/${p}` : s);
   const pickTopic = (t: string) => {
     setTopicId(t);
@@ -248,7 +255,7 @@ export default function DashboardPage() {
               <Sep />
             </>}
             <div className="flex flex-wrap items-center gap-1.5" data-testid="dash-topic-mode">
-            {!useCcnabookAsTopics && <div className="relative" data-testid="dash-topic-picker">
+            {!useCcnabookAsTopics && !ownNav && <div className="relative" data-testid="dash-topic-picker">
               <Tags className="pointer-events-none absolute top-2 left-2 z-10 size-3.5 text-faint" aria-hidden />
               <input
                 type="search"
@@ -280,7 +287,8 @@ export default function DashboardPage() {
               )}
             </div>}
             {useCcnabookAsTopics && <BookTopicPicker />}
-            <div className="flex items-center gap-1" role="radiogroup" aria-label="Learning mode" data-testid="dash-mode">
+            {/* Flashcards rate themselves (Again to Easy), so the Beginner / Technical switch is hidden there. */}
+            <div className={cx('flex items-center gap-1', !showMode && 'hidden')} role="radiogroup" aria-label="Learning mode" data-testid="dash-mode">
               <span className="hidden pr-0.5 text-[11.5px] text-faint lg:inline">Mode</span>
               <div className="flex rounded-[6px] border border-line-strong p-0.5">
                 {MODES.map((m) => (
@@ -360,7 +368,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 )))}
-              {part === 'images' && <VisualsView onTopic={pickTopic} scope={topics} topicId={topicId} />}
+              {part === 'images' && (isCcna ? <ImageStudy /> : <VisualsView onTopic={pickTopic} scope={topics} topicId={topicId} />)}
               {part === 'exam' && (
                 <div data-testid="playground-exam">
                   <TimedExam key={scope ?? 'all'} scope={scope} onStudy={studyTopic} />
@@ -368,7 +376,7 @@ export default function DashboardPage() {
               )}
               {part === 'flashcards' && (
                 <div data-testid="playground-flashcards">
-                  <Flashcards key={scope ?? 'all'} scope={scope} />
+                  {dash.id === 'networking' || dash.id === 'ccna' ? <FlashDeck /> : <Flashcards key={scope ?? 'all'} scope={scope} />}
                 </div>
               )}
               {part === 'scenario-questions' && (
