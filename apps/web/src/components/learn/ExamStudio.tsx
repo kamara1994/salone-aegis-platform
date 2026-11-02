@@ -160,6 +160,8 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
   const [paused, setPaused] = useState(false);
   const [grid, setGrid] = useState(false);
   const [pad, setPad] = useState(false);
+  const [tools, setTools] = useState(false);
+  const [allTopics, setAllTopics] = useState(false);
   const [padText, setPadText] = useState('');
   const [review, setReview] = useState<'all' | 'wrong' | 'flagged' | 'unsure' | 'slow'>('all');
   const tick = useRef(Date.now());
@@ -236,7 +238,10 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
     if (!items || !live) return;
     setFinished(true);
     setGrid(false);
+    setTools(false);
+    setAllTopics(false);
     const s = items.filter((q, k) => live.answers[k] === q.answer).length;
+    setReview(s < items.length ? 'wrong' : 'all');
     updateProgress((p) => {
       p.exams = [...(p.exams ?? []), { course, difficulty: live.level, score: s, total: items.length, minutes: Math.max(1, Math.round((live.total - live.left) / 60) || Math.round(Object.values(live.spent).reduce((a, b) => a + b, 0) / 60)), at: new Date().toISOString() }].slice(-100);
     });
@@ -277,7 +282,10 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
       if (k === 'f') return flag();
       if (k === 's') return setPad((p) => !p);
       if (k === 'g') return setGrid((g) => !g);
-      if (k === 'escape') return setGrid(false);
+      if (k === 'escape') {
+        setTools(false);
+        return setGrid(false);
+      }
       if (k === 'enter' && live.mode === 'tutor' && !live.checked[live.idx]) return check();
       if (e.key === 'ArrowRight' || k === 'n' || (k === 'enter' && live.mode === 'tutor')) return go(live.idx + 1);
       if (e.key === 'ArrowLeft' || k === 'p') return go(live.idx - 1);
@@ -287,205 +295,173 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
   });
 
   // ------------------------------------------------------------------ setup
+  // One start card with sensible defaults. Everything optional folds under Customize.
   if (!live || !items) {
     const L = lv(examDifficulty);
     const pcts = history.map((h) => Math.round((h.score / Math.max(1, h.total)) * 100));
     const best = pcts.length ? Math.max(...pcts) : 0;
     const recent = pcts.slice(-3);
     const ready = recent.length ? Math.round(recent.reduce((a, b) => a + b, 0) / recent.length) : 0;
-    const sources: { k: Source; label: string; hint: string; n?: number; disabled?: boolean }[] = [
+    const courseName = course.startsWith('cert:') ? (cert?.name ?? 'This certification') : course === 'all' ? 'All courses' : course.startsWith('topic:') ? ALL_TOPICS.find((t) => t.id === course.slice(6))?.title ?? 'Topic' : COURSES.find((c) => c.id === course)?.title ?? 'Course';
+    const sourceLabel = source === 'weak' ? 'your weak topics' : source === 'missed' ? 'questions you missed before' : source === 'pick' ? `${picked.length} chosen topic${picked.length === 1 ? '' : 's'}` : 'the whole course';
+    const nQs = source === 'missed' ? Math.min(count, missedHere.length) : count;
+    const sources: { k: Source; label: string; hint: string; disabled?: boolean }[] = [
       { k: 'all', label: 'Whole course', hint: `${courseTopics.length} topics` },
       { k: 'weak', label: 'Weak topics', hint: weakIds.length ? `${weakIds.length} under 70%` : 'None yet', disabled: !weakIds.length },
       { k: 'missed', label: 'Missed before', hint: missedHere.length ? `${missedHere.length} questions` : 'None yet', disabled: !missedHere.length },
       { k: 'pick', label: 'Choose topics', hint: picked.length ? `${picked.length} chosen` : 'Build your own' },
     ];
+    // One suggested next step, based on what you have done before.
+    const suggestion = missedHere.length >= 3 && source !== 'missed'
+      ? { label: `Retry the ${missedHere.length} questions you missed`, run: () => start(missedHere.slice(-count), 'tutor') }
+      : weakIds.length && source !== 'weak'
+        ? { label: `Practise your ${weakIds.length} weak topic${weakIds.length === 1 ? '' : 's'}`, run: () => setSource('weak') }
+        : null;
     return (
-      <div className="mx-auto max-w-[980px] space-y-5" data-testid="exam-setup">
-        <header className="exam-hero grid gap-5 md:grid-cols-[1fr_auto]">
-          <div>
-            <p className="text-[10.5px] font-semibold tracking-[0.22em] text-faint uppercase">Practice exam</p>
-            <h2 className="mt-1 text-[26px] leading-tight font-semibold tracking-[-0.01em]">Train like test day, learn from every miss</h2>
-            <p className="mt-2 max-w-[560px] text-[13.5px] leading-relaxed text-muted">Real exam pressure in Exam mode, instant explanations in Tutor mode. Strike out wrong options, rate your confidence, and the results show exactly what to fix.</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <Ring pct={ready} size={92} stroke={7} color={ready >= L.pass ? '#38d9a9' : ready ? '#ffa94d' : 'var(--line)'} pass={L.pass}>
-              <span className="text-center">
-                <span className="block text-[20px] leading-none font-bold">{pcts.length ? `${ready}%` : '–'}</span>
-                <span className="text-[9.5px] tracking-wide text-faint uppercase">ready</span>
+      <div className="mx-auto max-w-[760px] space-y-4" data-testid="exam-setup">
+        <section className="exam-start">
+          {saved && (
+            <div className="exam-resume" data-testid="exam-resume">
+              <Clock className="size-4 shrink-0 text-action" />
+              <span className="min-w-0 flex-1 text-[13px]">
+                Unfinished {saved.mode === 'exam' ? 'exam' : 'tutor session'}: {Object.keys(saved.answers).length} of {saved.keys.length} answered{saved.mode === 'exam' ? `, ${fmt(saved.left)} left` : ''}
               </span>
-            </Ring>
-            <div className="space-y-1 text-[12px] text-muted">
-              <p><b className="text-text">{history.length}</b> exam{history.length === 1 ? '' : 's'} taken</p>
-              <p>Best <b className="text-text">{pcts.length ? `${best}%` : '–'}</b></p>
-              <p>Pass mark <b className="text-text">{L.pass}%</b></p>
+              <Button size="sm" variant="primary" onClick={() => { tick.current = Date.now(); setFinished(false); setLiveRaw(saved); setSaved(null); }} data-testid="exam-resume-go">
+                <Play className="size-3.5" /> Resume
+              </Button>
+              <button type="button" onClick={() => { writeJson(LIVE_KEY, null); setSaved(null); }} className="text-[12px] text-faint hover:text-text">
+                Discard
+              </button>
             </div>
-          </div>
-        </header>
+          )}
 
-        {saved && (
-          <div className="exam-resume" data-testid="exam-resume">
-            <Clock className="size-4 text-action" />
-            <span className="flex-1 text-[13px]">
-              You have an unfinished {saved.mode} exam: {Object.keys(saved.answers).length} of {saved.keys.length} answered{saved.mode === 'exam' ? `, ${fmt(saved.left)} left` : ''}.
-            </span>
-            <Button size="sm" variant="primary" onClick={() => { tick.current = Date.now(); setFinished(false); setLiveRaw(saved); setSaved(null); }}>
-              <Play className="size-3.5" /> Resume
-            </Button>
-            <Button size="sm" onClick={() => { writeJson(LIVE_KEY, null); setSaved(null); }}>
-              Discard
-            </Button>
-          </div>
-        )}
+          <p className="text-[10.5px] font-semibold tracking-[0.22em] text-faint uppercase">Practice exam · {courseName}</p>
+          <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.015em] text-text">
+            {nQs} questions{mode === 'exam' ? <>, {minutes} minutes</> : ', no clock'}
+          </h2>
+          <p className="mt-1.5 text-[13.5px] text-muted">
+            {L.label} level from {sourceLabel}. Pass mark {L.pass}%.
+          </p>
 
-        <section>
-          <p className="exam-label">Mode</p>
-          <div className="grid gap-3 md:grid-cols-2" role="radiogroup" aria-label="Exam mode">
-            {(
-              [
-                ['exam', 'Exam mode', 'Timed. Explanations only after you submit, like the real test.', <Timer key="t" className="size-5" />],
-                ['tutor', 'Tutor mode', 'Untimed. Check each answer and read why straight away.', <GraduationCap key="g" className="size-5" />],
-              ] as const
-            ).map(([k, label, hint, icon]) => (
-              <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)} className={cx('exam-mode', mode === k && 'is-on')} data-testid={`exam-mode-${k}`}>
-                <span className="exam-mode-icon">{icon}</span>
-                <span className="min-w-0 text-left">
-                  <span className="block text-[14px] font-semibold text-text">{label}</span>
-                  <span className="block text-[12.5px] text-muted">{hint}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <fieldset data-testid="exam-difficulty-picker">
-          <legend className="exam-label">Difficulty</legend>
-          <div className="grid gap-3 md:grid-cols-3">
-            {LEVELS.map((level, k) => (
-              <button key={level.key} type="button" role="radio" aria-checked={examDifficulty === level.key} onClick={() => setExamDifficulty(level.key)} className={cx('exam-level', examDifficulty === level.key && 'is-on')} style={{ '--c': level.c } as CSSProperties} data-testid={`exam-level-${level.key}`}>
-                <span className="flex items-center gap-2">
-                  <span className="flex gap-0.5" aria-hidden>
-                    {[0, 1, 2].map((d) => (
-                      <i key={d} className={cx('h-3 w-1 rounded-full', d <= k ? 'bg-[var(--c)]' : 'bg-line')} />
-                    ))}
-                  </span>
-                  <span className="text-[14px] font-semibold text-text">{level.label}</span>
-                </span>
-                <span className="mt-2 block min-h-10 text-[12.5px] leading-5 text-muted">{level.description}</span>
-                <span className="mt-3 flex gap-3 text-[11.5px] text-faint">
-                  <span><b className="text-text">{level.count}</b> Qs</span>
-                  <span><b className="text-text">{level.minutes}</b> min</span>
-                  <span><b className="text-text">{level.pass}%</b> to pass</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <section className="exam-panel space-y-4">
-          <div className="grid gap-4 md:grid-cols-[1.4fr_1fr_1fr]">
-            <label className="space-y-1">
-              <span className="exam-label !mb-0 block">Course</span>
-              <select className={sel} value={course} onChange={(e) => { setCourse(e.target.value as ExamScope); setPicked([]); }} data-testid="exam-course">
-                <ScopeOptions cert={cert} scope={scope} />
-              </select>
-            </label>
-            <label className="space-y-1">
-              <span className="exam-label !mb-0 block">Questions</span>
-              <select className={sel} value={count} onChange={(e) => setCount(Number(e.target.value))} data-testid="exam-count">
-                {[5, 10, 20, 40, 60].map((n) => (
-                  <option key={n} value={n}>
-                    {n} questions
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={cx('space-y-1', mode === 'tutor' && 'opacity-50')}>
-              <span className="exam-label !mb-0 block">Time limit</span>
-              <select className={sel} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} disabled={mode === 'tutor'} data-testid="exam-minutes">
-                {[5, 10, 15, 20, 30, 60, 120].map((n) => (
-                  <option key={n} value={n}>
-                    {n} minutes
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div>
-            <p className="exam-label">Questions from</p>
-            <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4" role="radiogroup" aria-label="Question source">
-              {sources.map((s) => (
-                <button key={s.k} type="button" role="radio" aria-checked={source === s.k} disabled={s.disabled} onClick={() => { setSource(s.k); if (s.k === 'pick') setPickOpen(true); }} className={cx('exam-source', source === s.k && 'is-on')} data-testid={`exam-source-${s.k}`}>
-                  <span className="text-[13px] font-semibold text-text">{s.label}</span>
-                  <span className="text-[11.5px] text-faint">{s.hint}</span>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="seg !rounded-full" role="radiogroup" aria-label="Exam mode">
+              {(
+                [
+                  ['exam', 'Exam', <Timer key="t" className="size-3.5" />],
+                  ['tutor', 'Tutor', <GraduationCap key="g" className="size-3.5" />],
+                ] as const
+              ).map(([k, label, icon]) => (
+                <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)} className={cx('seg-btn flex items-center gap-1.5 !rounded-full !px-4', mode === k && 'is-on')} data-testid={`exam-mode-${k}`}>
+                  {icon} {label}
                 </button>
               ))}
             </div>
-            {source === 'pick' && (
-              <div className="mt-3 rounded-xl border border-line p-3">
-                <button type="button" onClick={() => setPickOpen((o) => !o)} className="flex w-full items-center gap-2 text-[12.5px] text-muted">
-                  <ChevronDown className={cx('size-4 transition-transform', !pickOpen && '-rotate-90')} /> {picked.length ? `${picked.length} topics chosen` : 'Choose topics'}
-                  {picked.length > 0 && (
-                    <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setPicked([]); }} className="ml-auto text-faint hover:text-text">
-                      Clear
-                    </span>
-                  )}
-                </button>
-                {pickOpen && (
-                  <div className="mt-2 flex max-h-56 flex-wrap gap-1.5 overflow-auto">
-                    {courseTopics.map((t) => {
-                      const on = picked.includes(t.id);
-                      const st = stats.topic[t.id];
-                      return (
-                        <button key={t.id} type="button" onClick={() => setPicked(on ? picked.filter((x) => x !== t.id) : [...picked, t.id])} className={cx('rail-chip', on && 'is-on')} title={st ? `${Math.round((st.r / st.n) * 100)}% across ${st.n} answers` : 'Not tried yet'}>
-                          {on && <Check className="size-3" strokeWidth={3} />}
-                          {t.title}
-                          {st && <i className="ml-0.5 size-1.5 rounded-full" style={{ background: st.r / st.n >= 0.7 ? '#38d9a9' : '#ff6b81' }} />}
-                        </button>
-                      );
-                    })}
+            <span className="text-[12.5px] text-faint">{mode === 'exam' ? 'Timed. Answers and explanations at the end, like the real test.' : 'No clock. Check each answer and see why straight away.'}</span>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => start()} disabled={(source === 'pick' && !picked.length) || !nQs} className="exam-go" data-testid="exam-start">
+              {mode === 'exam' ? 'Start exam' : 'Start tutor session'} <ArrowRight className="size-5" />
+            </button>
+            <button type="button" onClick={() => setPickOpen((o) => !o)} aria-expanded={pickOpen} className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] text-muted hover:text-text" data-testid="exam-customize">
+              <ChevronDown className={cx('size-4 transition-transform duration-300', pickOpen && 'rotate-180')} /> Customize
+            </button>
+          </div>
+          {suggestion && (
+            <button type="button" onClick={suggestion.run} className="mt-4 flex items-center gap-2 text-[12.5px] text-action hover:underline" data-testid="exam-suggestion">
+              <Target className="size-3.5" /> Or: {suggestion.label} <ArrowRight className="size-3.5" />
+            </button>
+          )}
+
+          <div className={cx('grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(.16,1,.3,1)]', pickOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
+            <div className="min-h-0 overflow-hidden">
+              <div className="mt-6 space-y-5 border-t border-line pt-5">
+                <fieldset data-testid="exam-difficulty-picker">
+                  <legend className="exam-label">Difficulty</legend>
+                  <div className="seg" role="radiogroup" aria-label="Difficulty">
+                    {LEVELS.map((level) => (
+                      <button key={level.key} type="button" role="radio" aria-checked={examDifficulty === level.key} onClick={() => setExamDifficulty(level.key)} className={cx('seg-btn', examDifficulty === level.key && 'is-on')} data-testid={`exam-level-${level.key}`}>
+                        {level.label}
+                      </button>
+                    ))}
                   </div>
-                )}
+                  <p className="mt-1.5 text-[12px] text-faint">{L.description}</p>
+                </fieldset>
+                <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr_1fr]">
+                  <label className="space-y-1">
+                    <span className="exam-label !mb-0 block">Course</span>
+                    <select className={sel} value={course} onChange={(e) => { setCourse(e.target.value as ExamScope); setPicked([]); }} data-testid="exam-course">
+                      <ScopeOptions cert={cert} scope={scope} />
+                    </select>
+                  </label>
+                  <label className="space-y-1">
+                    <span className="exam-label !mb-0 block">Questions</span>
+                    <select className={sel} value={count} onChange={(e) => setCount(Number(e.target.value))} data-testid="exam-count">
+                      {[5, 10, 20, 40, 60].map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={cx('space-y-1', mode === 'tutor' && 'opacity-40')}>
+                    <span className="exam-label !mb-0 block">Time limit</span>
+                    <select className={sel} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} disabled={mode === 'tutor'} data-testid="exam-minutes">
+                      {[5, 10, 15, 20, 30, 60, 120].map((n) => (
+                        <option key={n} value={n}>
+                          {n} min
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <p className="exam-label">Questions from</p>
+                  <div className="grid gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Question source">
+                    {sources.map((x) => (
+                      <button key={x.k} type="button" role="radio" aria-checked={source === x.k} disabled={x.disabled} onClick={() => setSource(x.k)} className={cx('exam-source', source === x.k && 'is-on')} data-testid={`exam-source-${x.k}`}>
+                        <span className="text-[13px] font-semibold text-text">{x.label}</span>
+                        <span className="text-[11.5px] text-faint">{x.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {source === 'pick' && (
+                    <div className="mt-3 flex max-h-52 flex-wrap gap-1.5 overflow-auto rounded-xl border border-line p-3">
+                      {courseTopics.map((t) => {
+                        const on = picked.includes(t.id);
+                        const st = stats.topic[t.id];
+                        return (
+                          <button key={t.id} type="button" onClick={() => setPicked(on ? picked.filter((x) => x !== t.id) : [...picked, t.id])} className={cx('rail-chip', on && 'is-on')} title={st ? `${Math.round((st.r / st.n) * 100)}% across ${st.n} answers` : 'Not tried yet'}>
+                            {on && <Check className="size-3" strokeWidth={3} />}
+                            {t.title}
+                            {st && <i className="ml-0.5 size-1.5 rounded-full" style={{ background: st.r / st.n >= 0.7 ? '#38d9a9' : '#ff6b81' }} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </section>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <Button variant="primary" onClick={() => start()} disabled={source === 'pick' && !picked.length} data-testid="exam-start">
-            {mode === 'exam' ? <Timer className="size-4" /> : <GraduationCap className="size-4" />} Start the {mode === 'exam' ? 'exam' : 'tutor session'}
-          </Button>
-          <span className="text-[12px] text-faint">{mode === 'exam' ? `About ${Math.round((minutes * 60) / Math.max(1, count))} seconds per question · pass mark ${L.pass}%` : 'No clock. Check each answer as you go.'}</span>
-        </div>
-
         {history.length > 0 && (
-          <section className="grid gap-4 md:grid-cols-2" data-testid="exam-history">
-            <div className="exam-panel">
-              <p className="exam-label">Score trend</p>
-              <Trend points={pcts} pass={L.pass} />
+          <section className="exam-strip" data-testid="exam-history">
+            <Ring pct={ready} size={52} stroke={5} color={ready >= L.pass ? '#38d9a9' : '#ffa94d'} pass={L.pass}>
+              <span className="text-[12px] font-bold">{ready}%</span>
+            </Ring>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-text">{ready >= L.pass ? 'On track to pass' : `${L.pass - ready} points to the pass mark`}</p>
+              <p className="text-[12px] text-faint">
+                Average of your last {recent.length} · best {best}% · {history.length} exam{history.length === 1 ? '' : 's'}
+              </p>
             </div>
-            <div className="exam-panel">
-              <p className="exam-label">Topic strength</p>
-              <div className="space-y-2">
-                {courseTopics
-                  .filter((t) => stats.topic[t.id])
-                  .sort((a, b) => stats.topic[a.id].r / stats.topic[a.id].n - stats.topic[b.id].r / stats.topic[b.id].n)
-                  .slice(0, 5)
-                  .map((t) => {
-                    const st = stats.topic[t.id];
-                    const p = st.r / st.n;
-                    return (
-                      <div key={t.id} className="flex items-center gap-3 text-[12.5px]">
-                        <span className="w-36 truncate text-text">{t.title}</span>
-                        <span className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-                          <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${p * 100}%`, background: p >= 0.7 ? '#38d9a9' : '#ffa94d' }} />
-                        </span>
-                        <span className="w-9 text-right text-faint tabular-nums">{Math.round(p * 100)}%</span>
-                      </div>
-                    );
-                  })}
-                {!courseTopics.some((t) => stats.topic[t.id]) && <p className="text-[12px] text-faint">Shows after your first exam in this course.</p>}
+            {pcts.length >= 2 && (
+              <div className="ml-auto hidden w-[220px] sm:block">
+                <Trend points={pcts} pass={L.pass} />
               </div>
-            </div>
+            )}
           </section>
         )}
       </div>
@@ -514,6 +490,12 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
       return m.set(q.topic.id, v);
     }, new Map<string, { t: ExamItem['topic']; r: number; n: number }>()).values()].sort((a, b) => a.r / a.n - b.r / b.n);
     const wrongKeys = items.filter((q, k) => live.answers[k] !== q.answer).map(keyOf);
+    const weakest = byTopic.filter((v) => v.r < v.n).slice(0, 2).map((v) => v.t.title);
+    const headline = passed
+      ? pct === 100
+        ? 'Perfect score. Move up a difficulty level or try a longer exam.'
+        : `${pct - L.pass} points above the pass mark.${weakest.length ? ` Tidy up ${weakest.join(' and ')} to make it safe.` : ''}`
+      : `${L.pass - pct} points below the ${L.pass}% pass mark.${weakest.length ? ` Fix ${weakest.join(' and ')} first.` : ''}`;
     const shown = items
       .map((q, k) => ({ q, k }))
       .filter(({ q, k }) => review === 'all' || (review === 'wrong' ? live.answers[k] !== q.answer : review === 'flagged' ? !!live.flags[k] : review === 'unsure' ? !!live.conf[k] && live.conf[k] !== 'sure' : (live.spent[k] ?? 0) >= slowCut && slowCut > 0));
@@ -532,11 +514,15 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
               {L.label} · {live.mode === 'exam' ? 'Exam mode' : 'Tutor mode'}
             </p>
             <h3 className="mt-1 text-[26px] font-semibold">
-              <span data-testid="exam-score">
-                {score}/{items.length}
-              </span>{' '}
-              correct · {passed ? 'Pass' : pct >= L.pass - 10 ? 'Nearly there' : 'Keep studying'}
+              {passed ? 'You passed' : pct >= L.pass - 10 ? 'Nearly there' : 'Not yet'}
+              <span className="text-muted">
+                {' '}
+                · <span data-testid="exam-score">{score}/{items.length}</span> correct
+              </span>
             </h3>
+            <p className="mt-1.5 max-w-[520px] text-[14px] leading-relaxed text-text" data-testid="exam-verdict">
+              {headline}
+            </p>
             <div className="mt-2 flex flex-wrap gap-4 text-[12.5px] text-muted">
               <span className="flex items-center gap-1.5"><Clock className="size-3.5" /> {fmt(used)} used</span>
               <span className="flex items-center gap-1.5"><Timer className="size-3.5" /> {avg}s per question</span>
@@ -553,8 +539,8 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
           </div>
         </section>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <section className="exam-panel md:col-span-2">
+        <div className={cx('grid gap-4', pcts.length >= 2 && 'md:grid-cols-3')}>
+          <section className={cx('exam-panel', pcts.length >= 2 && 'md:col-span-2')}>
             <p className="exam-label">Confidence check</p>
             {Object.keys(live.conf).length ? (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -582,16 +568,25 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
               </p>
             )}
           </section>
-          <section className="exam-panel">
-            <p className="exam-label flex items-center gap-1.5"><TrendingUp className="size-3.5" /> Trend</p>
-            <Trend points={pcts} pass={L.pass} />
-          </section>
+          {pcts.length >= 2 && (
+            <section className="exam-panel">
+              <p className="exam-label flex items-center gap-1.5"><TrendingUp className="size-3.5" /> Trend</p>
+              <Trend points={pcts} pass={L.pass} />
+            </section>
+          )}
         </div>
 
         <section className="exam-panel">
-          <p className="exam-label">By topic</p>
+          <div className="flex items-center">
+            <p className="exam-label mr-auto">By topic, weakest first</p>
+            {byTopic.length > 6 && (
+              <button type="button" onClick={() => setAllTopics((x) => !x)} className="mb-2 text-[12px] text-faint hover:text-text">
+                {allTopics ? 'Show fewer' : `Show all ${byTopic.length}`}
+              </button>
+            )}
+          </div>
           <div className="grid gap-x-6 gap-y-2.5 md:grid-cols-2">
-            {byTopic.map((v) => {
+            {(allTopics ? byTopic : byTopic.slice(0, 6)).map((v) => {
               const p = v.r / v.n;
               return (
                 <div key={v.t.id} className="flex items-center gap-3 text-[12.5px]">
@@ -677,26 +672,37 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
         <span className="text-[13px] text-muted">
           Question <b className="text-text">{live.idx + 1}</b> of {items.length}
         </span>
-        <span className="stage-progress hidden sm:block" style={{ '--p': `${(nAnswered / items.length) * 100}%` } as CSSProperties} />
-        <span className="hidden text-[12px] text-faint md:inline">
-          {nAnswered} answered · {Object.keys(live.flags).length} flagged
+        <span className="hidden text-[12px] text-faint sm:inline">
+          {nAnswered} answered{Object.keys(live.flags).length ? ` · ${Object.keys(live.flags).length} flagged` : ''}
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <button type="button" onClick={() => setPad((p) => !p)} className={cx('exam-tool', pad && 'is-on')} title="Scratchpad and subnet table (S)" data-testid="exam-pad-toggle">
-            <NotebookPen className="size-4" />
-          </button>
-          <button type="button" onClick={() => setGrid(true)} className="exam-tool" title="Review all questions (G)" data-testid="exam-grid-open">
-            <LayoutGrid className="size-4" />
-          </button>
+          <div className="relative">
+            <button type="button" onClick={() => setTools((t) => !t)} aria-expanded={tools} className={cx('exam-tool exam-tool-wide relative z-40', tools && 'is-on')} data-testid="exam-tools">
+              <LayoutGrid className="size-3.5" /> Tools <ChevronDown className="size-3.5" />
+            </button>
+            {tools && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setTools(false)} aria-hidden />
+                <div className="exam-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={() => { setGrid(true); setTools(false); }} data-testid="exam-grid-open">
+                    <LayoutGrid className="size-4" /> Review all questions <kbd>G</kbd>
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { setPad((x) => !x); setTools(false); }} data-testid="exam-pad-toggle">
+                    <NotebookPen className="size-4" /> {pad ? 'Hide' : 'Show'} scratchpad <kbd>S</kbd>
+                  </button>
+                  {live.mode === 'exam' && (
+                    <button type="button" role="menuitem" onClick={() => { setPaused((x) => !x); setTools(false); }} data-testid="exam-pause">
+                      {paused ? <Play className="size-4" /> : <Pause className="size-4" />} {paused ? 'Resume' : 'Pause'} the clock
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
           {live.mode === 'exam' ? (
-            <>
-              <button type="button" onClick={() => setPaused((p) => !p)} className="exam-tool" title={paused ? 'Resume' : 'Pause'} data-testid="exam-pause">
-                {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
-              </button>
-              <span className={cx('exam-clock', live.left < 60 && 'is-low')} data-testid="exam-clock" aria-live="off" style={{ '--p': `${(live.left / Math.max(1, live.total)) * 100}%` } as CSSProperties}>
-                <Timer className="size-3.5" /> {fmt(live.left)}
-              </span>
-            </>
+            <span className={cx('exam-clock', live.left < 60 && 'is-low')} data-testid="exam-clock" aria-live="off" style={{ '--p': `${(live.left / Math.max(1, live.total)) * 100}%` } as CSSProperties}>
+              <Timer className="size-3.5" /> {fmt(live.left)}
+            </span>
           ) : (
             <span className="exam-clock" data-testid="exam-clock" style={{ '--p': '0%' } as CSSProperties}>
               <GraduationCap className="size-3.5" /> Tutor
@@ -707,13 +713,13 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
 
       <div className={cx('grid gap-4', pad && 'lg:grid-cols-[minmax(0,1fr)_280px]')}>
         <div className="min-w-0 space-y-4">
-          <div className="exam-nav" aria-label="Questions">
+          <ol className="exam-segs" aria-label="Questions">
             {items.map((q, k) => (
-              <button key={k} onClick={() => go(k)} data-state={k === live.idx ? 'cur' : live.checked[k] ? (live.answers[k] === q.answer ? 'right' : 'wrong') : live.answers[k] !== undefined ? 'done' : 'todo'} data-flag={live.flags[k] ? '1' : undefined} aria-label={`Question ${k + 1}${live.answers[k] !== undefined ? ', answered' : ''}${live.flags[k] ? ', flagged' : ''}`}>
-                {k + 1}
-              </button>
+              <li key={k}>
+                <button type="button" onClick={() => go(k)} data-state={k === live.idx ? 'cur' : live.checked[k] ? (live.answers[k] === q.answer ? 'right' : 'wrong') : live.answers[k] !== undefined ? 'done' : 'todo'} data-flag={live.flags[k] ? '1' : undefined} data-label={`Q${k + 1}${live.flags[k] ? ' · flagged' : ''}${live.answers[k] === undefined ? ' · not answered' : ''}`} aria-label={`Question ${k + 1}${live.answers[k] !== undefined ? ', answered' : ''}${live.flags[k] ? ', flagged' : ''}`} />
+              </li>
             ))}
-          </div>
+          </ol>
 
           <fieldset className={cx('exam-q relative space-y-3', paused && 'is-paused')} key={live.idx}>
             <div className="flex flex-wrap items-center gap-2 text-[11px]">
@@ -751,8 +757,8 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
             </div>
             {live.answers[live.idx] !== undefined && (
               <div className="flex flex-wrap items-center gap-2 pt-1" role="radiogroup" aria-label="How sure are you?">
-                <span className="flex items-center gap-1.5 text-[12px] text-faint">
-                  <Brain className="size-3.5" /> How sure?
+                <span className="flex items-center gap-1.5 text-[11.5px] text-faint">
+                  <Brain className="size-3.5" /> How sure? <span className="opacity-70">(optional)</span>
                 </span>
                 {CONF.map((c) => (
                   <button key={c.k} type="button" role="radio" aria-checked={live.conf[live.idx] === c.k} onClick={() => setConf(c.k)} className={cx('exam-conf', live.conf[live.idx] === c.k && 'is-on')} style={{ '--c': c.c } as CSSProperties} data-testid={`exam-conf-${c.k}`}>
@@ -789,11 +795,17 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
                 Next <ArrowRight className="size-4" />
               </Button>
             ) : null}
-            <Button className="ml-auto" variant={nAnswered === items.length ? 'primary' : 'secondary'} onClick={() => (unanswered || Object.keys(live.flags).length ? setGrid(true) : finish())} data-testid="exam-finish">
-              {live.mode === 'exam' ? 'Finish and mark' : 'Finish'} ({nAnswered}/{items.length} answered)
-            </Button>
+            {nAnswered === items.length ? (
+              <Button className="ml-auto" variant="primary" onClick={() => (Object.keys(live.flags).length ? setGrid(true) : finish())} data-testid="exam-finish">
+                <Check className="size-4" /> {live.mode === 'exam' ? 'Finish and mark' : 'Finish'}
+              </Button>
+            ) : (
+              <button type="button" className="ml-auto text-[12.5px] text-faint hover:text-text" onClick={() => setGrid(true)} data-testid="exam-finish">
+                Finish early ({nAnswered}/{items.length} answered)
+              </button>
+            )}
           </div>
-          <p className="text-center text-[11.5px] text-faint">A–D answer · Shift+A–D rule out · F flag · S scratchpad · G review grid · ← → move{live.mode === 'tutor' ? ' · Enter check' : ''}</p>
+          {live.idx < 2 && <p className="text-center text-[11.5px] text-faint">A–D answer · Shift+A–D rule out · F flag · S scratchpad · G review grid · ← → move{live.mode === 'tutor' ? ' · Enter check' : ''}</p>}
         </div>
 
         {pad && (
