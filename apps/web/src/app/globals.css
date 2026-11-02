@@ -411,3 +411,27 @@ body {
   .edge-rail, .edge-rail [data-rail-item], .cert-pop, .cert-pop li { transition-duration: 0.01s !important; transition-delay: 0s !important; }
   .edge-rail[data-open]::after { animation: none; }
 }
+
+/* ---------- Toolbar section drop-down: parts drop in one at a time ---------- */
+.drop-menu { visibility: hidden; pointer-events: none; transition: visibility 0s linear 0.45s; }
+.drop-menu[data-open] { visibility: visible; pointer-events: auto; transition-delay: 0s; }
+.drop-menu ul { opacity: 0; transform: translateY(-6px) scaleY(0.96); transform-origin: top; transition: opacity 0.2s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+.drop-menu[data-open] ul { opacity: 1; transform: none; }
+.drop-menu li {
+  opacity: 0;
+  transform: translateY(-18px) scale(0.97);
+  filter: blur(3px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.55s cubic-bezier(0.22, 1.2, 0.36, 1),
+    filter 0.3s ease;
+}
+.drop-menu[data-open] li {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition-delay: calc(0.05s + var(--i, 0) * 0.075s);
+}
+@media (prefers-reduced-motion: reduce) {
+  .drop-menu li, .drop-menu ul { transition-duration: 0.01s !important; transition-delay: 0s !important; filter: none !important; }
+}

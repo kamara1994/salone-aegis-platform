@@ -85,6 +85,8 @@ export default function DashboardPage() {
   const focus = certById(id);
   const { item, setItem } = useDashItem();
   const [panel, setPanel] = useState(true);
+  // Once a part is chosen the side panel folds away; the section button in the toolbar drops the list down on hover.
+  const [panelPinned, setPanelPinned] = useState(false);
   const [topicId, setTopicId] = useState<string>('');
   const [topicQuery, setTopicQuery] = useState('');
   const [topicPickerOpen, setTopicPickerOpen] = useState(false);
@@ -139,6 +141,8 @@ export default function DashboardPage() {
   const section = sectionOf(item);
   const parts = section ? partsFor(section, focus) : [];
   const part = item?.split('/').slice(1).join('/') || parts[0]?.key;
+  const hasPart = !!item?.includes('/');
+  const showPanel = hasPart ? panelPinned : panel;
   // The complete CCNA book is the Networking dashboard's Learn by topic experience.
   // Keep other Learn tools available as their own side-panel destinations.
   const useCcnabookAsTopics = (dash.id === 'networking' || dash.id === 'ccna') && section === 'learn' && part === 'topics';
@@ -216,14 +220,25 @@ export default function DashboardPage() {
       <ToolDialog tool={tool} topic={topic} mode={mode} onClose={() => setTool(null)} />
       <DashToolbar>
         {section && parts.length > 0 && (
-          <TB label={panel ? 'Hide side panel' : 'Show side panel'} onClick={() => setPanel(!panel)} testid="dash-panel-toggle">
-            {panel ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+          <TB label={showPanel ? 'Hide side panel' : 'Show side panel'} onClick={() => (hasPart ? setPanelPinned(!panelPinned) : setPanel(!panel))} testid="dash-panel-toggle">
+            {showPanel ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
           </TB>
         )}
         {sectionMeta && (
-          <span className="inline-flex h-8 items-center gap-1.5 rounded-[6px] px-2.5 text-[12.5px] font-medium text-white shadow-sm" style={{ background: accent }} data-testid="dash-toolbar-section">
-            <sectionMeta.icon className="size-4" strokeWidth={2.25} /> {sectionMeta.label}
-          </span>
+          <SectionMenu
+            icon={sectionMeta.icon}
+            label={sectionMeta.label}
+            accent={accent}
+            parts={parts}
+            current={hasPart ? part : undefined}
+            onPick={(k) => {
+              setLesson(null);
+              setTopicPickerOpen(false);
+              setTopicQuery('');
+              setPanelPinned(false);
+              open(section!, k);
+            }}
+          />
         )}
         {section === 'learn' && (
           <>
@@ -281,7 +296,7 @@ export default function DashboardPage() {
         </span>
       </DashToolbar>
       <div className="flex min-h-0 flex-1 max-md:flex-col">
-        {section && panel && parts.length > 0 && (
+        {section && showPanel && parts.length > 0 && (
           <aside className="shrink-0 border-line bg-pane max-md:border-b md:w-[240px] md:overflow-auto md:border-r" aria-label={`${sectionMeta?.label} parts`} data-testid="dash-panel">
             <p className="px-3 pt-3 pb-1.5 text-[12px] font-semibold max-md:hidden">{sectionMeta?.label}</p>
             <ul className="flex gap-1 overflow-x-auto p-2 md:flex-col md:gap-0.5 md:overflow-visible md:pt-0">
@@ -422,6 +437,68 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** The section button in the toolbar. Hover it and its parts drop down one after another. */
+function SectionMenu({ icon: Icon, label, accent, parts, current, onPick }: { icon: LucideIcon; label: string; accent: string; parts: Part[]; current?: string; onPick: (key: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const t = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const enter = () => {
+    clearTimeout(t.current);
+    t.current = setTimeout(() => setOpen(true), 70);
+  };
+  const leave = () => {
+    clearTimeout(t.current);
+    t.current = setTimeout(() => setOpen(false), 220);
+  };
+  const cur = parts.find((p) => p.key === current);
+  return (
+    <div className="relative flex items-center" onMouseEnter={enter} onMouseLeave={leave} onFocus={() => setOpen(true)} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOpen(false)} data-testid="dash-section-menu">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open} className="inline-flex h-8 items-center gap-1.5 rounded-[6px] pr-2 text-[12.5px] font-medium text-white shadow-sm" style={{ background: accent }}>
+        <span className="inline-flex items-center gap-1.5 pl-2.5" data-testid="dash-toolbar-section">
+          <Icon className="size-4" strokeWidth={2.25} />
+          {label}
+        </span>
+        <ChevronDown className={cx('size-3.5 transition-transform duration-300', open && 'rotate-180')} aria-hidden />
+      </button>
+      {cur && (
+        <span className="mr-3 ml-2 inline-flex items-center gap-1.5 text-[12.5px] text-muted" data-testid="dash-current-part">
+          <span className="text-faint">›</span>
+          <cur.icon className="size-3.5" style={{ color: cur.hue }} aria-hidden />
+          <span className="text-text">{cur.label}</span>
+        </span>
+      )}
+      <div role="menu" aria-label={`${label} parts`} className="drop-menu absolute top-full left-0 z-50 pt-2" data-open={open || undefined} data-testid="dash-section-dropdown">
+        <ul className="w-[280px] rounded-xl border border-line-strong bg-pane/95 p-1.5 shadow-[0_24px_60px_-12px_rgba(0,0,0,.6)] backdrop-blur-xl">
+          {parts.map((p, i) => {
+            const on = p.key === current;
+            return (
+              <li key={p.key} style={{ '--i': i } as React.CSSProperties}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setOpen(false);
+                    onPick(p.key);
+                  }}
+                  className={cx('group flex w-full items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left transition-colors', on ? 'bg-pane-2 ring-1 ring-line-strong' : 'hover:bg-pane-2/70')}
+                  data-testid={`drop-part-${p.key}`}
+                >
+                  <span className="grid size-8 shrink-0 place-items-center rounded-[8px] transition-transform duration-200 group-hover:scale-110" style={{ background: `color-mix(in srgb, ${p.hue} ${on ? 30 : 16}%, transparent)`, color: p.hue }} aria-hidden>
+                    <p.icon className="size-4" strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className={cx('block text-[13px] leading-tight', on ? 'font-medium text-text' : 'text-muted group-hover:text-text')}>{p.label}</span>
+                    {p.hint && <span className="block text-[11px] leading-tight text-faint">{p.hint}</span>}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </div>
   );
