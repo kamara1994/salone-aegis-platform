@@ -14,7 +14,7 @@ import type { ExamDifficulty } from '@/content/topics';
 import { setExamDifficulty, useLearningPreferences } from '@/state/learning';
 import { useUi } from '@/state/ui';
 import { MiniRing, ShowSide, useSide } from './StudyKit';
-import { AskAI, nudgeTutor } from '@/components/tutor/AskAI';
+import { AskAI, nudgeTutor, recordMiss } from '@/components/tutor/AskAI';
 
 const LEVELS: { key: ExamDifficulty; label: string; description: string; count: number; minutes: number; pass: number; c: string }[] = [
   { key: 'beginner', label: 'Beginner', description: 'Foundational concepts and clear recognition questions.', count: 5, minutes: 10, pass: 60, c: '#38d9a9' },
@@ -285,6 +285,7 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
     const missed = new Set(st.missed);
     items.forEach((q, k) => {
       const ok = live.answers[k] === q.answer;
+      if (!ok) recordMiss(q.topic.title, `${q.q} ${q.options[q.answer]}`);
       const t = st.topic[q.topic.id] ?? { r: 0, n: 0 };
       st.topic[q.topic.id] = { r: t.r + (ok ? 1 : 0), n: t.n + 1 };
       if (ok) missed.delete(keyOf(q));

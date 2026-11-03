@@ -3,11 +3,11 @@
 // The study tutor: a dock on the right, a launcher in the corner, and the detour bar.
 // It follows you between pages, remembers what was hard, and can send you to a prerequisite
 // and bring you back with the link explained. Answers come from the AEGIS lessons.
-import { ArrowLeft, Brain, Send, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Brain, Send, Sparkles, Trash2, X } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { cx } from '@/components/ui';
 import { useDashItem } from '@/components/cert/DashboardSide';
-import { act, chat, CHAPTERS, chapterOf, detourArrive, detourReturn, greet, lessonById, resolveLesson, type Action, type Reply } from '@/learn/tutorBrain';
+import { act, chat, CHAPTERS, chapterOf, detourArrive, detourReturn, greet, lessonById, PAIRS, patterns, resolveLesson, welcome, type Action, type MapNode, type Reply } from '@/learn/tutorBrain';
 import { useBookLesson } from '@/state/bookLesson';
 import { useTutor } from '@/state/tutor';
 
@@ -54,6 +54,7 @@ export function TutorDock() {
       if (r.memory) patch.memory = r.memory;
       if (r.detour !== undefined) patch.detour = r.detour;
       if (Object.keys(patch).length) st.save(patch);
+      if (r.await !== undefined) st.setAwaiting(r.await);
       if (r.go) {
         useDashItem.getState().setItem('learn/topics');
         useBookLesson.getState().open(r.go);
@@ -70,6 +71,15 @@ export function TutorDock() {
       setTab('chat');
       apply(greet(st.ctx, st.memory, st.memory.name ?? ''));
     }
+    if (s.req.kind === 'welcome') {
+      setTab('chat');
+      apply(welcome(st.memory));
+    }
+    if (s.req.kind === 'select' && s.req.text && st.ctx) {
+      setTab('chat');
+      st.push([{ role: 'me', text: `Explain this: “${s.req.text.length > 140 ? `${s.req.text.slice(0, 140)}…` : s.req.text}”` }]);
+      apply(chat(s.req.text, st.ctx, st.memory, st.detour));
+    }
     if (s.req.kind === 'back' && st.detour) {
       const d = st.detour;
       st.save({ detour: null });
@@ -85,6 +95,12 @@ export function TutorDock() {
   const onAction = (label: string, a: Action) => {
     const st = useTutor.getState();
     st.push([{ role: 'me', text: label }]);
+    if (a.k !== 'teach') st.setAwaiting(null);
+    if (a.k === 'open') {
+      useDashItem.getState().setItem('learn/topics');
+      useBookLesson.getState().open(a.lesson);
+      return;
+    }
     apply(act(a, st.ctx ?? { kind: '', label: '' }, st.memory, st.detour));
   };
   const send = () => {
@@ -93,7 +109,7 @@ export function TutorDock() {
     setInput('');
     const st = useTutor.getState();
     st.push([{ role: 'me', text: t }]);
-    apply(chat(t, st.ctx ?? { kind: '', label: t }, st.memory, st.detour));
+    apply(chat(t, st.ctx ?? { kind: '', label: t }, st.memory, st.detour, st.awaiting));
   };
 
   const cur = s.ctx ? resolveLesson(s.ctx) : undefined;
@@ -103,6 +119,7 @@ export function TutorDock() {
     <>
       <DetourBar />
       <Launcher />
+      <SelectionAsk />
       <aside className={cx('tutor-dock', s.open && 'is-open')} aria-label="AI study tutor" aria-hidden={!s.open} data-testid="tutor-dock">
         <header className="tutor-head">
           <span className="tutor-orb" aria-hidden>
@@ -142,6 +159,21 @@ export function TutorDock() {
                 <div key={m.id} className={cx('tutor-msg', m.role === 'me' ? 'is-me' : 'is-ai', m.tone && `is-${m.tone}`)}>
                   <div className="tutor-bubble">
                     <Rich text={m.text} />
+                    {m.map && <TopicMap nodes={m.map} />}
+                    {m.table && (
+                      <div className="tutor-table-wrap">
+                        <table className="tutor-table">
+                          <thead>
+                            <tr>{m.table.head.map((h, i) => <th key={i}>{h}</th>)}</tr>
+                          </thead>
+                          <tbody>
+                            {m.table.rows.map((r, i) => (
+                              <tr key={i}>{r.map((c, k) => (k ? <td key={k}>{c}</td> : <th key={k} scope="row">{c}</th>))}</tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                     {m.source && (
                       <button type="button" className="tutor-source" onClick={() => { useDashItem.getState().setItem('learn/topics'); useBookLesson.getState().open(m.source!.id); }} title="Open this lesson">
                         From: {m.source.title}
@@ -177,12 +209,15 @@ export function TutorDock() {
                 send();
               }}
             >
-              <div className="mb-2 flex gap-1.5">
+              <div className="tutor-quick mb-2 flex gap-1.5">
                 {(
                   [
                     ['Simpler', { k: 'simple' }],
                     ['Deeper', { k: 'deep' }],
                     ['Quiz me', { k: 'quiz' }],
+                    ['Teach back', { k: 'teach' }],
+                    ['Map', { k: 'map' }],
+                    ['Job ticket', { k: 'job' }],
                   ] as [string, Action][]
                 ).map(([label, a]) => (
                   <button key={label} type="button" disabled={!s.ctx || typing} onClick={() => onAction(label, a)} className="tutor-chip !py-1 !text-[11.5px]">
@@ -191,7 +226,7 @@ export function TutorDock() {
                 ))}
               </div>
               <div className="flex gap-2">
-                <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask anything… e.g. why do trunks need tags?" className="tutor-field" aria-label="Ask the tutor" data-testid="tutor-input" />
+                <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={s.awaiting ? 'Explain it in your own words…' : 'Ask anything… try “VLAN vs subnet”'} className={cx('tutor-field', s.awaiting && 'is-teach')} aria-label="Ask the tutor" data-testid="tutor-input" />
                 <button type="submit" disabled={!input.trim() || typing} className="tutor-send" aria-label="Send">
                   <Send className="size-4" />
                 </button>
@@ -212,6 +247,7 @@ function MemoryPanel() {
   const { memory, save, forget } = useTutor();
   const hard = Object.entries(memory.struggled).filter(([, n]) => n > 0).map(([id, n]) => ({ l: lessonById(id), n })).filter((x) => x.l).sort((a, b) => b.n - a.n);
   const known = Object.keys(memory.known).map((id) => lessonById(id)).filter(Boolean);
+  const pats = patterns(memory);
   const row = (key: string, children: ReactNode) => <li key={key} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] text-muted hover:bg-pane-2/60">{children}</li>;
   return (
     <div className="tutor-body space-y-5" data-testid="tutor-memory">
@@ -228,6 +264,16 @@ function MemoryPanel() {
             </button>
           ))}
         </div>
+      </section>
+      <section>
+        <p className="exam-label">Mistake patterns</p>
+        {pats.length ? (
+          <ul>
+            {pats.map((x) => row(`p${x.pair}`, <><i className="size-1.5 shrink-0 rounded-full bg-[#ffa94d]" /> <span className="flex-1 truncate">{PAIRS[x.pair].a} vs {PAIRS[x.pair].b}</span> <span className="text-[10.5px] text-faint">{x.n} misses</span></>))}
+          </ul>
+        ) : (
+          <p className="text-[12px] text-faint">When the same mix-up keeps showing in your missed questions, I'll point it out.</p>
+        )}
       </section>
       <section>
         <p className="exam-label flex items-center gap-1.5">
@@ -301,5 +347,79 @@ function Launcher() {
         <Sparkles className="size-5" />
       </button>
     </div>
+  );
+}
+
+/** "Why this topic": a chain of chapters coloured by how well you know each one. Tap to open. */
+function TopicMap({ nodes }: { nodes: MapNode[] }) {
+  return (
+    <ol className="tutor-map" aria-label="How this topic connects">
+      {nodes.map((n, i) => {
+        const c = n.score === null ? 'var(--line-strong)' : n.score >= 0.7 ? '#38d9a9' : n.score >= 0.45 ? '#ffa94d' : '#ff6b81';
+        return (
+          <li key={`${n.id}-${i}`} className="flex items-center gap-1.5">
+            {i > 0 && <ArrowRight className="size-3 shrink-0 text-faint" aria-hidden />}
+            <button
+              type="button"
+              onClick={() => {
+                useDashItem.getState().setItem('learn/topics');
+                useBookLesson.getState().open(n.id);
+              }}
+              className={cx('tutor-node', n.here && 'is-here')}
+              style={{ '--c': c } as React.CSSProperties}
+              title={n.score === null ? 'Not started' : `${Math.round(n.score * 100)}% known`}
+            >
+              <i />
+              {n.title}
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** Highlight any sentence on a Learn page and a small "Ask about this" bubble appears beside it. */
+function SelectionAsk() {
+  const [pos, setPos] = useState<{ x: number; y: number; text: string } | null>(null);
+  useEffect(() => {
+    const onUp = () =>
+      setTimeout(() => {
+        const sel = window.getSelection();
+        const text = sel?.toString().trim() ?? '';
+        if (!sel || sel.isCollapsed || text.length < 3 || text.length > 400) return setPos(null);
+        const anchor = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode?.parentElement;
+        if (!anchor?.closest('[data-testid="dash-playground"]') || anchor.closest('input, textarea, .tutor-dock')) return setPos(null);
+        const r = sel.getRangeAt(0).getBoundingClientRect();
+        setPos({ x: Math.min(window.innerWidth - 180, r.left + r.width / 2), y: Math.max(56, r.top - 44), text });
+      }, 10);
+    const onDown = (e: MouseEvent) => {
+      if (!(e.target as Element)?.closest?.('.tutor-select')) setPos(null);
+    };
+    const onScroll = () => setPos(null);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('scroll', onScroll, true);
+    };
+  }, []);
+  if (!pos) return null;
+  return (
+    <button
+      type="button"
+      className="tutor-select"
+      style={{ left: pos.x, top: pos.y }}
+      onClick={() => {
+        useTutor.getState().askText({ kind: 'Highlight', label: pos.text.slice(0, 60), text: pos.text, where: useDashItem.getState().item }, pos.text);
+        window.getSelection()?.removeAllRanges();
+        setPos(null);
+      }}
+      data-testid="tutor-select"
+    >
+      <Sparkles className="size-3.5" /> Ask about this
+    </button>
   );
 }

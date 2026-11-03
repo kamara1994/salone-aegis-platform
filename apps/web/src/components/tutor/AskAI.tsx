@@ -30,5 +30,8 @@ export function AskAI({ ctx, label = 'Ask AI', compact, className, style }: { ct
   );
 }
 
+/** Record a missed question so the tutor can spot repeated mix-ups. */
+export const recordMiss = (label: string, text: string) => useTutor.getState().miss(label, text);
+
 /** Tell the tutor someone looks stuck. It shows a quiet offer, never a popup. */
 export const nudgeTutor = (ctx: Omit<TutorCtx, 'where'>) => useTutor.getState().setNudge({ ...ctx, where: useDashItem.getState().item });

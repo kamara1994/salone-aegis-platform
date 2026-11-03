@@ -1019,3 +1019,21 @@ body {
 @media (prefers-reduced-motion: reduce) { .tutor-orb, .tutor-orb svg, .tutor-launch.is-nudge { animation: none; } }
 
 @media (min-width: 1280px) { body.tutor-open [data-testid='dash-playground'] { padding-right: 412px; transition: padding 0.45s cubic-bezier(0.16, 1, 0.3, 1); } }
+
+/* ---- Tutor upgrades: map, compare table, highlight-to-ask ---- */
+.tutor-map { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.tutor-node { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; color: var(--text); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); background: color-mix(in srgb, var(--c) 12%, transparent); transition: background 0.2s, box-shadow 0.2s; }
+.tutor-node i { width: 7px; height: 7px; border-radius: 99px; background: var(--c); box-shadow: 0 0 6px var(--c); }
+.tutor-node:hover { background: color-mix(in srgb, var(--c) 22%, transparent); }
+.tutor-node.is-here { font-weight: 600; box-shadow: 0 0 0 2px color-mix(in srgb, #8b5cf6 70%, transparent), 0 0 16px -4px #8b5cf6; }
+.tutor-table-wrap { margin-top: 10px; overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); }
+.tutor-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tutor-table th, .tutor-table td { padding: 7px 9px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); }
+.tutor-table thead th { border-top: 0; font-size: 11.5px; color: var(--text); background: color-mix(in srgb, #8b5cf6 14%, transparent); }
+.tutor-table tbody th { font-weight: 600; color: var(--faint); white-space: nowrap; }
+.tutor-table td { color: var(--text); }
+.tutor-quick { overflow-x: auto; scrollbar-width: none; }
+.tutor-quick::-webkit-scrollbar { display: none; }
+.tutor-quick .tutor-chip { flex: none; }
+.tutor-field.is-teach { border-color: #8b5cf6; box-shadow: 0 0 0 3px color-mix(in srgb, #8b5cf6 22%, transparent); }
+.tutor-select { position: fixed; z-index: 76; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; translate: -50% 0; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; background: linear-gradient(135deg, #8b5cf6, #22b8cf); box-shadow: 0 12px 28px -10px #8b5cf6; animation: rates-in 0.2s cubic-bezier(0.16, 1, 0.3, 1); }

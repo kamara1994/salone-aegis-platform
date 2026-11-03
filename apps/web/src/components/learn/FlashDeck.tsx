@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronRight, ClipboardCopy, Flag, Moon, 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Button, cx } from '@/components/ui';
 import deckJson from '@/content/flashcards/ccna.json';
-import { AskAI, nudgeTutor } from '@/components/tutor/AskAI';
+import { AskAI, nudgeTutor, recordMiss } from '@/components/tutor/AskAI';
 
 type Card = { t: string; q: string; a: string; k?: string[]; cli?: string; why?: string; img?: string; imgAlt?: string; imgKind?: string; imgCredit?: string; imgSource?: string; imgFallback?: string; gen?: boolean; d?: 'easy' | 'hard' };
 type Mode = 'flip' | 'type' | 'exam';
@@ -362,6 +362,7 @@ export function FlashDeck() {
     if (mode !== 'flip' || !flipped || !card) return;
     if (!gen) setUndo({ S, cur, label: ['Again', 'Hard', 'Good', 'Easy'][r], sess, summary });
     // Two "Again" in a row on the same topic: offer help quietly, never a popup.
+    if (r === 0 && !gen) recordMiss(card.t, `${card.q} ${card.a}`);
     againRun.current = r === 0 ? [...againRun.current, card.t].slice(-2) : [];
     if (againRun.current.length === 2 && againRun.current[0] === againRun.current[1]) nudgeTutor({ kind: 'Flashcard', label: card.t, text: card.q });
     save(score(card.t, r >= 2, schedule(r, S)));
