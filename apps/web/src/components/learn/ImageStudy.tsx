@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Button, cx } from '@/components/ui';
 import deckJson from '@/content/flashcards/ccna.json';
 import { Segments, ShowSide, StudySide, useSide, useStored, type SideGroup } from './StudyKit';
+import { AskAI } from '@/components/tutor/AskAI';
 
 type Card = { t: string; q: string; a: string; cli?: string; why?: string; img?: string; imgAlt?: string; imgKind?: string; imgCredit?: string; imgSource?: string; imgFallback?: string };
 const DECK = deckJson as Card[];
@@ -150,9 +151,12 @@ export function ImageStudy() {
         </div>
 
         <section className={cx('img-answer rounded-2xl border p-5', open ? 'is-open' : '')} style={{ '--hue': hue } as CSSProperties} aria-live="polite" data-testid="img-answer">
-          <p className="text-[10.5px] font-semibold tracking-[0.2em] uppercase" style={{ color: hue }}>
-            {open ? 'Answer' : 'Look closely'}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="flex-1 text-[10.5px] font-semibold tracking-[0.2em] uppercase" style={{ color: hue }}>
+              {open ? 'Answer' : 'Look closely'}
+            </p>
+            <AskAI ctx={{ kind: 'Picture', label: fig.c.t, text: `${fig.c.q} ${fig.c.imgAlt ?? ''}` }} />
+          </div>
           <h2 className="mt-1.5 text-[20px] leading-snug font-semibold text-text">{fig.c.q}</h2>
           {open ? (
             <div className="img-reveal mt-3 space-y-3">

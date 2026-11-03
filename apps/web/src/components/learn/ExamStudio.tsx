@@ -3,7 +3,7 @@
 // Practice exam studio. Built from what the best exam simulators do (Boson ExSim, UWorld, Pearson VUE),
 // plus things they do not: confidence calibration, retry-missed sets, weak-topic sets, a subnet scratchpad,
 // resume after refresh, and time per question.
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Brain, Check, ChevronDown, Clock, Eye, Flag, GraduationCap, LayoutGrid, NotebookPen, Pause, Play, RotateCcw, Target, Timer, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Brain, Check, ChevronDown, PanelLeftClose, Search, Clock, Eye, Flag, GraduationCap, LayoutGrid, NotebookPen, Pause, Play, RotateCcw, Target, Timer, TrendingUp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button, cx } from '@/components/ui';
 import { certById, certTopics, type Cert } from '@/content/certs';
@@ -13,6 +13,8 @@ import { ALL_TOPICS, COURSES } from '@/content/topics';
 import type { ExamDifficulty } from '@/content/topics';
 import { setExamDifficulty, useLearningPreferences } from '@/state/learning';
 import { useUi } from '@/state/ui';
+import { MiniRing, ShowSide, useSide } from './StudyKit';
+import { AskAI, nudgeTutor } from '@/components/tutor/AskAI';
 
 const LEVELS: { key: ExamDifficulty; label: string; description: string; count: number; minutes: number; pass: number; c: string }[] = [
   { key: 'beginner', label: 'Beginner', description: 'Foundational concepts and clear recognition questions.', count: 5, minutes: 10, pass: 60, c: '#38d9a9' },
@@ -35,7 +37,7 @@ const keyOf = (q: ExamItem) => `${q.topic.id}::${q.q}`;
 // Stats kept across exams: questions you missed (for "Missed before") and per-topic accuracy (for "Weak topics").
 const STATS_KEY = 'aegis.exam.stats.v1';
 const LIVE_KEY = 'aegis.exam.live.v1';
-type Stats = { missed: string[]; topic: Record<string, { r: number; n: number }> };
+type Stats = { missed: string[]; topic: Record<string, { r: number; n: number }>; best?: Record<string, number> };
 const readJson = <T,>(k: string, d: T): T => {
   try {
     const v = window.localStorage.getItem(k);
@@ -73,6 +75,9 @@ type Live = {
   left: number;
   total: number;
   startedAt: number;
+  /** Which exam type this came from, for its best score. */
+  preset?: string;
+  label?: string;
 };
 
 function ScopeOptions({ cert, scope }: { cert?: Cert; scope?: ExamScope }) {
@@ -162,6 +167,16 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
   const [pad, setPad] = useState(false);
   const [tools, setTools] = useState(false);
   const [allTopics, setAllTopics] = useState(false);
+  const [side, setSide] = useSide('aegis.exam.side');
+  // The exam list lives in the side panel on wide screens and inline on phones, never both.
+  const [wide, setWide] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const on = () => setWide(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
   const [padText, setPadText] = useState('');
   const [review, setReview] = useState<'all' | 'wrong' | 'flagged' | 'unsure' | 'slow'>('all');
   const tick = useRef(Date.now());
@@ -194,6 +209,27 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
   }).map((t) => t.id);
   const missedHere = stats.missed.filter((k) => courseTopics.some((t) => k.startsWith(`${t.id}::`)));
 
+  type Preset = { id: string; group: string; label: string; sub: string; n: number; minutes: number; topics?: string[]; keys?: string[]; mode?: Mode; icon: ReactNode; hue: string };
+  const launch = (chosen: ExamItem[], m: Mode, total: number, preset?: Preset) => {
+    if (!chosen.length) return;
+    const l: Live = { keys: chosen.map(keyOf), mode: m, level: examDifficulty, answers: {}, struck: {}, conf: {}, flags: {}, checked: {}, spent: {}, idx: 0, left: total, total, startedAt: Date.now(), preset: preset?.id, label: preset?.label };
+    setFinished(false);
+    setPaused(false);
+    setReview('all');
+    setGrid(false);
+    setPadText('');
+    tick.current = Date.now();
+    writeJson(LIVE_KEY, l);
+    setLiveRaw(l);
+    setSaved(null);
+  };
+  const runPreset = (pr: Preset) => {
+    const m = pr.mode ?? mode;
+    const chosen = pr.keys
+      ? shuffle(pr.keys.map(fromKey).filter(Boolean) as ExamItem[]).slice(0, pr.n)
+      : selectExamQuestions(courseTopics.filter((t) => !pr.topics || pr.topics.includes(t.id)).flatMap((t) => t.quiz.map((q) => ({ ...q, topic: t }))), pr.n, examDifficulty);
+    launch(chosen, m, pr.minutes * 60, pr);
+  };
   const start = (keys?: string[], m: Mode = mode) => {
     let chosen: ExamItem[];
     if (keys) chosen = shuffle(keys.map(fromKey).filter(Boolean) as ExamItem[]);
@@ -255,6 +291,7 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
       else missed.add(keyOf(q));
     });
     st.missed = [...missed].slice(-400);
+    if (live.preset) st.best = { ...(st.best ?? {}), [live.preset]: Math.max(st.best?.[live.preset] ?? 0, Math.round((s / items.length) * 100)) };
     writeJson(STATS_KEY, st);
     writeJson(LIVE_KEY, null);
   }
@@ -267,7 +304,17 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
   const flag = () => setLive((l) => { const f = { ...l.flags }; if (f[l.idx]) delete f[l.idx]; else f[l.idx] = 1; return { ...l, flags: f }; });
   const setConf = (c: Conf) => setLive((l) => ({ ...l, conf: { ...l.conf, [l.idx]: c } }));
   const go = (i: number) => setLive((l) => ({ ...l, idx: Math.max(0, Math.min((items?.length ?? 1) - 1, i)) }));
-  const check = () => setLive((l) => (l.answers[l.idx] === undefined ? l : { ...l, checked: { ...l.checked, [l.idx]: 1 } }));
+  const wrongRun = useRef(0);
+  const check = () =>
+    setLive((l) => {
+      if (l.answers[l.idx] === undefined) return l;
+      const q = items?.[l.idx];
+      if (q) {
+        wrongRun.current = l.answers[l.idx] === q.answer ? 0 : wrongRun.current + 1;
+        if (wrongRun.current >= 2) nudgeTutor({ kind: 'Practice question', label: q.topic.title, text: q.q });
+      }
+      return { ...l, checked: { ...l.checked, [l.idx]: 1 } };
+    });
 
   useEffect(() => {
     if (!live || finished || !items) return;
@@ -295,7 +342,24 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
   });
 
   // ------------------------------------------------------------------ setup
-  // One start card with sensible defaults. Everything optional folds under Customize.
+  // Exam types on the left: pick one and it starts. Building your own is one of the choices.
+  const units = [...new Set(courseTopics.map((t) => t.unit))];
+  const poolOf = (ids?: string[]) => courseTopics.filter((t) => !ids || ids.includes(t.id)).reduce((n, t) => n + t.quiz.length, 0);
+  const untried = courseTopics.filter((t) => !stats.topic[t.id]).map((t) => t.id);
+  const UNIT_HUE = ['#4f9cf9', '#22b8cf', '#cc5de8', '#ff922b', '#20c997', '#ff6b6b', '#4c6ef5', '#fcc419', '#12b886', '#f06595'];
+  const presets: Preset[] = [
+    { id: 'mock-full', group: 'Mock exams', label: 'Full mock exam', sub: 'Closest to the real test', n: Math.min(60, poolOf()), minutes: 90, icon: <Timer className="size-4" />, hue: '#f59f00' },
+    { id: 'mock-half', group: 'Mock exams', label: 'Half mock', sub: 'When you have 45 minutes', n: Math.min(30, poolOf()), minutes: 45, icon: <Timer className="size-4" />, hue: '#f59f00' },
+    { id: 'mock-quick', group: 'Mock exams', label: 'Quick check', sub: 'A fast warm-up', n: Math.min(10, poolOf()), minutes: 15, icon: <Clock className="size-4" />, hue: '#f59f00' },
+    ...(weakIds.length ? [{ id: 'weak', group: 'For you', label: 'Weak topics', sub: `${weakIds.length} topic${weakIds.length === 1 ? '' : 's'} under 70%`, n: Math.min(15, poolOf(weakIds)), minutes: 20, topics: weakIds, icon: <Target className="size-4" />, hue: '#ff6b81' }] : []),
+    ...(missedHere.length ? [{ id: 'missed', group: 'For you', label: 'Questions you missed', sub: 'Tutor mode, with answers', n: Math.min(20, missedHere.length), minutes: 30, keys: missedHere, mode: 'tutor' as Mode, icon: <RotateCcw className="size-4" />, hue: '#ff6b81' }] : []),
+    ...(untried.length && untried.length < courseTopics.length ? [{ id: 'untried', group: 'For you', label: 'Topics not tried yet', sub: `${untried.length} topics`, n: Math.min(15, poolOf(untried)), minutes: 20, topics: untried, icon: <Brain className="size-4" />, hue: '#ff6b81' }] : []),
+    ...units.map((u, k) => {
+      const ids = courseTopics.filter((t) => t.unit === u).map((t) => t.id);
+      return { id: `unit:${u}`, group: 'By exam domain', label: u, sub: `${ids.length} topics`, n: Math.min(15, poolOf(ids)), minutes: 20, topics: ids, icon: <BookOpen className="size-4" />, hue: UNIT_HUE[k % UNIT_HUE.length] };
+    }),
+  ].filter((pr) => pr.n > 0);
+
   if (!live || !items) {
     const L = lv(examDifficulty);
     const pcts = history.map((h) => Math.round((h.score / Math.max(1, h.total)) * 100));
@@ -303,28 +367,47 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
     const recent = pcts.slice(-3);
     const ready = recent.length ? Math.round(recent.reduce((a, b) => a + b, 0) / recent.length) : 0;
     const courseName = course.startsWith('cert:') ? (cert?.name ?? 'This certification') : course === 'all' ? 'All courses' : course.startsWith('topic:') ? ALL_TOPICS.find((t) => t.id === course.slice(6))?.title ?? 'Topic' : COURSES.find((c) => c.id === course)?.title ?? 'Course';
-    const sourceLabel = source === 'weak' ? 'your weak topics' : source === 'missed' ? 'questions you missed before' : source === 'pick' ? `${picked.length} chosen topic${picked.length === 1 ? '' : 's'}` : 'the whole course';
-    const nQs = source === 'missed' ? Math.min(count, missedHere.length) : count;
-    const sources: { k: Source; label: string; hint: string; disabled?: boolean }[] = [
-      { k: 'all', label: 'Whole course', hint: `${courseTopics.length} topics` },
-      { k: 'weak', label: 'Weak topics', hint: weakIds.length ? `${weakIds.length} under 70%` : 'None yet', disabled: !weakIds.length },
-      { k: 'missed', label: 'Missed before', hint: missedHere.length ? `${missedHere.length} questions` : 'None yet', disabled: !missedHere.length },
-      { k: 'pick', label: 'Choose topics', hint: picked.length ? `${picked.length} chosen` : 'Build your own' },
-    ];
-    // One suggested next step, based on what you have done before.
-    const suggestion = missedHere.length >= 3 && source !== 'missed'
-      ? { label: `Retry the ${missedHere.length} questions you missed`, run: () => start(missedHere.slice(-count), 'tutor') }
-      : weakIds.length && source !== 'weak'
-        ? { label: `Practise your ${weakIds.length} weak topic${weakIds.length === 1 ? '' : 's'}`, run: () => setSource('weak') }
-        : null;
+    const rec = presets.find((p) => p.id === 'weak') ?? presets.find((p) => p.id === 'missed') ?? (history.length ? presets.find((p) => p.id === 'mock-half') : presets.find((p) => p.id === 'mock-quick')) ?? presets[0];
+    const recWhy = rec?.id === 'weak' ? 'Your weakest topics, so every question counts.' : rec?.id === 'missed' ? 'Go back over what you got wrong, with answers shown.' : history.length ? 'A solid run to check where you are.' : 'Start here to see where you stand.';
+    const nCustom = Math.min(count, poolOf(picked.length ? picked : undefined));
+    const list = (
+      <ExamTypes
+        presets={presets}
+        best={stats.best ?? {}}
+        mode={mode}
+        setMode={setMode}
+        level={examDifficulty}
+        onRun={runPreset}
+        onBuild={() => setPickOpen(true)}
+        building={pickOpen}
+      />
+    );
     return (
-      <div className="mx-auto max-w-[760px] space-y-4" data-testid="exam-setup">
-        <section className="exam-start">
+      <div className="flex gap-6" data-testid="exam-setup">
+        {side && wide && (
+          <aside className="book-toc sticky top-0 hidden h-[calc(100dvh-96px)] w-[300px] shrink-0 flex-col self-start md:flex" aria-label="Exam types" data-testid="exam-types">
+            <div className="toc-head relative mb-3 flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-3">
+              <MiniRing pct={ready} size={46} stroke={4} color={ready >= L.pass ? '#38d9a9' : 'var(--action)'}>
+                <span className="text-[11px] font-semibold">{pcts.length ? `${ready}%` : '–'}</span>
+              </MiniRing>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold tracking-[0.22em] text-faint uppercase">Practice exams</p>
+                <p className="truncate text-[12.5px] text-muted">{pcts.length ? `Ready ${ready}% · pass ${L.pass}%` : courseName}</p>
+              </div>
+              <button type="button" onClick={() => setSide(false)} className="grid size-7 place-items-center rounded-md text-muted hover:bg-pane-2 hover:text-text" title="Hide" aria-label="Hide exam list">
+                <PanelLeftClose className="size-4" />
+              </button>
+            </div>
+            {list}
+          </aside>
+        )}
+        <div className="mx-auto min-w-0 max-w-[760px] flex-1 space-y-4">
+          {!side && wide && <ShowSide onShow={() => setSide(true)} label="Exams" />}
           {saved && (
             <div className="exam-resume" data-testid="exam-resume">
               <Clock className="size-4 shrink-0 text-action" />
               <span className="min-w-0 flex-1 text-[13px]">
-                Unfinished {saved.mode === 'exam' ? 'exam' : 'tutor session'}: {Object.keys(saved.answers).length} of {saved.keys.length} answered{saved.mode === 'exam' ? `, ${fmt(saved.left)} left` : ''}
+                Unfinished {saved.label ?? (saved.mode === 'exam' ? 'exam' : 'tutor session')}: {Object.keys(saved.answers).length} of {saved.keys.length} answered{saved.mode === 'exam' ? `, ${fmt(saved.left)} left` : ''}
               </span>
               <Button size="sm" variant="primary" onClick={() => { tick.current = Date.now(); setFinished(false); setLiveRaw(saved); setSaved(null); }} data-testid="exam-resume-go">
                 <Play className="size-3.5" /> Resume
@@ -335,135 +418,124 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
             </div>
           )}
 
-          <p className="text-[10.5px] font-semibold tracking-[0.22em] text-faint uppercase">Practice exam · {courseName}</p>
-          <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.015em] text-text">
-            {nQs} questions{mode === 'exam' ? <>, {minutes} minutes</> : ', no clock'}
-          </h2>
-          <p className="mt-1.5 text-[13.5px] text-muted">
-            {L.label} level from {sourceLabel}. Pass mark {L.pass}%.
-          </p>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <div className="seg !rounded-full" role="radiogroup" aria-label="Exam mode">
-              {(
-                [
-                  ['exam', 'Exam', <Timer key="t" className="size-3.5" />],
-                  ['tutor', 'Tutor', <GraduationCap key="g" className="size-3.5" />],
-                ] as const
-              ).map(([k, label, icon]) => (
-                <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)} className={cx('seg-btn flex items-center gap-1.5 !rounded-full !px-4', mode === k && 'is-on')} data-testid={`exam-mode-${k}`}>
-                  {icon} {label}
+          {rec && !pickOpen && (
+            <section className="exam-start" data-testid="exam-recommended">
+              <p className="text-[10.5px] font-semibold tracking-[0.22em] text-faint uppercase">Recommended next · {courseName}</p>
+              <h2 className="mt-2 text-[28px] leading-tight font-semibold tracking-[-0.015em] text-text">{rec.label}</h2>
+              <p className="mt-1.5 text-[13.5px] text-muted">
+                {recWhy} {rec.n} questions{(rec.mode ?? mode) === 'exam' ? `, ${rec.minutes} minutes` : ', no clock'} · {L.label} · pass {L.pass}%.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button type="button" onClick={() => runPreset(rec)} className="exam-go" data-testid="exam-start">
+                  Start <ArrowRight className="size-5" />
                 </button>
-              ))}
-            </div>
-            <span className="text-[12.5px] text-faint">{mode === 'exam' ? 'Timed. Answers and explanations at the end, like the real test.' : 'No clock. Check each answer and see why straight away.'}</span>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => start()} disabled={(source === 'pick' && !picked.length) || !nQs} className="exam-go" data-testid="exam-start">
-              {mode === 'exam' ? 'Start exam' : 'Start tutor session'} <ArrowRight className="size-5" />
-            </button>
-            <button type="button" onClick={() => setPickOpen((o) => !o)} aria-expanded={pickOpen} className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] text-muted hover:text-text" data-testid="exam-customize">
-              <ChevronDown className={cx('size-4 transition-transform duration-300', pickOpen && 'rotate-180')} /> Customize
-            </button>
-          </div>
-          {suggestion && (
-            <button type="button" onClick={suggestion.run} className="mt-4 flex items-center gap-2 text-[12.5px] text-action hover:underline" data-testid="exam-suggestion">
-              <Target className="size-3.5" /> Or: {suggestion.label} <ArrowRight className="size-3.5" />
-            </button>
+                <span className="text-[12.5px] text-faint">or pick any exam from the list{side && wide ? ' on the left' : ' below'}.</span>
+              </div>
+            </section>
           )}
 
-          <div className={cx('grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(.16,1,.3,1)]', pickOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
-            <div className="min-h-0 overflow-hidden">
-              <div className="mt-6 space-y-5 border-t border-line pt-5">
-                <fieldset data-testid="exam-difficulty-picker">
-                  <legend className="exam-label">Difficulty</legend>
-                  <div className="seg" role="radiogroup" aria-label="Difficulty">
-                    {LEVELS.map((level) => (
-                      <button key={level.key} type="button" role="radio" aria-checked={examDifficulty === level.key} onClick={() => setExamDifficulty(level.key)} className={cx('seg-btn', examDifficulty === level.key && 'is-on')} data-testid={`exam-level-${level.key}`}>
-                        {level.label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="mt-1.5 text-[12px] text-faint">{L.description}</p>
-                </fieldset>
-                <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr_1fr]">
-                  <label className="space-y-1">
-                    <span className="exam-label !mb-0 block">Course</span>
-                    <select className={sel} value={course} onChange={(e) => { setCourse(e.target.value as ExamScope); setPicked([]); }} data-testid="exam-course">
-                      <ScopeOptions cert={cert} scope={scope} />
-                    </select>
-                  </label>
-                  <label className="space-y-1">
-                    <span className="exam-label !mb-0 block">Questions</span>
-                    <select className={sel} value={count} onChange={(e) => setCount(Number(e.target.value))} data-testid="exam-count">
-                      {[5, 10, 20, 40, 60].map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className={cx('space-y-1', mode === 'tutor' && 'opacity-40')}>
-                    <span className="exam-label !mb-0 block">Time limit</span>
-                    <select className={sel} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} disabled={mode === 'tutor'} data-testid="exam-minutes">
-                      {[5, 10, 15, 20, 30, 60, 120].map((n) => (
-                        <option key={n} value={n}>
-                          {n} min
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+          {/* Phones: the exam list sits here instead of the side panel. */}
+          {!wide && <div className="exam-start">{list}</div>}
+
+          {pickOpen && (
+            <section className="exam-start" data-testid="exam-builder">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10.5px] font-semibold tracking-[0.22em] text-faint uppercase">Build your own</p>
+                  <h2 className="mt-2 text-[26px] leading-tight font-semibold tracking-[-0.015em] text-text">
+                    {nCustom} questions{mode === 'exam' ? `, ${minutes} minutes` : ', no clock'}
+                  </h2>
+                  <p className="mt-1 text-[13px] text-muted">{picked.length ? `From ${picked.length} chosen topic${picked.length === 1 ? '' : 's'}.` : 'From the whole course. Tick topics below to narrow it.'}</p>
                 </div>
-                <div>
-                  <p className="exam-label">Questions from</p>
-                  <div className="grid gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Question source">
-                    {sources.map((x) => (
-                      <button key={x.k} type="button" role="radio" aria-checked={source === x.k} disabled={x.disabled} onClick={() => setSource(x.k)} className={cx('exam-source', source === x.k && 'is-on')} data-testid={`exam-source-${x.k}`}>
-                        <span className="text-[13px] font-semibold text-text">{x.label}</span>
-                        <span className="text-[11.5px] text-faint">{x.hint}</span>
-                      </button>
+                <button type="button" onClick={() => setPickOpen(false)} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-pane-2" aria-label="Close builder">
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-[1.4fr_1fr_1fr]">
+                <label className="space-y-1">
+                  <span className="exam-label !mb-0 block">Course</span>
+                  <select className={sel} value={course} onChange={(e) => { setCourse(e.target.value as ExamScope); setPicked([]); }} data-testid="exam-course">
+                    <ScopeOptions cert={cert} scope={scope} />
+                  </select>
+                </label>
+                <label className="space-y-1">
+                  <span className="exam-label !mb-0 block">Questions</span>
+                  <select className={sel} value={count} onChange={(e) => setCount(Number(e.target.value))} data-testid="exam-count">
+                    {[5, 10, 20, 40, 60].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
                     ))}
-                  </div>
-                  {source === 'pick' && (
-                    <div className="mt-3 flex max-h-52 flex-wrap gap-1.5 overflow-auto rounded-xl border border-line p-3">
-                      {courseTopics.map((t) => {
-                        const on = picked.includes(t.id);
-                        const st = stats.topic[t.id];
-                        return (
-                          <button key={t.id} type="button" onClick={() => setPicked(on ? picked.filter((x) => x !== t.id) : [...picked, t.id])} className={cx('rail-chip', on && 'is-on')} title={st ? `${Math.round((st.r / st.n) * 100)}% across ${st.n} answers` : 'Not tried yet'}>
-                            {on && <Check className="size-3" strokeWidth={3} />}
-                            {t.title}
-                            {st && <i className="ml-0.5 size-1.5 rounded-full" style={{ background: st.r / st.n >= 0.7 ? '#38d9a9' : '#ff6b81' }} />}
-                          </button>
-                        );
-                      })}
-                    </div>
+                  </select>
+                </label>
+                <label className={cx('space-y-1', mode === 'tutor' && 'opacity-40')}>
+                  <span className="exam-label !mb-0 block">Time limit</span>
+                  <select className={sel} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} disabled={mode === 'tutor'} data-testid="exam-minutes">
+                    {[5, 10, 15, 20, 30, 60, 120].map((n) => (
+                      <option key={n} value={n}>
+                        {n} min
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="mt-4">
+                <div className="mb-2 flex items-center">
+                  <p className="exam-label !mb-0 mr-auto">Topics</p>
+                  {picked.length > 0 && (
+                    <button type="button" onClick={() => setPicked([])} className="text-[12px] text-faint hover:text-text">
+                      Clear
+                    </button>
                   )}
                 </div>
+                <div className="max-h-64 space-y-3 overflow-auto rounded-xl border border-line p-3">
+                  {units.map((u) => (
+                    <div key={u}>
+                      <p className="mb-1.5 text-[11px] font-semibold text-muted">{u}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {courseTopics.filter((t) => t.unit === u).map((t) => {
+                          const on = picked.includes(t.id);
+                          const st = stats.topic[t.id];
+                          return (
+                            <button key={t.id} type="button" onClick={() => setPicked(on ? picked.filter((x) => x !== t.id) : [...picked, t.id])} className={cx('rail-chip', on && 'is-on')} data-testid={`exam-topic-${t.id}`}>
+                              {on && <Check className="size-3" strokeWidth={3} />}
+                              {t.title}
+                              {st && <i className="ml-0.5 size-1.5 rounded-full" style={{ background: st.r / st.n >= 0.7 ? '#38d9a9' : '#ff6b81' }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
+              <div className="mt-5">
+                <button type="button" onClick={() => runPreset({ id: 'custom', group: '', label: 'Custom exam', sub: '', n: nCustom, minutes, topics: picked.length ? picked : undefined, icon: null, hue: '' })} disabled={!nCustom} className="exam-go" data-testid="exam-start-custom">
+                  Start {mode === 'exam' ? 'exam' : 'tutor session'} <ArrowRight className="size-5" />
+                </button>
+              </div>
+            </section>
+          )}
 
-        {history.length > 0 && (
-          <section className="exam-strip" data-testid="exam-history">
-            <Ring pct={ready} size={52} stroke={5} color={ready >= L.pass ? '#38d9a9' : '#ffa94d'} pass={L.pass}>
-              <span className="text-[12px] font-bold">{ready}%</span>
-            </Ring>
-            <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-text">{ready >= L.pass ? 'On track to pass' : `${L.pass - ready} points to the pass mark`}</p>
-              <p className="text-[12px] text-faint">
-                Average of your last {recent.length} · best {best}% · {history.length} exam{history.length === 1 ? '' : 's'}
-              </p>
-            </div>
-            {pcts.length >= 2 && (
-              <div className="ml-auto hidden w-[220px] sm:block">
-                <Trend points={pcts} pass={L.pass} />
+          {history.length > 0 && (
+            <section className="exam-strip" data-testid="exam-history">
+              <Ring pct={ready} size={52} stroke={5} color={ready >= L.pass ? '#38d9a9' : '#ffa94d'} pass={L.pass}>
+                <span className="text-[12px] font-bold">{ready}%</span>
+              </Ring>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-text">{ready >= L.pass ? 'On track to pass' : `${L.pass - ready} points to the pass mark`}</p>
+                <p className="text-[12px] text-faint">
+                  Average of your last {recent.length} · best {best}% · {history.length} exam{history.length === 1 ? '' : 's'}
+                </p>
               </div>
-            )}
-          </section>
-        )}
+              {pcts.length >= 2 && (
+                <div className="ml-auto hidden w-[220px] sm:block">
+                  <Trend points={pcts} pass={L.pass} />
+                </div>
+              )}
+            </section>
+          )}
+        </div>
       </div>
     );
   }
@@ -637,6 +709,7 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
                     <span>· {live.spent[k] ?? 0}s</span>
                     {c && <span className="rounded-full px-1.5" style={{ color: c.c, background: `color-mix(in srgb, ${c.c} 14%, transparent)` }}>{c.label}</span>}
                     {live.flags[k] && <Flag className="size-3 text-[#ffa94d]" />}
+                    {!ok && <AskAI compact className="ml-auto" ctx={{ kind: 'Exam review', label: q.topic.title, text: `${q.q} ${q.options[q.answer]}` }} />}
                   </div>
                   <p className="mt-1 text-[14px] font-medium text-text">{q.q}</p>
                   <ul className="mt-2 space-y-1">
@@ -771,6 +844,9 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
               <div className={cx('subnet-verdict', live.answers[live.idx] === cur.answer ? 'is-ok' : 'is-bad')} data-testid="exam-explain">
                 <p className="text-[14px] font-semibold">{live.answers[live.idx] === cur.answer ? 'Correct' : `Answer: ${String.fromCharCode(65 + cur.answer)}. ${cur.options[cur.answer]}`}</p>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{cur.explain}</p>
+                <div className="mt-2.5">
+                  <AskAI ctx={{ kind: 'Practice question', label: cur.topic.title, text: `${cur.q} ${cur.options[cur.answer]}` }} label="Explain this with AI" />
+                </div>
               </div>
             )}
             {paused && (
@@ -871,6 +947,83 @@ export function ExamStudio({ onStudy, scope }: { onStudy: (topicId: string) => v
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** The list of ready-made exams. One click starts one. Mode and level sit at the top and apply to all. */
+function ExamTypes({ presets, best, mode, setMode, level, onRun, onBuild, building }: { presets: { id: string; group: string; label: string; sub: string; n: number; minutes: number; mode?: Mode; icon: ReactNode; hue: string }[]; best: Record<string, number>; mode: Mode; setMode: (m: Mode) => void; level: ExamDifficulty; onRun: (p: never) => void; onBuild: () => void; building: boolean }) {
+  const groups = [...new Set(presets.map((p) => p.group))];
+  const run = onRun as (p: (typeof presets)[number]) => void;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-3 space-y-2">
+        <div className="seg" role="radiogroup" aria-label="Exam mode">
+          {(
+            [
+              ['exam', 'Exam', <Timer key="t" className="size-3.5" />],
+              ['tutor', 'Tutor', <GraduationCap key="g" className="size-3.5" />],
+            ] as const
+          ).map(([k, label, icon]) => (
+            <button key={k} type="button" role="radio" aria-checked={mode === k} onClick={() => setMode(k)} className={cx('seg-btn flex items-center justify-center gap-1.5', mode === k && 'is-on')} title={k === 'exam' ? 'Timed, answers at the end' : 'No clock, check each answer'} data-testid={`exam-mode-${k}`}>
+              {icon} {label}
+            </button>
+          ))}
+        </div>
+        <div className="seg" role="radiogroup" aria-label="Difficulty" data-testid="exam-difficulty-picker">
+          {LEVELS.map((l) => (
+            <button key={l.key} type="button" role="radio" aria-checked={level === l.key} onClick={() => setExamDifficulty(l.key)} className={cx('seg-btn !text-[11.5px]', level === l.key && 'is-on')} data-testid={`exam-level-${l.key}`}>
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <nav className="toc-scroll min-h-0 flex-1 overflow-y-auto pr-1">
+        {groups.map((g) => (
+          <div key={g} className="mb-3">
+            <p className="mb-1 px-1 text-[10px] font-semibold tracking-[0.2em] text-faint uppercase">{g}</p>
+            <ul className="space-y-0.5">
+              {presets
+                .filter((p) => p.group === g)
+                .map((p) => {
+                  const m = p.mode ?? mode;
+                  const b = best[p.id];
+                  return (
+                    <li key={p.id}>
+                      <button type="button" onClick={() => run(p)} className="exam-type group" style={{ '--hue': p.hue } as CSSProperties} data-testid={`exam-type-${p.id}`}>
+                        <span className="exam-type-icon">{p.icon}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] text-text">{p.label}</span>
+                          <span className="block truncate text-[11px] text-faint">
+                            {p.n} Qs · {m === 'exam' ? `${p.minutes} min` : 'tutor'}
+                            {p.group !== 'By exam domain' && ` · ${p.sub}`}
+                          </span>
+                        </span>
+                        {b !== undefined && (
+                          <span className="text-[10.5px] tabular-nums" style={{ color: b >= lv(level).pass ? '#38d9a9' : '#ffa94d' }} title="Your best score">
+                            {b}%
+                          </span>
+                        )}
+                        <span className="exam-type-go" aria-hidden>
+                          <Play className="size-3 fill-current" />
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+            </ul>
+          </div>
+        ))}
+        <button type="button" onClick={onBuild} className={cx('exam-type exam-build', building && 'is-on')} data-testid="exam-build">
+          <span className="exam-type-icon">
+            <LayoutGrid className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] text-text">Build your own</span>
+            <span className="block text-[11px] text-faint">Pick topics, length and time</span>
+          </span>
+        </button>
+      </nav>
     </div>
   );
 }

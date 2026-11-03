@@ -38,6 +38,7 @@ const AITutor = dynamic(() => import('@/components/learn/AITutor').then((module)
 const TopicPlayground = dynamic(() => import('@/components/learn/Topics').then((module) => module.TopicPlayground), { loading: SectionLoading });
 const TracksView = dynamic(() => import('@/components/learn/Tracks').then((module) => module.TracksView), { loading: SectionLoading });
 const ImageStudy = dynamic(() => import('@/components/learn/ImageStudy').then((module) => module.ImageStudy), { loading: SectionLoading });
+const TutorDock = dynamic(() => import('@/components/tutor/TutorDock').then((module) => module.TutorDock), { ssr: false });
 const VisualsView = dynamic(() => import('@/components/learn/Visuals').then((module) => module.VisualsView), { loading: SectionLoading });
 
 type Part = { key: string; label: string; hint?: string; icon: LucideIcon; hue: string };
@@ -151,7 +152,7 @@ export default function DashboardPage() {
   const useCcnabookAsTopics = (dash.id === 'networking' || dash.id === 'ccna') && section === 'learn' && part === 'topics';
   const isCcna = dash.id === 'networking' || dash.id === 'ccna';
   // Pages with their own contents sidebar, or that never use a topic, hide the toolbar topic search.
-  const ownNav = section === 'learn' && ((isCcna && ['flashcards', 'images', 'scenario-questions'].includes(part ?? '')) || ['interview', 'ai', 'subnetting', 'tracks', 'lessons'].includes(part ?? ''));
+  const ownNav = section === 'learn' && ((isCcna && ['flashcards', 'images', 'scenario-questions'].includes(part ?? '')) || ['exam', 'interview', 'ai', 'subnetting', 'tracks', 'lessons'].includes(part ?? ''));
   // Beginner / Technical only changes Learn by topic and the AI Tutor. Interview has its own level.
   const showMode = section === 'learn' && ['topics', 'ai-tutor'].includes(part ?? '') || (section === 'learn' && !isCcna && ['images', 'scenario-questions'].includes(part ?? ''));
   const open = (s: DashSection, p?: string) => setItem(p ? `${s}/${p}` : s);
@@ -226,6 +227,7 @@ export default function DashboardPage() {
         {dash.title}
       </h1>
       <ToolDialog tool={tool} topic={topic} mode={mode} onClose={() => setTool(null)} />
+      {section === 'learn' && <TutorDock />}
       <DashToolbar>
         {section && parts.length > 0 && (
           <TB label={showPanel ? 'Hide side panel' : 'Show side panel'} onClick={() => (hasPart ? setPanelPinned(!panelPinned) : setPanel(!panel))} testid="dash-panel-toggle">

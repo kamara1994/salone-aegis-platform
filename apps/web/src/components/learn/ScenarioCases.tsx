@@ -7,6 +7,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button, cx } from '@/components/ui';
 import { CCNA_FOCUS_BRIEFS } from '@/content/ccnaFocus';
 import { MiniRing, Segments, ShowSide, StudySide, useSide, useStored, type SideGroup } from './StudyKit';
+import { AskAI } from '@/components/tutor/AskAI';
 
 const DOMAIN_HUE = ['#4f9cf9', '#22b8cf', '#ff922b', '#4c6ef5', '#fa5252', '#12b886'];
 const LEVEL_HUE: Record<string, string> = { Beginner: '#38d9a9', Intermediate: '#ffa94d', Advanced: '#ff6b81' };
@@ -88,6 +89,7 @@ export function ScenarioCases({ switcher }: { switcher: ReactNode }) {
             <span className="case-chip" style={{ '--c': LEVEL_HUE[b.level] } as CSSProperties}>{b.level}</span>
             <span className="case-chip" style={{ '--c': '#94a3b8' } as CSSProperties}>{b.format}</span>
             <span className="ml-auto text-[11px] text-faint" title="CCNA 200-301 exam objectives">Objectives {b.objectives.join(', ')}</span>
+            <AskAI ctx={{ kind: 'Case', label: b.topic, text: `${b.title} ${b.scenario}` }} />
           </div>
           <h2 className="mt-3 text-[24px] leading-tight font-semibold tracking-[-0.01em] text-text">{b.title}</h2>
           <div className="case-brief mt-4">

@@ -6,6 +6,7 @@ import { Button, cx } from '@/components/ui';
 import { useBookLesson } from '@/state/bookLesson';
 import { useLearningPreferences } from '@/state/learning';
 import source from '@/content/books/ccna-v8.1.json';
+import { AskAI } from '@/components/tutor/AskAI';
 import { vlanAccessExemplar } from '@/content/books/vlan-access-exemplar';
 import { trunkExemplar } from '@/content/books/trunk-exemplar';
 import { VlanAccessJourney } from '@/components/learn/VlanAccessJourney';
@@ -390,7 +391,7 @@ export function CCNABook() {
 
     <main className="book-prose min-w-0 space-y-7" data-testid="ccna-book-reader">
       <header>
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted"><span>Chapter {chapter?.number ?? '—'} of {book.chapters.length}</span><span>·</span><span>Lesson {lesson.id}</span><span className="ml-auto rounded border border-line px-2 py-1">{level === 'beginner' ? 'Beginner' : 'Technical / Expert'}</span></div>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted"><span>Chapter {chapter?.number ?? '—'} of {book.chapters.length}</span><span>·</span><span>Lesson {lesson.id}</span><span className="ml-auto rounded border border-line px-2 py-1">{level === 'beginner' ? 'Beginner' : 'Technical / Expert'}</span><AskAI ctx={{ kind: 'Lesson', label: lesson.title, lessonId: lesson.id }} /></div>
         {lesson.id === '8.02' && <p className="mt-2 text-[12px] font-semibold text-action">CCNA v1.1 · 2.1.a Access ports · 2.1.b Default VLAN</p>}
         {lesson.id === '8.04' && <p className="mt-2 text-[12px] font-semibold text-action">CCNA v1.1 · 2.2.a Trunk ports · 2.2.b 802.1Q</p>}
         <h1 className="book-title" data-testid="ccna-book-title">{lesson.title}</h1>

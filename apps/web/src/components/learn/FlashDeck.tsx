@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronRight, ClipboardCopy, Flag, Moon, 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Button, cx } from '@/components/ui';
 import deckJson from '@/content/flashcards/ccna.json';
+import { AskAI, nudgeTutor } from '@/components/tutor/AskAI';
 
 type Card = { t: string; q: string; a: string; k?: string[]; cli?: string; why?: string; img?: string; imgAlt?: string; imgKind?: string; imgCredit?: string; imgSource?: string; imgFallback?: string; gen?: boolean; d?: 'easy' | 'hard' };
 type Mode = 'flip' | 'type' | 'exam';
@@ -148,6 +149,17 @@ export function FlashDeck() {
   const [S, setS] = useState<Stats>(empty);
   const [mode, setModeRaw] = useState<Mode>('flip');
   const [topic, setTopic] = useState('All');
+  // Remember where you were for this visit, so a detour to another page brings you back to the same card.
+  const restore = useRef<number | null>(null);
+  useEffect(() => {
+    try {
+      const v = JSON.parse(window.sessionStorage.getItem('aegis.flash.pos') ?? 'null') as { topic?: string; cur?: number } | null;
+      if (v?.topic && v.topic !== 'All') setTopic(v.topic);
+      if (typeof v?.cur === 'number' && v.cur >= 0) restore.current = v.cur;
+    } catch {
+      /* optional */
+    }
+  }, []);
   const [order, setOrder] = useState(() => DECK.map((_, i) => i));
   const [cur, setCur] = useState<number>(-1);
   const [gen, setGen] = useState<(Card & { wrong: () => string }) | null>(null);
@@ -244,7 +256,9 @@ export function FlashDeck() {
     }
     setGen(null);
     const now = Date.now();
-    const first = seq.find((i) => (S.box[i] ?? 0) < 4 && (S.next[i] ?? 0) <= now) ?? seq[0] ?? -1;
+    const back = restore.current;
+    restore.current = null;
+    const first = back !== null && seq.includes(back) ? back : seq.find((i) => (S.box[i] ?? 0) < 4 && (S.next[i] ?? 0) <= now) ?? seq[0] ?? -1;
     setCur(first);
   }, [topic, seq, S]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -256,6 +270,14 @@ export function FlashDeck() {
     if (mode === 'type' && (cur >= 0 || gen)) setTimeout(() => inputRef.current?.focus(), 60);
   }, [cur, gen, mode]);
 
+  useEffect(() => {
+    if (cur < 0 || restore.current !== null) return;
+    try {
+      window.sessionStorage.setItem('aegis.flash.pos', JSON.stringify({ topic, cur }));
+    } catch {
+      /* optional */
+    }
+  }, [cur, topic]);
   const card: Card | null = gen ?? (cur >= 0 ? DECK[cur] : null);
   /** Open one card from the topic list. */
   const openCard = (i: number) => {
@@ -288,6 +310,7 @@ export function FlashDeck() {
     return { ...base, box: { ...base.box, [cur]: nb }, rated: { ...base.rated, [cur]: r }, next: { ...base.next, [cur]: Date.now() + gapFor(b, r) } };
   };
 
+  const againRun = useRef<string[]>([]);
   const [undo, setUndo] = useState<null | { S: Stats; cur: number; label: string; sess: Sess; summary: boolean }>(null);
   /** Count one answer toward the current session; after SESSION cards, show the recap. */
   const tally = (ok: boolean) => {
@@ -338,6 +361,9 @@ export function FlashDeck() {
   const rate = (r: number) => {
     if (mode !== 'flip' || !flipped || !card) return;
     if (!gen) setUndo({ S, cur, label: ['Again', 'Hard', 'Good', 'Easy'][r], sess, summary });
+    // Two "Again" in a row on the same topic: offer help quietly, never a popup.
+    againRun.current = r === 0 ? [...againRun.current, card.t].slice(-2) : [];
+    if (againRun.current.length === 2 && againRun.current[0] === againRun.current[1]) nudgeTutor({ kind: 'Flashcard', label: card.t, text: card.q });
     save(score(card.t, r >= 2, schedule(r, S)));
     const done = tally(r >= 2);
     setFly(r >= 2 ? 'right' : 'left');
@@ -471,6 +497,7 @@ export function FlashDeck() {
   };
   const tools = !card?.gen && cur >= 0 && (
     <span className="flash-tools" onClick={(e) => e.stopPropagation()}>
+      <AskAI compact ctx={{ kind: 'Flashcard', label: card?.t ?? '', text: `${card?.q ?? ''} ${card?.a ?? ''}` }} className="!size-7" />
       <button type="button" onClick={toggleFlag} className={cx(S.flags[cur] && 'is-on')} title={S.flags[cur] ? 'Unflag (F)' : 'Flag as wrong or unclear (F)'} aria-pressed={!!S.flags[cur]} data-testid="flash-flag">
         <Flag className="size-3.5" />
       </button>

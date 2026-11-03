@@ -10,6 +10,7 @@ import { setTeachingLevel, useLearningPreferences } from '@/state/learning';
 import type { Block, Lesson, TrackId } from '@/content/types';
 import { BlockView, type Mode } from './Blocks';
 import { ShowSide, StudySide, useSide, type SideGroup } from './StudyKit';
+import { AskAI } from '@/components/tutor/AskAI';
 
 function blockText(b: Block): string {
   switch (b.type) {
@@ -206,7 +207,10 @@ export function LessonReader({ lessonId, initialSection, onClose, showBack }: { 
             </div>
           </div>
         </div>
-        <h1 className="mt-2 text-[26px] leading-tight font-semibold tracking-[-0.01em] text-text">{lesson.title}</h1>
+        <div className="mt-2 flex items-start gap-3">
+          <h1 className="flex-1 text-[26px] leading-tight font-semibold tracking-[-0.01em] text-text">{lesson.title}</h1>
+          <AskAI ctx={{ kind: 'Lesson', label: lesson.title, text: `${lesson.summary} ${sec.title}` }} className="mt-1.5" />
+        </div>
         <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{lesson.summary}</p>
       </header>
 
