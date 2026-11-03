@@ -2,12 +2,18 @@
 
 import { useReactFlow } from '@xyflow/react';
 import dynamic from 'next/dynamic';
-import { FolderOpen, Info, LayoutList, PlayCircle, Plus, X } from 'lucide-react';
+import { FolderOpen, Info, LayoutList, PictureInPicture2, PlayCircle, Plus, X } from 'lucide-react';
+import { modelOf } from '@/lab/catalog';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTopology } from '@/api/hooks';
 import type { Topology } from '@/api/types';
 import { useRuntime } from '@/components/providers';
 import { LabCanvas, LabFlowProvider, type CanvasActions } from '@/components/lab/LabCanvas';
+import { PhysicalBoard, ViewSwitch } from '@/components/lab/PhysicalBoard';
+import { InspectWindows, ModeSwitch, PduList } from '@/components/lab/PtTools';
+import { usePt } from '@/lab/ptTools';
+import { useBoot } from '@/lab/boot';
+import { DeviceWindow, getInspectorMode, setInspectorMode, useInspectorMode } from '@/components/lab/DeviceWindow';
 import { Palette, PaletteStrip, type PaletteFocus } from '@/components/lab/Palette';
 import { useFocus } from '@/components/shell/Rail';
 import { Toolbar } from '@/components/lab/Toolbar';
@@ -202,6 +208,8 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const rt = useRuntime();
   const rf = useReactFlow();
   const s = useLab();
+  const inspMode = useInspectorMode();
+  const labView = useBoot((b) => b.view);
   const doc = s.doc!;
   const [palette, setPalette] = useState(true);
   const [paletteFocus, setPaletteFocus] = useState<PaletteFocus>(null);
@@ -257,6 +265,7 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
     setSimOpenRaw(v);
     if (v) setTools(null);
   };
+  useEffect(() => usePt.setState({ sim: simOpen }), [simOpen]);
   const [hideSource, setHideSourceState] = useState(false);
   const setHideSource = (v: boolean) => {
     setHideSourceState(v);
@@ -275,9 +284,16 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
 
   // Clicking a single device or cable opens its inspector.
   const selKey = `${s.selection.devices.join(',')}|${s.selection.cables.join(',')}`;
+  const known = useRef<Set<string> | null>(null);
   useEffect(() => {
     const st = useLab.getState();
+    const ids = new Set([...(st.doc?.devices ?? []).map((d) => d.id), ...(st.doc?.cables ?? []).map((c) => c.id)]);
+    const picked = st.selection.devices[0] ?? st.selection.cables[0];
+    const added = !!known.current && !!picked && !known.current.has(picked);
+    known.current = ids;
     if (st.tool !== 'select') return;
+    // A device just dropped from the library is selected, but its window waits for a click.
+    if (added && !st.inspectorOpen && getInspectorMode() === 'window') return;
     if (st.selection.devices.length === 1 && !st.selection.cables.length) st.openInspector(st.inspectorTab === 'cable' ? 'overview' : undefined);
     else if (st.selection.cables.length === 1 && !st.selection.devices.length) st.openInspector('cable');
     else if (!st.selection.devices.length && !st.selection.cables.length) st.closeInspector();
@@ -374,6 +390,13 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
   const selDevice = s.selection.devices.length === 1 ? deviceById(doc, s.selection.devices[0]) : undefined;
   const selCable = s.selection.cables.length === 1 ? doc.cables.find((c) => c.id === s.selection.cables[0]) : undefined;
   const showInspector = s.inspectorOpen && (selDevice || selCable);
+  const inspectorBody = selDevice ? (
+    <DeviceInspector device={selDevice} doc={doc} lab={lab} onPing={actions.pingFrom} />
+  ) : selCable ? (
+    <div className="h-full overflow-auto p-3">
+      <CableInspector cable={selCable} doc={doc} />
+    </div>
+  ) : null;
   const vmDevice = vmFor ? deviceById(doc, vmFor) : undefined;
 
   return (
@@ -517,6 +540,21 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
         )}
         <main className={cx('relative min-w-0 flex-1', arenaId && 'max-xl:h-[min(56vh,560px)] max-xl:min-h-[360px] max-xl:flex-none')} aria-label="Canvas">
           <LabCanvas actions={actions} />
+          <PhysicalBoard />
+          <ViewSwitch />
+          <div className={cx('pointer-events-none absolute right-3 bottom-3 z-20 flex flex-col items-end gap-2 [&>*]:pointer-events-auto', labView !== 'logical' && 'hidden')}>
+            <PduList sim={simOpen} />
+            <ModeSwitch
+              sim={simOpen}
+              setSim={(v) => {
+                if (v) s.setTool('simulate');
+                else {
+                  setSimOpenRaw(false);
+                  if (s.tool === 'simulate') s.setTool('select');
+                }
+              }}
+            />
+          </div>
           {focus && !project && (
             <button type="button" onClick={() => setFocus(false)} className="absolute top-2 left-2 z-10 flex h-7 items-center gap-1.5 rounded-full border border-line bg-pane/90 px-2.5 text-[12px] text-muted shadow-sm hover:text-text" title="Show the lab picker and the full menu" data-testid="lab-change">
               <LayoutList className="size-3.5" /> Labs
@@ -540,24 +578,26 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           </aside>
         )}
         {arenaId && <ArenaPanel key={arenaId} labId={arenaId} />}
-        {showInspector && (
+        {showInspector && inspMode === 'dock' && (
           <aside className="flex w-[430px] shrink-0 flex-col border-l border-line bg-pane max-xl:absolute max-xl:inset-y-0 max-xl:right-0 max-xl:z-30 max-xl:w-[min(430px,100%)] max-xl:shadow-xl" aria-label="Inspector" data-testid="inspector">
             <header className="flex items-center justify-between border-b border-line px-3 py-2">
               <h2 className="truncate text-[13px] font-semibold">{selDevice ? selDevice.name : 'Cable'}</h2>
-              <IconButton label="Close inspector" onClick={s.closeInspector}>
-                <X className="size-4" />
-              </IconButton>
+              <span className="flex items-center gap-1">
+                <IconButton label="Float as a window" onClick={() => setInspectorMode('window')}>
+                  <PictureInPicture2 className="size-4" />
+                </IconButton>
+                <IconButton label="Close inspector" onClick={s.closeInspector}>
+                  <X className="size-4" />
+                </IconButton>
+              </span>
             </header>
-            <div className="min-h-0 flex-1">
-              {selDevice ? (
-                <DeviceInspector device={selDevice} doc={doc} lab={lab} onPing={actions.pingFrom} />
-              ) : selCable ? (
-                <div className="h-full overflow-auto p-3">
-                  <CableInspector cable={selCable} doc={doc} />
-                </div>
-              ) : null}
-            </div>
+            <div className="min-h-0 flex-1">{inspectorBody}</div>
           </aside>
+        )}
+        {showInspector && inspMode === 'window' && (
+          <DeviceWindow title={selDevice ? selDevice.name : 'Cable'} sub={selDevice ? `${modelOf(selDevice).vendor} ${modelOf(selDevice).name}` : selCable ? `${selCable.a.port} ↔ ${selCable.b.port}` : undefined} icon={selDevice ? modelOf(selDevice).image : undefined} onClose={s.closeInspector}>
+            {inspectorBody}
+          </DeviceWindow>
         )}
       </div>
       {simOpen && (
@@ -576,6 +616,7 @@ function Designer({ lab, project }: { lab: MockLab | null; project?: string }) {
           <ToolsPanel tab={tools} setTab={setTools} onClose={() => setTools(null)} minimized={toolsMin} onMinimize={() => setToolsMin(!toolsMin)} />
         </div>
       )}
+      <InspectWindows />
       {layouts && <LayoutsDialog open projectMode={!!project} onClose={() => setLayouts(false)} />}
       {project && <>
         <Dialog open={newProjectOpen} onClose={() => setNewProjectOpen(false)} title="Create a new project">

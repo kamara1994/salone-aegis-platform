@@ -2,6 +2,7 @@
 
 import { BaseEdge, EdgeLabelRenderer, Handle, NodeResizer, Position, useInternalNode, type Edge, type EdgeProps, type Node, type NodeProps } from '@xyflow/react';
 import { memo, useEffect, useRef, useState } from 'react';
+import { phaseOf, useBoot, useBootClock } from '@/lab/boot';
 import { KIND_LABEL, modelOf } from '@/lab/catalog';
 import { DEVICE_H, DEVICE_W } from '@/lab/inventory';
 import { primaryIp } from '@/lab/simulate';
@@ -156,6 +157,7 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
       {compare && <span className={cx('absolute -top-2 left-1 rounded px-1 text-[9.5px] font-semibold text-white', compare === 'added' ? 'bg-healthy' : compare === 'changed' ? 'bg-degraded' : 'bg-down')}>{compare === 'added' ? 'New' : compare === 'changed' ? 'Changed' : 'Removed'}</span>}
       {d.origin === 'design' && !compare && <span className="absolute -top-2 left-1 rounded border border-line-strong bg-pane px-1 text-[9.5px] text-muted">Design</span>}
       {stpRoot && <span className="absolute -top-2 right-1 rounded bg-action px-1 text-[9.5px] font-semibold text-white" title="Spanning-tree root bridge">Root</span>}
+      <BootBadge d={d} />
       {d.powerReason && (
         <span className="absolute -bottom-2 left-1/2 max-w-[120px] -translate-x-1/2 truncate rounded bg-down px-1 text-[9.5px] font-semibold text-white" title={d.powerReason} data-testid={`no-power-${d.name}`}>
           No PoE
@@ -182,6 +184,24 @@ export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps
     </div>
   );
 });
+
+/** "Booting 40%" under a device while it runs its power-on self-test. */
+function BootBadge({ d }: { d: Device }) {
+  const booting = useBoot((s) => s.boots[d.id] !== undefined);
+  return booting ? <BootBadgeLive d={d} /> : null;
+}
+function BootBadgeLive({ d }: { d: Device }) {
+  useBootClock();
+  const boots = useBoot((s) => s.boots);
+  const now = useBoot((s) => s.now);
+  const { phase, pct } = phaseOf(d, boots, now);
+  if (phase !== 'post') return null;
+  return (
+    <span className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded bg-action px-1.5 text-[9.5px] font-semibold whitespace-nowrap text-white" data-testid={`booting-${d.name}`}>
+      <span className="size-1.5 animate-pulse rounded-full bg-white" /> Booting {pct}%
+    </span>
+  );
+}
 
 export type SiteFrameData = { label: string; sub?: string };
 export function SiteFrame({ data }: NodeProps<Node<SiteFrameData>>) {
@@ -259,6 +279,15 @@ const along = (p: { x: number; y: number }, q: { x: number; y: number }, d: numb
   return { x: p.x + ((q.x - p.x) / len) * d, y: p.y + ((q.y - p.y) / len) * d };
 };
 
+function LinkLight({ at, toward, color, state }: { at: { x: number; y: number }; toward: { x: number; y: number }; color: string; state: string }) {
+  const ang = (Math.atan2(toward.y - at.y, toward.x - at.x) * 180) / Math.PI;
+  return (
+    <g transform={`translate(${at.x} ${at.y}) rotate(${ang})`} data-light={state}>
+      <path d="M4.5 0 L-3.5 -4.2 L-3.5 4.2 Z" fill={color} stroke="var(--pane)" strokeWidth={0.8} strokeLinejoin="round" />
+    </g>
+  );
+}
+
 export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge<CableEdgeData>>) {
   const sn = useInternalNode(source);
   const tn = useInternalNode(target);
@@ -283,8 +312,8 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
   const st = STYLE[cable.type];
   const err = status.issues.some((i) => i.severity === 'error');
   const color = ghost ? 'var(--down)' : err ? 'var(--down)' : st.color;
-  const la = along(a, bend ?? b, 9);
-  const lb = along(b, bend ?? a, 9);
+  const la = along(a, bend ?? b, 12);
+  const lb = along(b, bend ?? a, 12);
   const ta = along(a, bend ?? b, 30 + (data.labelOffset?.a ?? 0));
   const tb = along(b, bend ?? a, 30 + (data.labelOffset?.b ?? 0));
   const light = LIGHT[status.state];
@@ -318,8 +347,16 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
           )}
         </g>
       )}
-      <circle cx={la.x} cy={la.y} r={3.6} fill={lightA} stroke="var(--pane)" strokeWidth={1} />
-      <circle cx={lb.x} cy={lb.y} r={3.6} fill={lightB} stroke="var(--pane)" strokeWidth={1} />
+      {/* Packet Tracer link lights: a triangle at each end, pointing at the port it describes. */}
+      <LinkLight at={la} toward={a} color={lightA} state={blk.includes('a') ? 'blocking' : status.state} />
+      <LinkLight at={lb} toward={b} color={lightB} state={blk.includes('b') ? 'blocking' : status.state} />
+      {cable.type === 'serial' && (
+        <g transform={`translate(${along(a, bend ?? b, 22).x} ${along(a, bend ?? b, 22).y})`} aria-hidden>
+          <title>DCE end: this side sets the clock rate</title>
+          <circle r={5.5} fill="var(--pane)" stroke="#ef4444" strokeWidth={1.2} />
+          <path d="M0 -3 V0 L2.2 1.6" fill="none" stroke="#ef4444" strokeWidth={1.2} strokeLinecap="round" />
+        </g>
+      )}
       {data.channel && <ellipse cx={mid.x} cy={mid.y} rx={9} ry={14} fill="none" stroke={data.channel.ok ? 'var(--action)' : 'var(--down)'} strokeWidth={1.6} transform={`rotate(${(Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI} ${mid.x} ${mid.y})`} />}
       <EdgeLabelRenderer>
         {hover && !ghost && (
@@ -365,7 +402,7 @@ export function CableEdge({ id, source, target, data, selected }: EdgeProps<Edge
             {[cond.latencyMs ? `${cond.latencyMs}ms` : '', cond.jitterMs ? `±${cond.jitterMs}` : '', cond.lossPct ? `${cond.lossPct}% loss` : '', cond.bandwidthMbps ? `${cond.bandwidthMbps}M` : ''].filter(Boolean).join(' ')}
           </div>
         )}
-        {(err || status.state === 'down' || flow?.denied || selected || status.state === 'degraded') && (
+        {(err || flow?.denied || selected || status.issues.some((i) => i.code === 'err_disabled') || ((status.state === 'down' || status.state === 'degraded') && hover)) && (
           <div className="nodrag nopan pointer-events-none absolute rounded border border-line bg-pane px-1 py-px font-mono text-[9.5px]" style={{ transform: `translate(-50%, -140%) translate(${mid.x}px, ${mid.y}px)` }}>
             {err ? <span className="text-down">⚠ invalid</span> : status.state === 'down' ? <span className="text-down" data-testid={status.issues.some((i) => i.code === 'err_disabled') ? 'cable-err-disabled' : undefined}>{status.issues.some((i) => i.code === 'err_disabled') ? 'err-disabled' : 'link down'}</span> : status.state === 'degraded' ? <span className="text-degraded">⚠ {status.issues.find((i) => i.severity === 'degraded')?.code.replace(/_/g, ' ')}</span> : status.state === 'disabled' ? <span className="text-muted">disabled</span> : <span className="text-muted">{CABLE_LABEL[cable.type]}</span>}
             {flow && flow.bytes_per_s > 0 && <span className="text-muted"> · {fmtBytes(flow.bytes_per_s)}</span>}

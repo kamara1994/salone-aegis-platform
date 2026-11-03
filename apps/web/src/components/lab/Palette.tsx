@@ -8,6 +8,7 @@ import { cx } from '@/components/ui';
 import { CABLE_INFO } from '@/lab/cables';
 import { CATALOG, KIND_LABEL, type DeviceModel } from '@/lab/catalog';
 import { useLab } from '@/lab/store';
+import { setStartMode, useStartMode } from '@/lab/startMode';
 import { DEVICE_H, DEVICE_W } from '@/lab/inventory';
 import type { CableType, DeviceKind } from '@/lab/types';
 import { CABLE_ASSET, CABLE_STYLE } from './CanvasParts';
@@ -49,7 +50,7 @@ function CableLibrary() {
   const [hover, setHover] = useState<{ info: (typeof CABLE_INFO)[number]; rect: DOMRect } | null>(null);
   return (
     <div data-testid="cable-library">
-      <p className="mb-2 px-1 text-[11.5px] text-muted">Pick a cable, then click the first device and the second device and choose their ports.</p>
+      <p className="mb-2 px-1 text-[11.5px] text-muted">Drag a cable onto the canvas, then drag each plug onto a device. Or drop it straight on a device, or click a cable and then two devices.</p>
       <ul className="grid grid-cols-2 gap-1.5">
         {CABLE_INFO.filter((c) => !(exam && c.type === 'auto')).map((c) => {
           const on = tool === 'cable' && cableType === c.type;
@@ -258,6 +259,7 @@ function DeviceLibrary() {
     <nav aria-label="Device library" className="h-full overflow-auto p-2 select-none" data-testid="palette">
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search devices: PoE, 10G, Cisco…" aria-label="Search the device library" data-testid="palette-search" className="mb-2 h-8 w-full rounded-[5px] border border-line-strong bg-ink px-2 text-[12.5px] focus:border-action" />
       <p className="mb-2 px-1 text-[11px] text-muted">Drag onto the canvas, or tap to add.</p>
+      <StartChoice />
       {needle && !shown.length && <p className="px-1 text-[12px] text-muted">No device matches “{q}”.</p>}
       {!needle && recentModels.length > 0 && (
         <section className="mb-2" data-testid="palette-recent">
@@ -281,5 +283,28 @@ function DeviceLibrary() {
         document.body,
       )}
     </nav>
+  );
+}
+
+/** How new devices start: already set up, or factory new (boot, setup dialog, no OS on servers). */
+function StartChoice() {
+  const mode = useStartMode();
+  return (
+    <fieldset className="mb-2 rounded-[6px] border border-line p-1.5" data-testid="start-mode">
+      <legend className="px-1 text-[10.5px] font-semibold text-muted">How should new devices start?</legend>
+      <div className="grid grid-cols-2 gap-1" role="radiogroup" aria-label="How new devices start">
+        {(
+          [
+            ['ready', 'Ready', 'Booted and named. Fastest for practice.'],
+            ['factory', 'Factory new', 'Boots, runs the IOS setup dialog. Servers have no OS until you install one.'],
+          ] as const
+        ).map(([k, label, tip]) => (
+          <button key={k} type="button" role="radio" aria-checked={mode === k} title={tip} onClick={() => setStartMode(k)} className={cx('rounded px-1 py-1 text-[11px] font-medium', mode === k ? 'bg-action text-white' : 'text-muted hover:bg-pane-2 hover:text-text')} data-testid={`start-${k}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1 px-0.5 text-[10px] leading-snug text-muted">{mode === 'factory' ? 'Like unboxing real gear: console in, answer the setup dialog or skip it.' : 'Devices arrive booted. Switch to Factory new to practise from zero.'}</p>
+    </fieldset>
   );
 }

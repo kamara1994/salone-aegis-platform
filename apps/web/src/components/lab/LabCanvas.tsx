@@ -10,7 +10,11 @@ import { GRID, useLab } from '@/lab/store';
 import type { CableEnd, CableType, Device, LabDoc } from '@/lab/types';
 import { cableOnPort, cableStatus, deviceById, otherEnd, suggestCableType } from '@/lab/validate';
 import { useLive, useUi } from '@/state/ui';
-import { CableEdge, DeviceNode, GroupFrame, NoteNode, SiteFrame, type CableEdgeData, type CompareMark, type DeviceNodeData, type NoteNodeData } from './CanvasParts';
+import { usePt } from '@/lab/ptTools';
+import { dropLoose, isPlugged, plugLoose, unplugToLoose } from '@/lab/loose';
+import { LooseCables } from './LooseCables';
+import { usePlayer } from '@/lab/player';
+import { CABLE_STYLE, CableEdge, DeviceNode, GroupFrame, NoteNode, SiteFrame, type CableEdgeData, type CompareMark, type DeviceNodeData, type NoteNodeData } from './CanvasParts';
 import { controlPlane } from '@/lab/protocols';
 import { PacketLayer } from './PacketLayer';
 import { ContextMenu, ErrorBanner, linkTestSummary, PortPicker, type MenuItem } from './Pickers';
@@ -24,7 +28,7 @@ const BACKGROUND_IMAGE: Record<string, string> = {
   global: '/lab/backgrounds/global-network.png',
 };
 
-type Picker = { deviceId: string; stage: 'first' | 'second' | 'reconnect'; from?: CableEnd; thenDevice?: string; cableId?: string; end?: 'a' | 'b' };
+type Picker = { deviceId: string; stage: 'first' | 'second' | 'reconnect' | 'loose'; from?: CableEnd; thenDevice?: string; cableId?: string; end?: 'a' | 'b' };
 type Menu = { x: number; y: number; title?: string; items: MenuItem[] };
 
 export interface CanvasActions {
@@ -176,7 +180,7 @@ function Inner({ actions }: { actions: CanvasActions }) {
         const el = document.elementsFromPoint(ev.clientX, ev.clientY).map((x) => (x as HTMLElement).closest?.('[data-device-id]')).find(Boolean) as HTMLElement | undefined;
         const target = el?.dataset.deviceId;
         if (target) setPicker({ deviceId: target, stage: 'reconnect', cableId, end, from: end === 'a' ? c.b : c.a });
-        else if ((document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('.react-flow__pane')) disconnectRef.current?.(cableId); // dropped on empty canvas: unplug
+        else if ((document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('.react-flow__pane')) unplugToLoose(cableId, end, rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY })); // dropped on empty canvas: the end hangs loose
       };
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
@@ -327,6 +331,11 @@ function Inner({ actions }: { actions: CanvasActions }) {
       finishCable(picker.from, end);
       return;
     }
+    if (picker.stage === 'loose' && picker.cableId && picker.end) {
+      setPicker(null);
+      plugLoose(picker.cableId, picker.end, end);
+      return;
+    }
     if (picker.stage === 'reconnect' && picker.cableId && picker.end) {
       setPicker(null);
       const r = st.reconnectCable(picker.cableId, picker.end, end);
@@ -367,6 +376,26 @@ function Inner({ actions }: { actions: CanvasActions }) {
       if (!st.simSrc || (st.simSrc && st.simDst)) st.setView({ simSrc: node.id, simDst: '' });
       else st.setView({ simDst: node.id });
       return;
+    }
+    if (st.tool === 'pdu') {
+      // Packet Tracer's Simple PDU: click the source, then the destination.
+      const pt = usePt.getState();
+      if (!pt.pduSrc || pt.pduSrc === node.id) pt.setPduSrc(node.id);
+      else {
+        const p = pt.addPdu(pt.pduSrc, node.id, pt.sim);
+        if (pt.sim && p.traceId) usePlayer.getState().load(p.traceId);
+      }
+      return;
+    }
+    if (st.tool === 'inspect') {
+      const r = (_e.currentTarget as HTMLElement).getBoundingClientRect();
+      usePt.getState().openInspectMenu({ device: node.id, x: r.right + 6, y: r.top });
+      return;
+    }
+    // Like Packet Tracer, clicking a device opens its window (even a device that is already selected).
+    if (st.tool === 'select' && !st.inspectorOpen && !_e.shiftKey && !_e.metaKey && !_e.ctrlKey) {
+      st.select({ devices: [node.id], cables: [] });
+      st.openInspector(st.inspectorTab === 'cable' ? 'overview' : undefined);
     }
   };
 
@@ -497,6 +526,8 @@ function Inner({ actions }: { actions: CanvasActions }) {
       else if (!mod && k === 'v') st.setTool('select');
       else if (!mod && k === 'x') st.setTool(st.tool === 'disconnect' ? 'select' : 'disconnect');
       else if (!mod && k === 's') st.setTool(st.tool === 'simulate' ? 'select' : 'simulate');
+      else if (!mod && k === 'p') (st.setTool(st.tool === 'pdu' ? 'select' : 'pdu'), usePt.getState().setPduSrc(null));
+      else if (!mod && k === 'i') st.setTool(st.tool === 'inspect' ? 'select' : 'inspect');
       else if (!mod && k === 'f') rf.fitView({ padding: 0.1 });
       else if (!mod && k === 'l') st.setView({ portLabels: !st.portLabels });
       else if (e.key === 'Enter' && (st.selection.devices.length || st.selection.cables.length)) st.openInspector(st.selection.cables.length ? 'cable' : 'overview');
@@ -514,7 +545,24 @@ function Inner({ actions }: { actions: CanvasActions }) {
     setTimeout(() => rf.fitView({ padding: 0.08, maxZoom: 1 }), 60);
   }, [nodes.length, rf]);
 
-  const pickerFrom = picker?.stage === 'second' || picker?.stage === 'reconnect' ? picker.from : undefined;
+  // While a cable end is held, draw the loose cable from that device to the mouse, like Packet Tracer.
+  const pendingEnd = s.pendingEnd;
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el || !pendingEnd || s.tool !== 'cable') return;
+    const d = deviceById(useLab.getState().doc!, pendingEnd.device);
+    if (!d) return;
+    const from = { x: d.x + DEVICE_W / 2, y: d.y + 26 };
+    const move = (ev: PointerEvent) => setGhost({ from, to: rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY }) });
+    el.addEventListener('pointermove', move);
+    return () => {
+      el.removeEventListener('pointermove', move);
+      setGhost(null);
+    };
+  }, [pendingEnd, s.tool, rf]);
+
+  const pduSrc = usePt((p) => p.pduSrc);
+  const pickerFrom = picker?.stage === 'second' || picker?.stage === 'reconnect' || picker?.stage === 'loose' ? picker.from : undefined;
   return (
     <div
       ref={wrap}
@@ -534,6 +582,18 @@ function Inner({ actions }: { actions: CanvasActions }) {
         if (cable) {
           useLab.getState().setCableType(cable);
           useLab.getState().setTool('cable');
+          // Dropped on a device: plug this end into one of its ports right away.
+          const hit = document.elementsFromPoint(e.clientX, e.clientY).map((el) => (el as HTMLElement).closest?.('[data-device-id]') as HTMLElement | null).find(Boolean);
+          const id = hit?.dataset.deviceId;
+          if (id && !id.startsWith('ghost:')) {
+            const pend = useLab.getState().pendingEnd;
+            if (pend && pend.device !== id) setPicker({ deviceId: id, stage: 'second', from: pend });
+            else startCable(id);
+          } else {
+            // Dropped on empty canvas: the cable lies there until you plug its ends in.
+            useLab.getState().setTool('select');
+            dropLoose(cable, rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }));
+          }
           return;
         }
         const p = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY });
@@ -630,10 +690,28 @@ function Inner({ actions }: { actions: CanvasActions }) {
           </ControlButton>
         </Controls>
         <PacketLayer />
+        <LooseCables
+          onPlugAt={(cableId, end, deviceId) => {
+            const c = useLab.getState().doc?.loose?.find((x) => x.id === cableId);
+            const other = c ? (end === 'a' ? c.b : c.a) : undefined;
+            setPicker({ deviceId, stage: 'loose', cableId, end, from: other && isPlugged(other) ? other : undefined });
+          }}
+        />
         {ghost && (
           <ViewportPortal>
             <svg className="pointer-events-none absolute overflow-visible" style={{ left: 0, top: 0 }}>
-              <line x1={ghost.from.x} y1={ghost.from.y} x2={ghost.to.x} y2={ghost.to.y} stroke="var(--action)" strokeWidth={2} strokeDasharray="5 4" />
+              {(() => {
+                const ct = s.cableType === 'auto' ? 'straight' : s.cableType;
+                const st = CABLE_STYLE[ct] ?? CABLE_STYLE.straight;
+                const mx = (ghost.from.x + ghost.to.x) / 2;
+                const sag = Math.min(60, Math.hypot(ghost.to.x - ghost.from.x, ghost.to.y - ghost.from.y) / 6);
+                return (
+                  <g data-testid="loose-cable">
+                    <path d={`M${ghost.from.x} ${ghost.from.y} Q${mx} ${Math.max(ghost.from.y, ghost.to.y) + sag} ${ghost.to.x} ${ghost.to.y}`} fill="none" stroke={st.color} strokeWidth={st.width + 1} strokeDasharray={st.dash} strokeLinecap="round" />
+                    <rect x={ghost.to.x - 5} y={ghost.to.y - 4} width={10} height={8} rx={1.5} fill="#d7dde4" stroke="#3a4552" />
+                  </g>
+                );
+              })()}
             </svg>
           </ViewportPortal>
         )}
@@ -649,6 +727,16 @@ function Inner({ actions }: { actions: CanvasActions }) {
           Disconnect: click a cable to unplug it, or click a device to choose a port. Esc to stop.
         </div>
       )}
+      {s.tool === 'pdu' && (
+        <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-action/50 bg-pane px-3 py-1 text-[12.5px] shadow" role="status" data-testid="pdu-hint">
+          {pduSrc ? `Simple PDU from ${deviceById(doc, pduSrc)?.name}: click the destination. Esc to stop.` : 'Add Simple PDU: click the source device. Esc to stop.'}
+        </div>
+      )}
+      {s.tool === 'inspect' && (
+        <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-action/50 bg-pane px-3 py-1 text-[12.5px] shadow" role="status" data-testid="inspect-hint">
+          Inspect: click a device to see its ARP, MAC or routing table. Esc to stop.
+        </div>
+      )}
       {s.tool === 'simulate' && (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-action/50 bg-pane px-3 py-1 text-[12.5px] shadow" role="status">
           Simulation: click a source device, then a destination. Set protocol and send below.
@@ -660,8 +748,8 @@ function Inner({ actions }: { actions: CanvasActions }) {
         deviceId={picker?.deviceId ?? null}
         from={pickerFrom}
         ignoreCableId={picker?.stage === 'reconnect' ? picker.cableId : undefined}
-        showType={picker?.stage !== 'reconnect'}
-        title={picker ? `${picker.stage === 'first' ? 'Choose the first port' : picker.stage === 'second' ? 'Choose the second port' : 'Move the cable end to'} on ${deviceById(doc, picker.deviceId)?.name}` : ''}
+        showType={picker?.stage !== 'reconnect' && picker?.stage !== 'loose'}
+        title={picker ? `${picker.stage === 'first' ? 'Choose the first port' : picker.stage === 'second' ? 'Choose the second port' : picker.stage === 'loose' ? 'Plug the cable into' : 'Move the cable end to'} on ${deviceById(doc, picker.deviceId)?.name}` : ''}
         onPick={onPick}
         onCancel={() => setPicker(null)}
       />

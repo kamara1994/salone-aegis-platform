@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Copy, Monitor, Plus, Power, RotateCw, Terminal, Trash, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFlows, useNode } from '@/api/hooks';
 import { awaitJob, errorText, useRuntime } from '@/components/providers';
 import { ConsoleView } from '@/components/console/ConsoleView';
@@ -23,6 +23,8 @@ import type { LabState as MockLab } from '@/mock/lab';
 import { CableTypeSelect, IssueList, linkTestSummary } from './Pickers';
 import { CablePhysical, ServicesTab } from './ServicesTab';
 import { PhysicalView } from './PhysicalView';
+import { useBoot } from '@/lab/boot';
+import { ISOS } from '@/lab/startMode';
 import { DECISION_COLOR } from './PacketLayer';
 import { primaryMac, primaryVlan } from './CanvasParts';
 
@@ -480,12 +482,59 @@ function TerminalTab({ d }: { d: Device }) {
           <p className="text-[11.5px] text-muted">
             {modelOf(d).forwarding === 'host' ? 'Command prompt' : 'IOS-style CLI'} running against this design, not the real device. Changes you type (addresses, VLANs, OSPF, HSRP, NAT, EtherChannel, routes) update the canvas and packet simulation. Type <code>?</code> for commands.
           </p>
-          <DesignTerminal d={d} />
+          {d.factory?.noOs && <OsInstaller d={d} />}
+          <DesignTerminal key={`${d.id}:${d.factory?.noOs ? 'blank' : 'os'}`} d={d} />
         </>
       ) : (
         <p className="text-[12.5px] text-muted">{d.name} is a managed service without an interactive console.</p>
       )}
     </div>
+  );
+}
+
+/** A blank server or VM: pick an ISO, boot it and install. Sped up; real installs take 10 to 40 minutes. */
+function OsInstaller({ d }: { d: Device }) {
+  const [iso, setIso] = useState<string>(ISOS[0].id);
+  const [pct, setPct] = useState<number | null>(null);
+  useEffect(() => {
+    if (pct === null) return;
+    const pick = ISOS.find((x) => x.id === iso)!;
+    if (pct >= 100) {
+      useLab.getState().updateDevice(d.id, { os: pick.os, factory: { ...d.factory, noOs: false }, listening: pick.family === 'windows' ? [3389, 445] : [22] });
+      useUi.getState().toast({ tone: 'success', title: `${pick.os} installed on ${d.name}`, body: 'The terminal now boots into it. Set an IP address to put it on the network.' });
+      return;
+    }
+    const t = setTimeout(() => setPct((p) => Math.min(100, (p ?? 0) + 100 / (pick.ms / 200))), 200);
+    return () => clearTimeout(t);
+  }, [pct, iso, d.id, d.factory]);
+  const step = pct === null ? '' : pct < 15 ? 'Booting from the ISO…' : pct < 35 ? 'Partitioning the disk…' : pct < 80 ? 'Copying system files…' : pct < 95 ? 'Installing the boot loader…' : 'Rebooting into the new system…';
+  return (
+    <section className="space-y-2 rounded border border-action/40 bg-action/5 p-2.5 text-[12.5px]" data-testid="os-installer">
+      <p className="font-semibold">No operating system on {d.name}</p>
+      <p className="text-muted">A factory-new server is an empty disk. Mount an ISO in the virtual DVD drive and install, the same as on real hardware or a hypervisor.</p>
+      <div className="grid gap-1 sm:grid-cols-2" role="radiogroup" aria-label="Installation ISO">
+        {ISOS.map((x) => (
+          <label key={x.id} className={cx('flex cursor-pointer items-center gap-2 rounded border px-2 py-1', iso === x.id ? 'border-action bg-action/10' : 'border-line')}>
+            <input type="radio" name={`iso-${d.id}`} checked={iso === x.id} disabled={pct !== null} onChange={() => setIso(x.id)} />
+            <span className="truncate">{x.label}</span>
+          </label>
+        ))}
+      </div>
+      {pct === null ? (
+        <Button size="sm" variant="primary" onClick={() => setPct(0)} data-testid="os-install">
+          Boot from ISO and install
+        </Button>
+      ) : (
+        <div className="space-y-1" role="status">
+          <div className="h-2 overflow-hidden rounded bg-pane-2">
+            <div className="h-full bg-action transition-[width]" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="text-[11.5px] text-muted">
+            {step} {Math.round(pct)}% (sped up; a real install takes 10 to 40 minutes)
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -855,6 +904,7 @@ function Actions({ d, onOpenVm, onPing }: { d: Device; onOpenVm: () => void; onP
     },
     onSuccess: (a) => {
       if (a === 'start' || a === 'stop') st.setPower(d.id, a === 'start' ? 'running' : 'stopped');
+      if (a === 'reboot') useBoot.getState().start(d.id);
     },
   });
   const inBase = !!st.baseline?.devices.find((x) => x.id === d.id);
@@ -1072,34 +1122,64 @@ export function CableInspector({ cable, doc }: { cable: Cable; doc: LabDoc }) {
 
 // ---------------- shell ----------------
 
+/** Packet Tracer-style groups: Physical, Config, CLI (Desktop on hosts), Services, Tools. */
+export const DEVICE_GROUPS: { key: string; label: string; host?: string; tabs: string[] }[] = [
+  { key: 'physical', label: 'Physical', tabs: ['physical'] },
+  { key: 'config', label: 'Config', tabs: ['overview', 'interfaces', 'ports', 'vlans', 'routes', 'firewall', 'config'] },
+  { key: 'cli', label: 'CLI', host: 'Desktop', tabs: ['terminal'] },
+  { key: 'services', label: 'Services', tabs: ['services'] },
+  { key: 'tools', label: 'Tools', tabs: ['logs', 'packets', 'actions'] },
+];
+const SUB_LABEL: Record<string, string> = { overview: 'Settings', interfaces: 'Interfaces', ports: 'Ports', vlans: 'VLAN database', routes: 'Routing', firewall: 'Firewall', config: 'Running config', logs: 'Logs', packets: 'Packets', actions: 'Power and actions' };
+export const groupOf = (tab: string) => DEVICE_GROUPS.find((g) => g.tabs.includes(tab)) ?? DEVICE_GROUPS[1];
+
 export function DeviceInspector({ device: d, doc, lab, onPing }: { device: Device; doc: LabDoc; lab: MockLab | null; onPing: (id: string) => void }) {
   const tab = useLab((s) => s.inspectorTab);
   const setTab = useLab((s) => s.setInspectorTab);
   const [vm, setVm] = useState(false);
   const t = DEVICE_TABS.some(([k]) => k === tab) ? tab : 'overview';
+  const g = groupOf(t);
+  const host = modelOf(d).forwarding === 'host';
+  const last = useRef<Record<string, string>>({});
+  last.current[g.key] = t;
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div role="tablist" aria-label="Device inspector" className="flex flex-wrap gap-x-0.5 border-b border-line px-1">
-        {DEVICE_TABS.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={t === k} onClick={() => setTab(k)} className={cx('-mb-px border-b-2 px-2 py-1.5 text-[12px]', t === k ? 'border-action text-text' : 'border-transparent text-muted hover:text-text')} data-testid={`tab-${k}`}>
-            {label}
-          </button>
-        ))}
+      <div role="tablist" aria-label="Device window" className="flex gap-0.5 border-b border-line px-1.5 pt-1">
+        {DEVICE_GROUPS.map((x) => {
+          const on = x.key === g.key;
+          const id = x.tabs.length === 1 ? `tab-${x.tabs[0]}` : `tab-group-${x.key}`;
+          return (
+            <button key={x.key} role="tab" aria-selected={on} onClick={() => setTab(last.current[x.key] ?? x.tabs[0])} className={cx('-mb-px rounded-t-[5px] border border-b-0 px-3 py-1.5 text-[12.5px]', on ? 'border-line bg-pane-2 font-semibold text-text' : 'border-transparent text-muted hover:text-text')} data-testid={id}>
+              {host && x.host ? x.host : x.label}
+            </button>
+          );
+        })}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-3" role="tabpanel" aria-label={DEVICE_TABS.find(([k]) => k === t)?.[1]}>
-        {t === 'overview' && <Overview d={d} doc={doc} />}
-        {t === 'physical' && <PhysicalView d={d} doc={doc} />}
-        {t === 'ports' && <Ports d={d} doc={doc} />}
-        {t === 'interfaces' && <Interfaces d={d} />}
-        {t === 'config' && <Config d={d} />}
-        {t === 'terminal' && <TerminalTab d={d} />}
-        {t === 'logs' && <Logs d={d} lab={lab} />}
-        {t === 'packets' && <Packets d={d} doc={doc} />}
-        {t === 'services' && <ServicesTab d={d} doc={doc} />}
-        {t === 'routes' && <Routes d={d} />}
-        {t === 'vlans' && <Vlans d={d} doc={doc} />}
-        {t === 'firewall' && <Firewall d={d} />}
-        {t === 'actions' && <Actions d={d} onOpenVm={() => setVm(true)} onPing={() => onPing(d.id)} />}
+      <div className="flex min-h-0 flex-1">
+        {g.tabs.length > 1 && (
+          <nav aria-label={`${g.label} sections`} className="w-[132px] shrink-0 overflow-auto border-r border-line bg-pane-2/40 py-1.5">
+            {g.tabs.map((k) => (
+              <button key={k} type="button" onClick={() => setTab(k)} aria-current={t === k} className={cx('block w-full px-3 py-1.5 text-left text-[12px]', t === k ? 'bg-action/15 font-semibold text-text shadow-[inset_2px_0_0_var(--action)]' : 'text-muted hover:bg-pane-2 hover:text-text')} data-testid={`tab-${k}`}>
+                {SUB_LABEL[k] ?? k}
+              </button>
+            ))}
+          </nav>
+        )}
+        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-3" role="tabpanel" aria-label={SUB_LABEL[t] ?? g.label}>
+          {t === 'overview' && <Overview d={d} doc={doc} />}
+          {t === 'physical' && <PhysicalView d={d} doc={doc} />}
+          {t === 'ports' && <Ports d={d} doc={doc} />}
+          {t === 'interfaces' && <Interfaces d={d} />}
+          {t === 'config' && <Config d={d} />}
+          {t === 'terminal' && <TerminalTab d={d} />}
+          {t === 'logs' && <Logs d={d} lab={lab} />}
+          {t === 'packets' && <Packets d={d} doc={doc} />}
+          {t === 'services' && <ServicesTab d={d} doc={doc} />}
+          {t === 'routes' && <Routes d={d} />}
+          {t === 'vlans' && <Vlans d={d} doc={doc} />}
+          {t === 'firewall' && <Firewall d={d} />}
+          {t === 'actions' && <Actions d={d} onOpenVm={() => setVm(true)} onPing={() => onPing(d.id)} />}
+        </div>
       </div>
       <VmDialog device={d} open={vm} onClose={() => setVm(false)} />
     </div>

@@ -1,5 +1,8 @@
 // IPv4 helpers for the lab designer and packet simulator.
 
+/** Salt for stable lab MAC addresses. */
+export const MAC_SEED_SALT = 'a9438b31879d5deb';
+
 export function ipToInt(ip: string): number | null {
   const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip.trim());
   if (!m) return null;

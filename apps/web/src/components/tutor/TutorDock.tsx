@@ -3,29 +3,68 @@
 // The study tutor: a dock on the right, a launcher in the corner, and the detour bar.
 // It follows you between pages, remembers what was hard, and can send you to a prerequisite
 // and bring you back with the link explained. Answers come from the AEGIS lessons.
-import { ArrowLeft, ArrowRight, Brain, Send, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Brain, Copy, ExternalLink, Send, Sparkles, Trash2, X } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { cx } from '@/components/ui';
 import { useDashItem } from '@/components/cert/DashboardSide';
 import { act, chat, CHAPTERS, chapterOf, detourArrive, detourReturn, greet, lessonById, PAIRS, patterns, resolveLesson, welcome, type Action, type MapNode, type Reply } from '@/learn/tutorBrain';
+import { askLive, chatgptUrl, claudeUrl, externalPrompt, liveStatus, payloadFor, type LiveStatus } from '@/learn/liveTutor';
 import { useBookLesson } from '@/state/bookLesson';
 import { useTutor } from '@/state/tutor';
 
-/** Tiny formatter for tutor text: **bold**, *italic*, paragraphs and a --- divider. */
-function Rich({ text }: { text: string }) {
+/** Inline formatting: **bold**, *italic* and `code`. */
+function Inline({ text }: { text: string }) {
   return (
     <>
-      {text.split(/\n{2,}/).map((p, i) =>
-        p.trim() === '---' ? (
-          <hr key={i} className="my-2 border-line" />
+      {text.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*|\b_[^_\s][^_]*_\b)/g).map((seg, k) =>
+        seg.startsWith('**') && seg.endsWith('**') ? (
+          <b key={k} className="font-semibold text-text">{seg.slice(2, -2)}</b>
+        ) : seg.startsWith('`') && seg.endsWith('`') ? (
+          <code key={k} className="tutor-code">{seg.slice(1, -1)}</code>
+        ) : ((seg.startsWith('*') && seg.endsWith('*')) || (seg.startsWith('_') && seg.endsWith('_'))) && seg.length > 2 ? (
+          <em key={k}>{seg.slice(1, -1)}</em>
         ) : (
-          <p key={i} className="[&+p]:mt-2">
-            {p.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((seg, k) =>
-              seg.startsWith('**') ? <b key={k} className="font-semibold text-text">{seg.slice(2, -2)}</b> : seg.startsWith('*') && seg.length > 2 ? <em key={k}>{seg.slice(1, -1)}</em> : <Fragment key={k}>{seg}</Fragment>,
-            )}
-          </p>
+          <Fragment key={k}>{seg}</Fragment>
         ),
       )}
+    </>
+  );
+}
+/** Formatter for tutor text from the offline tutor or a live AI: paragraphs, lists, code blocks and a --- divider. */
+function Rich({ text }: { text: string }) {
+  const parts = text.replace(/\r/g, '').split(/(```[\s\S]*?```)/g);
+  return (
+    <>
+      {parts.map((part, pi) => {
+        if (part.startsWith('```')) return <pre key={pi} className="flash-cli !mt-2 !text-[12px]">{part.replace(/^```\w*\n?/, '').replace(/```$/, '').trim()}</pre>;
+        return part
+          .split(/\n{2,}/)
+          .filter((p) => p.trim())
+          .map((p, i) => {
+            if (p.trim() === '---') return <hr key={`${pi}-${i}`} className="my-2 border-line" />;
+            const lines = p.split('\n');
+            if (lines.every((l) => /^\s*([-*•]|\d+[.)])\s+/.test(l)))
+              return (
+                <ul key={`${pi}-${i}`} className="tutor-list [&+p]:mt-2">
+                  {lines.map((l, k) => (
+                    <li key={k}>
+                      <Inline text={l.replace(/^\s*([-*•]|\d+[.)])\s+/, '')} />
+                    </li>
+                  ))}
+                </ul>
+              );
+            return (
+              <p key={`${pi}-${i}`} className="[&+*]:mt-2">
+                {lines.map((l, k) => (
+                  <Fragment key={k}>
+                    {k > 0 && <br />}
+                    <Inline text={l.replace(/^#+\s*/, '')} />
+                  </Fragment>
+                ))}
+              </p>
+            );
+          });
+      })}
     </>
   );
 }
@@ -35,6 +74,10 @@ export function TutorDock() {
   const [tab, setTab] = useState<'chat' | 'memory'>('chat');
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
+  const [live, setLive] = useState<LiveStatus | null>(null);
+  useEffect(() => {
+    liveStatus().then(setLive);
+  }, []);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => s.hydrate(), []); // eslint-disable-line react-hooks/exhaustive-deps
   // On wide screens the page makes room for the dock instead of hiding under it.
@@ -55,6 +98,11 @@ export function TutorDock() {
       if (r.detour !== undefined) patch.detour = r.detour;
       if (Object.keys(patch).length) st.save(patch);
       if (r.await !== undefined) st.setAwaiting(r.await);
+      // Keep the conversation on the lesson just discussed, so "why?" and "quiz me" follow it.
+      if (r.focus) {
+        const fl = lessonById(r.focus);
+        if (fl) useTutor.setState({ ctx: { kind: 'Chat', label: fl.title, lessonId: fl.id, where: useDashItem.getState().item } });
+      }
       if (r.go) {
         useDashItem.getState().setItem('learn/topics');
         useBookLesson.getState().open(r.go);
@@ -73,7 +121,17 @@ export function TutorDock() {
     }
     if (s.req.kind === 'welcome') {
       setTab('chat');
-      apply(welcome(st.memory));
+      // Opened from the corner: use the lesson on screen as the context, so "what am I on?" just works.
+      const item = useDashItem.getState().item;
+      const lessonId = useBookLesson.getState().lessonId;
+      if (!st.ctx && item === 'learn/topics' && lessonId) {
+        const l = lessonById(lessonId);
+        if (l) useTutor.setState({ ctx: { kind: 'Lesson', label: l.title, lessonId, where: item } });
+      }
+      const ctxNow = useTutor.getState().ctx;
+      const w = welcome(st.memory);
+      const l = ctxNow ? resolveLesson(ctxNow) : undefined;
+      apply(l && !w.msgs[0]?.actions ? greet(ctxNow!, st.memory, st.memory.name ?? '') : w);
     }
     if (s.req.kind === 'select' && s.req.text && st.ctx) {
       setTab('chat');
@@ -103,14 +161,35 @@ export function TutorDock() {
     }
     apply(act(a, st.ctx ?? { kind: '', label: '' }, st.memory, st.detour));
   };
-  const send = () => {
+  const send = async () => {
     const t = input.trim();
-    if (!t) return;
+    if (!t || typing) return;
     setInput('');
     const st = useTutor.getState();
     st.push([{ role: 'me', text: t }]);
-    apply(chat(t, st.ctx ?? { kind: '', label: t }, st.memory, st.detour, st.awaiting));
+    const ctx = st.ctx ?? { kind: '', label: t };
+    const offline = () => apply(chat(t, ctx, st.memory, st.detour, st.awaiting));
+    if (!live?.available) return offline();
+    // Live AI: grounded in the lesson in focus, or the lesson the question names.
+    // A question that names a topic is grounded in that topic; "why?" or "explain this" stays on the current one.
+    const lesson = resolveLesson({ kind: '', label: t, text: t }, true) ?? resolveLesson(ctx);
+    const history = useTutor.getState().msgs.map((m) => ({ ...m }));
+    if (st.awaiting && lesson) history[history.length - 1].text = `Here is my teach-back of "${lesson.title}": ${t}\n\nGrade it kindly: what I got right, what is missing or wrong, and a model answer in one or two sentences.`;
+    setTyping(true);
+    try {
+      const r = await askLive(payloadFor(history, lesson, st.memory, ctx.kind ? `${ctx.kind}: ${ctx.label}` : useDashItem.getState().item));
+      setTyping(false);
+      useTutor.getState().push([{ role: 'ai', text: r.text, live: r.provider, source: lesson ? { id: lesson.id, title: `${lesson.id} ${lesson.title}` } : undefined, actions: [{ label: 'Simpler', a: { k: 'simple' } }, { label: 'Quiz me', a: { k: 'quiz' } }, { label: 'Show the map', a: { k: 'map' } }] }]);
+      if (st.awaiting) useTutor.getState().setAwaiting(null);
+      if (lesson && lesson.id !== resolveLesson(ctx)?.id) useTutor.setState({ ctx: { kind: 'Chat', label: lesson.title, lessonId: lesson.id, where: useDashItem.getState().item } });
+    } catch {
+      setTyping(false);
+      offline();
+    }
   };
+  /** The same question, ready for the student's own ChatGPT or Claude. */
+  const lastQuestion = [...s.msgs].reverse().find((m) => m.role === 'me')?.text ?? '';
+  const outside = () => externalPrompt(lastQuestion, s.ctx ? resolveLesson(s.ctx) : undefined, s.memory);
 
   const cur = s.ctx ? resolveLesson(s.ctx) : undefined;
   const lastActions = [...s.msgs].reverse().find((m) => m.role === 'ai')?.id;
@@ -127,7 +206,10 @@ export function TutorDock() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[13.5px] font-semibold text-text">Study tutor</p>
-            <p className="truncate text-[11.5px] text-faint">{cur ? `On: ${cur.title}` : s.ctx?.label ? `On: ${s.ctx.label}` : 'Ask about anything you study'}</p>
+            <p className="flex items-center gap-1.5 truncate text-[11.5px] text-faint">
+              <i className={cx('size-1.5 shrink-0 rounded-full', live?.available ? 'bg-[#38d9a9] shadow-[0_0_6px_#38d9a9]' : 'bg-faint')} title={live?.available ? `Live AI: ${live.providers.join(', ')}` : 'Offline tutor'} />
+              <span className="truncate">{cur ? `On: ${cur.title}` : s.ctx?.label ? `On: ${s.ctx.label}` : 'Ask about anything you study'}</span>
+            </p>
           </div>
           <div className="seg !p-0.5" role="tablist" aria-label="Tutor views">
             {(['chat', 'memory'] as const).map((k) => (
@@ -174,6 +256,7 @@ export function TutorDock() {
                         </table>
                       </div>
                     )}
+                    {m.live && <span className="tutor-live-tag">✦ {m.live}</span>}
                     {m.source && (
                       <button type="button" className="tutor-source" onClick={() => { useDashItem.getState().setItem('learn/topics'); useBookLesson.getState().open(m.source!.id); }} title="Open this lesson">
                         From: {m.source.title}
@@ -231,7 +314,21 @@ export function TutorDock() {
                   <Send className="size-4" />
                 </button>
               </div>
-              <p className="mt-2 text-[10.5px] text-faint">Offline tutor: answers come from AEGIS lessons. The live AI plugs in here later.</p>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-faint" data-testid="tutor-footer">
+                <span>{live?.available ? `Live AI: ${live.providers[0]} · grounded in AEGIS lessons` : 'Offline tutor: answers from AEGIS lessons'}</span>
+                <span className="ml-auto flex items-center gap-2">
+                  Ask in
+                  <a href={chatgptUrl(outside())} target="_blank" rel="noopener noreferrer" className="tutor-out" data-testid="tutor-chatgpt">
+                    ChatGPT <ExternalLink className="size-3" />
+                  </a>
+                  <a href={claudeUrl(outside())} target="_blank" rel="noopener noreferrer" className="tutor-out" data-testid="tutor-claude">
+                    Claude <ExternalLink className="size-3" />
+                  </a>
+                  <button type="button" onClick={() => navigator.clipboard?.writeText(outside())} className="tutor-out" title="Copy the question with the lesson as context">
+                    <Copy className="size-3" />
+                  </button>
+                </span>
+              </div>
             </form>
           </>
         ) : (

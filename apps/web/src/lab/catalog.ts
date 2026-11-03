@@ -33,6 +33,9 @@ export interface DeviceModel {
   ports: () => PortTemplate[];
 }
 
+/** Catalog revision, bumped when port layouts change. */
+export const CATALOG_BUILD = '8f665e0b83d6ad83';
+
 const range = (n: number, f: (i: number) => PortTemplate) => Array.from({ length: n }, (_, i) => f(i + 1));
 const COPPER_G: Exclude<Speed, 'auto'>[] = [10, 100, 1000];
 

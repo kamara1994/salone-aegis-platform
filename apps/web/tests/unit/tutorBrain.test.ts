@@ -48,3 +48,46 @@ describe('tutor brain', () => {
     expect(welcome(m).msgs[0].actions?.[0].a.k).toBe('compare');
   });
 });
+
+describe('tutor small talk', () => {
+  const ctx = { kind: 'Lesson', label: 'What Is a Network?', lessonId: '1.01' };
+  it('answers a greeting with the current lesson', () => {
+    expect(chat('hey', ctx, mem(), null).msgs[0].text).toContain('What Is a Network?');
+  });
+  it('knows which topic you are on', () => {
+    const r = chat('do you knw what topic i am right now', ctx, mem(), null);
+    expect(r.msgs[0].text).toContain('What Is a Network?');
+    expect(r.msgs[0].source?.id).toBe('1.01');
+  });
+  it('does not jump to a random lesson on chatter', () => {
+    const r = chat('can you help me with this right now', ctx, mem(), null);
+    expect(r.msgs[0].source).toBeUndefined();
+  });
+  it('still finds a lesson when a real term is named', () => {
+    expect(chat('what is a trunk', ctx, mem(), null).msgs[0].source).toBeDefined();
+  });
+});
+
+describe('tutor conversation (the transcript that went wrong)', () => {
+  // Replays the dock: free text goes to chat(), buttons to act(), and a reply's focus becomes the new context.
+  const run = (steps: ({ say: string } | { tap: Parameters<typeof act>[0] })[]) => {
+    let ctx: { kind: string; label: string; lessonId?: string } = { kind: '', label: '' };
+    let m = mem();
+    return steps.map((s) => {
+      const r = 'say' in s ? chat(s.say, ctx, m, null) : act(s.tap, ctx, m, null);
+      if (r.memory) m = r.memory;
+      if (r.focus) ctx = { kind: 'Chat', label: '', lessonId: r.focus };
+      return r.msgs.map((x) => x.text).join(' ');
+    });
+  };
+  it('stays on VLANs for follow-ups', () => {
+    const out = run([{ say: 'hey' }, { say: 'why' }, { say: 'hey what is vlan' }, { tap: { k: 'stuck' } }, { say: 'the whole topic' }, { tap: { k: 'quiz' } }, { say: 'why' }]);
+    expect(out[0]).not.toMatch(/couldn't match/);
+    expect(out[1]).toMatch(/Which topic/);
+    expect(out[2]).toMatch(/VLAN/);
+    expect(out[3]).not.toMatch(/Tell me what you're stuck on/);
+    expect(out[4]).toMatch(/What Is a VLAN\?, the whole picture/);
+    expect(out[5]).not.toMatch(/Tell me what you're stuck on/);
+    expect(out[6]).toMatch(/Why What Is a VLAN matters/);
+  });
+});

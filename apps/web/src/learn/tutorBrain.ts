@@ -17,6 +17,7 @@ export type BookLesson = {
   beginner: { definition?: string; analogy?: string; example?: string; remember?: string };
   technical: { definition?: string; explanation?: string; application?: string; remember?: string };
   teachingGuide?: { concept?: string; mechanism?: string; commonTrap?: string; teachBack?: string };
+  teaching?: { problem?: string; steps?: { number?: number; text: string }[]; result?: string; verify?: string };
   assessments?: { beginner?: Q[]; technical?: Q[] };
 };
 type Chapter = { id: string; number: number; title: string; lessonIds: string[] };
@@ -63,37 +64,60 @@ export type Action =
   | { k: 'warm'; lesson: string }
   | { k: 'open'; lesson: string };
 export type MapNode = { id: string; title: string; score: number | null; here?: boolean };
-export type Msg = { id: number; role: 'ai' | 'me'; text: string; source?: { id: string; title: string }; actions?: { label: string; a: Action; primary?: boolean }[]; tone?: 'ok' | 'bad'; map?: MapNode[]; table?: { head: string[]; rows: string[][] } };
+export type Msg = { id: number; role: 'ai' | 'me'; text: string; /** Which live AI answered, when one did. */ live?: string; source?: { id: string; title: string }; actions?: { label: string; a: Action; primary?: boolean }[]; tone?: 'ok' | 'bad'; map?: MapNode[]; table?: { head: string[]; rows: string[][] } };
 /** A missed question somewhere in AEGIS (flashcard, exam, tutor), kept short. */
 export type Miss = { label: string; text: string; at: string };
 export type Memory = { struggled: Record<string, number>; known: Record<string, 1>; style?: 'simple' | 'deep'; visits: number; last?: { lesson: string; at: string }; name?: string; misses?: Miss[]; warmDay?: string };
 export type Detour = { from: TutorCtx; fromLesson: string; to: string };
-export type Reply = { msgs: Omit<Msg, 'id'>[]; memory?: Memory; go?: string; detour?: Detour | null; /** The next thing the student types is a teach-back for this lesson. */ await?: string | null };
+export type Reply = { msgs: Omit<Msg, 'id'>[]; memory?: Memory; go?: string; detour?: Detour | null; /** The next thing the student types is a teach-back for this lesson. */ await?: string | null; /** The lesson the conversation is now about, so follow-ups like "why?" and "quiz me" stay on it. */ focus?: string };
 
 // ---------- finding the lesson ----------
-const STOP = new Set('the a an and or of to in on for is are what which how why does do with by from this that it its as at be can into your you'.split(' '));
+const STOP = new Set('the a an and or of to in on for is are what which how why does do with by from this that it its as at be can into your you me my am im i we us our know knw right now please tell explain help hey hi hello yes no ok okay just about topic lesson page here there want need get got thing stuff really so but if then'.split(' '));
 const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9./ ]/g, ' ').split(/\s+/).filter((w) => w.length > 1 && !STOP.has(w));
+/** Singular form, so "trunks" matches "trunk". */
+const sing = (w: string) => (w.length > 4 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w);
+const ALIASES: [RegExp, string][] = [
+  [/spanning.?tree/, 'stp'],
+  [/\bstp\b/, 'spanning tree'],
+  [/port.?channel|link aggregation/, 'etherchannel'],
+  [/gateway redundancy|\bhsrp\b|\bvrrp\b/, 'first hop redundancy fhrp'],
+  [/access.?list/, 'acl'],
+  [/\bmask\b/, 'subnet masks prefix'],
+  [/wi.?fi/, 'wireless wlan'],
+];
 /** Best matching lesson for whatever the student is looking at. */
-export function resolveLesson(ctx: TutorCtx): BookLesson | undefined {
+export function resolveLesson(ctx: TutorCtx, strict = false): BookLesson | undefined {
   if (ctx.lessonId && byId.has(ctx.lessonId)) return byId.get(ctx.lessonId);
-  const want = words(`${ctx.label} ${ctx.text ?? ''}`);
+  const raw = `${ctx.label} ${ctx.text ?? ''}`.toLowerCase();
+  // A few everyday names for things the lessons title differently.
+  const alias = ALIASES.filter(([re]) => re.test(raw)).map(([, add]) => add).join(' ');
+  const want = words(`${raw} ${alias}`);
   if (!want.length) return undefined;
   const chHint = Object.entries(FLASH_TO_CH).find(([t]) => ctx.label.toLowerCase() === t.toLowerCase())?.[1];
   let best: BookLesson | undefined;
   let bestScore = 0;
+  let bestTitleHit = false;
   for (const l of LESSONS) {
     const ch = chapterOf(l);
-    const hay = new Set(words(`${l.title} ${l.subtitle ?? ''} ${(l.tags ?? []).join(' ')} ${ch?.title ?? ''} ${l.beginner.definition ?? ''}`));
-    let s = want.reduce((n, w) => n + (hay.has(w) ? (words(l.title).includes(w) ? 3 : 1) : 0), 0);
+    const hay = new Set(words(`${l.title} ${l.subtitle ?? ''} ${(l.tags ?? []).join(' ')} ${ch?.title ?? ''} ${l.beginner.definition ?? ''}`).map(sing));
+    const titleW = words(l.title).map(sing);
+    let s = want.reduce((n, w) => n + (hay.has(sing(w)) ? (titleW.includes(sing(w)) ? 3 : 1) : 0), 0);
+    // Short, focused titles win ties over long titles that only mention the term in passing.
+    if (s) s += 2 / Math.max(1, titleW.length);
     if (chHint && ch && chHint.includes(ch.number)) s += 4;
     // Strong bonus when the whole lesson title appears in what the student is looking at.
-    const tw = words(l.title);
-    if (tw.length && tw.every((w) => want.includes(w))) s += 3 + tw.length;
+    const tw = titleW;
+    const wantS = want.map(sing);
+    if (wantS.length && wantS.every((w) => tw.includes(w))) s += 4;
+    if (tw.length && tw.every((w) => wantS.includes(w))) s += 3 + tw.length;
     if (s > bestScore) {
       bestScore = s;
       best = l;
+      bestTitleHit = wantS.some((w) => tw.includes(w));
     }
   }
+  // Typed questions must actually name something in a lesson title, so chatter never picks a random lesson.
+  if (strict) return bestScore >= 3 && bestTitleHit ? best : undefined;
   return bestScore >= 2 ? best : undefined;
 }
 
@@ -259,10 +283,6 @@ export function act(a: Action, ctx: TutorCtx, mem: Memory, detour: Detour | null
       return { msgs: [{ role: 'ai', text: `Teach it back to me. In one or two sentences, explain **${l.title}** as if to a new teammate. Type it below and I'll tell you what you covered and what you missed.`, source: src(l) }], await: l.id };
     case 'job':
       return jobReply(l);
-    case 'jobAnswer':
-      return jobAnswer(a.ch);
-    case 'compare':
-      return compareReply(a.pair);
     case 'warm':
     case 'open':
       return { msgs: [] };
@@ -302,6 +322,16 @@ export function detourReturn(d: Detour, mem: Memory): Reply {
 export function chat(text: string, ctx: TutorCtx, mem: Memory, detour: Detour | null, awaiting?: string | null): Reply {
   if (awaiting && byId.has(awaiting)) return gradeTeach(text, byId.get(awaiting)!, mem);
   const t = text.toLowerCase();
+  const talk = smallTalk(t, ctx, mem);
+  if (talk) return talk;
+  const here = resolveLesson(ctx);
+  // Follow-ups about the topic we are already on. These never search for a new lesson.
+  if (here) {
+    const f = followUp(t, here, ctx, mem, detour);
+    if (f) return f;
+  } else if (/^(why|how|what about it|example|explain|again|more)\??$/.test(t.trim())) {
+    return { msgs: [{ role: 'ai', text: 'Which topic do you mean? Name it (for example *"why do VLANs matter"*) or tap ✦ Ask AI next to the lesson or card.' }] };
+  }
   const vs = text.match(/(?:difference between\s+)?(.+?)\s+(?:vs\.?|versus|and|or)\s+(.+?)\??$/i);
   if (vs && /\bvs\.?\b|versus|difference/i.test(text)) {
     const pi = findPair(`${vs[1]} | ${vs[2]}`);
@@ -316,14 +346,16 @@ export function chat(text: string, ctx: TutorCtx, mem: Memory, detour: Detour | 
   if (/deep|detail|technical|more/.test(t)) return act({ k: 'deep' }, ctx, mem, detour);
   if (/quiz|test me|question/.test(t)) return act({ k: 'quiz' }, ctx, mem, detour);
   if (/confus|don.?t (get|understand)|lost|stuck|no idea|not clicking/.test(t)) return act({ k: 'stuck' }, ctx, mem, detour);
-  const hit = resolveLesson({ kind: '', label: text, text });
+  const hit = resolveLesson({ kind: '', label: text, text }, true);
   if (hit) {
     const cur = resolveLesson(ctx);
     return {
       msgs: [{ role: 'ai', text: `${mem.style === 'deep' ? deep(hit) : simple(hit)}${cur && cur.id !== hit.id ? `\n\n${bridge(hit, cur)}` : ''}`, source: src(hit), actions: follow() }],
+      focus: hit.id,
     };
   }
-  return { msgs: [{ role: 'ai', text: "I couldn't match that to a lesson yet. Try naming the term (for example *trunk*, *ARP*, *subnet mask*), or tap one of the buttons." }] };
+  if (here) return { msgs: [{ role: 'ai', text: `I'm not sure what you mean yet. We're on **${here.title}**: want me to explain it, or ask about a term like *trunk*, *ARP* or *subnet mask*?`, actions: topicActions() }] };
+  return { msgs: [{ role: 'ai', text: "I'm not sure what you mean yet. Name a term (for example *trunk*, *ARP*, *subnet mask*), try *\"VLAN vs subnet\"*, or tap ✦ Ask AI next to what you're studying." }] };
 }
 
 
@@ -498,4 +530,69 @@ function jobReply(l: BookLesson): Reply {
 function jobAnswer(ch: number): Reply {
   const t = TICKETS[ch];
   return { msgs: [{ role: 'ai', tone: 'ok', text: `**How a technician solves it:** ${t?.answer ?? ''}`, actions: [{ label: 'Another way to learn it: teach it back', a: { k: 'teach' } }] }] };
+}
+
+
+// ---------- small talk ----------
+const topicActions = (): Msg['actions'] => [
+  { label: 'Explain it simply', a: { k: 'simple' }, primary: true },
+  { label: 'Go deeper', a: { k: 'deep' } },
+  { label: 'Quiz me', a: { k: 'quiz' } },
+  { label: 'Show the map', a: { k: 'map' } },
+];
+/** Greetings, thanks and "where am I?" questions, answered like a person would. */
+export function smallTalk(t: string, ctx: TutorCtx, mem: Memory): Reply | null {
+  const here = resolveLesson(ctx);
+  const ch = chapterOf(here);
+  const name = mem.name ? ` ${mem.name}` : '';
+  const clean = t.replace(/[^a-z' ]/g, ' ').trim();
+  if (/^(hey|hi|hello|yo|sup|hiya|howdy|good (morning|afternoon|evening))( there| tutor)?$/.test(clean))
+    return here
+      ? { msgs: [{ role: 'ai', text: `Hey${name} 👋 You're on **${here.title}** (Chapter ${ch?.number}: ${ch?.title}). What would help most?`, source: src(here), actions: topicActions() }] }
+      : { msgs: [{ role: 'ai', text: `Hey${name} 👋 Open a lesson or card and tap ✦ Ask AI, or just ask me about a term, like *"what is a trunk?"*` }] };
+  if (/\b(thanks|thank you|thx|ty|appreciate)\b/.test(clean)) return { msgs: [{ role: 'ai', text: `Anytime${name}. Tap me whenever something doesn't click.` }] };
+  if (/(what|which) (topic|lesson|page|chapter)|where am i|what am i (on|studying|doing|reading)|do you (know|see) (what|where)|current (topic|lesson)/.test(clean)) {
+    if (!here) return { msgs: [{ role: 'ai', text: "I can't see a lesson right now. Open one (or a flashcard) and tap ✦ Ask AI, and I'll know exactly what you're on." }] };
+    return { msgs: [{ role: 'ai', text: `Yes. You're on **${here.title}**, Chapter ${ch?.number}: **${ch?.title}**.\n\n${here.beginner.definition ?? ''}\n\nWant it simpler, deeper, or a quick check?`, source: src(here), actions: topicActions() }] };
+  }
+  if (/^(ok|okay|cool|nice|great|got it|i see|makes sense)$/.test(clean)) return { msgs: [{ role: 'ai', text: here ? `Great. Want a quick check on **${here.title}** to lock it in?` : 'Great.', actions: here ? [{ label: 'Quiz me', a: { k: 'quiz' }, primary: true }, { label: 'Teach it back', a: { k: 'teach' } }] : undefined }] };
+  return null;
+}
+
+
+// ---------- follow-up questions on the current topic ----------
+/** Answers "why?", "how does it work?", "example?", "the whole topic", "again" and friends about the lesson in focus. */
+function followUp(t: string, l: BookLesson, ctx: TutorCtx, mem: Memory, detour: Detour | null): Reply | null {
+  const q = t.replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const names = words(l.title).some((w) => q.includes(w));
+  // A question that names a different topic is a new question, not a follow-up.
+  const other = resolveLesson({ kind: '', label: t, text: t }, true);
+  if (other && other.id !== l.id && !names) return null;
+  const say = (text: string, actions = follow()) => ({ msgs: [{ role: 'ai' as const, text, source: src(l), actions }] });
+  if (/\b(whole|entire|all of it|everything|overview|summar|recap|big picture|from the (start|beginning)|the topic)\b/.test(q))
+    return say(
+      [
+        `**${l.title}, the whole picture:**`,
+        `**What it is:** ${l.beginner.definition ?? l.technical.definition ?? ''}`,
+        l.why && `**Why it matters:** ${l.why}`,
+        (l.teachingGuide?.mechanism ?? l.technical.explanation) && `**How it works:** ${l.teachingGuide?.mechanism ?? l.technical.explanation}`,
+        l.beginner.example && `**Example:** ${l.beginner.example}`,
+        (l.teachingGuide?.commonTrap ?? l.commonMistake) && `**Watch out:** ${l.teachingGuide?.commonTrap ?? l.commonMistake}`,
+        l.beginner.remember && `**Remember:** ${l.beginner.remember}`,
+      ].filter(Boolean).join('\n\n'),
+    );
+  if (/^(why|why\b.*\b(matter|important|need|care|use|bother)|what'?s the point|what is it for|what for)/.test(q))
+    return say(`**Why ${l.title.replace(/\?$/, '')} matters:** ${l.why ?? l.subtitle ?? ''}${l.teaching?.problem ? `\n\nThe problem it solves: ${l.teaching.problem}` : ''}${l.teaching?.result ? `\n\nResult: ${l.teaching.result}` : ''}`);
+  if (/\b(how (does|do|is) (it|this|that)|how it works|how does .* work|mechanism|step by step|steps)\b/.test(q))
+    return say(
+      `**How it works:** ${l.teachingGuide?.mechanism ?? l.technical.explanation ?? l.beginner.definition ?? ''}${l.teaching?.steps?.length ? `\n\n${l.teaching.steps.map((x, i) => `${i + 1}. ${x.text}`).join('\n\n')}` : ''}`,
+    );
+  if (/\b(example|for instance|real world|real life|show me)\b/.test(q))
+    return say(`**Example:** ${l.beginner.example ?? l.teaching?.problem ?? l.beginner.analogy ?? ''}${l.beginner.analogy ? `\n\nThink of it like this: ${lc(l.beginner.analogy)}` : ''}`);
+  if (/^(again|repeat|say (it|that) again|one more time|explain (it|that|this)( again)?|explain)$/.test(q)) return act({ k: 'again' }, ctx, mem, detour);
+  if (/^(more|go on|continue|and|then|next|tell me more)$/.test(q)) return act({ k: 'deep' }, ctx, mem, detour);
+  if (/\b(analogy|like i'?m (five|5|a kid)|in plain|plain english|simple words)\b/.test(q)) return act({ k: 'simple' }, ctx, mem, detour);
+  if (/\b(mistake|trap|wrong|gotcha|careful)\b/.test(q)) return say(`**Where people slip:** ${l.teachingGuide?.commonTrap ?? l.commonMistake ?? 'Mixing this up with the topics next to it. Ask me to compare them.'}`);
+  if (/\b(command|configure|config|cli|verify)\b/.test(q) && (l.teaching?.verify || l.technical.application)) return say(`${l.technical.application ?? ''}${l.teaching?.verify ? `\n\n**Verify:** ${l.teaching.verify}` : ''}`.trim());
+  return null;
 }

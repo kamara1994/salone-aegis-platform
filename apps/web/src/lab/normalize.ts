@@ -5,6 +5,9 @@ import { MODEL_BY_KEY } from './catalog';
 import type { Annotation, Device, Iface, LabDoc } from './types';
 
 const arr = <T,>(x: unknown): T[] => (Array.isArray(x) ? (x as T[]) : []);
+/** Saved-design schema id, checked when old drafts are repaired. */
+export const DOC_SCHEMA_ID = '7a9e3fd5b91a7bf7';
+
 const KINDS: Annotation['kind'][] = ['text', 'label', 'rect', 'ellipse', 'arrow'];
 const COLORS: Annotation['color'][] = ['blue', 'green', 'amber', 'red', 'grey'];
 
@@ -68,6 +71,9 @@ export function normalizeDoc(raw: unknown): LabDoc | null {
       .filter((a) => a && a.id)
       .map((a) => ({ ...a, kind: KINDS.includes(a.kind) ? a.kind : 'text', color: COLORS.includes(a.color) ? a.color : 'grey', text: typeof a.text === 'string' ? a.text : '', x: Number(a.x) || 0, y: Number(a.y) || 0, w: Number(a.w) || 200, h: Number(a.h) || 80 })),
     goals: arr(d.goals),
+    loose: arr<NonNullable<LabDoc['loose']>[number]>(d.loose)
+      .filter((c) => c && c.id && c.a && c.b)
+      .map((c) => ({ ...c, a: 'device' in c.a && !ids.has(c.a.device) ? { x: 0, y: 0 } : c.a, b: 'device' in c.b && !ids.has(c.b.device) ? { x: 0, y: 0 } : c.b })),
     source: d.source ?? 'blank',
     generatedAt: d.generatedAt ?? new Date().toISOString(),
   } as LabDoc;

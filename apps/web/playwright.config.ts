@@ -15,6 +15,8 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:3100',
+    // Older lab tests drive the docked inspector; lab-window.spec.ts covers the floating window.
+    storageState: 'tests/e2e/storage-state.json',
     viewport: { width: 1600, height: 950 },
     actionTimeout: 10_000,
     trace: 'retain-on-failure',

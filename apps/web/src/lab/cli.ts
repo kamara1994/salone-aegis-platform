@@ -2,6 +2,7 @@
 // command prompt for hosts. Commands read and change the lab document through the store, so a
 // change typed here shows up on the canvas, in the inspector and in packet simulation at once.
 import { modelOf } from './catalog';
+import { phaseOf, useBoot } from './boot';
 import { runningConfig } from './config';
 import { ciscoMac, ipToInt, isIp, maskToPrefix, prefixToMask } from './net';
 import { bpduGuardOn, dtpResult, macsBehind, portSecurityState } from './l2features';
@@ -139,8 +140,113 @@ export class DesignCli {
   private routerProto: 'ospf' | 'eigrp' = 'ospf';
   private eigrpAs = 1;
   private history: string[] = [];
+  /** IOS initial configuration dialog on a factory-new device */
+  private setup: null | { step: 'ask' | 'auto' | 'basic' | 'host' | 'secret' | 'vty' | 'save'; host: string; secret: string; vty: string } = null;
   constructor(private deviceId: string) {
     this.node = dev(deviceId)?.name ?? 'device';
+    if (dev(deviceId)?.factory?.dialog) this.setup = { step: 'ask', host: '', secret: '', vty: '' };
+  }
+  /** The hostname IOS shows: the stock one until "hostname" is set on a factory-new device. */
+  private get shown() {
+    const d = this.d;
+    return d.factory?.stockName ? (d.kind === 'router' ? 'Router' : 'Switch') : d.name;
+  }
+  private bootLog() {
+    const d = this.d;
+    const m = modelOf(d);
+    const img = d.kind === 'router' ? 'c2900-universalk9-mz.SPA.157-3.M8.bin' : m.key.includes('3650') ? 'cat3k_caa-universalk9.16.12.10.SPA.bin' : 'c2960-lanbasek9-mz.150-2.SE11.bin';
+    return [
+      'Boot Sequence: power-on self-test (POST)',
+      'POST: CPU MIC register Tests : Begin ... End, Status Passed',
+      'POST: Ethernet Controller Test : Begin ... End, Status Passed',
+      `Loading "flash:/${img}"...@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@`,
+      '',
+      `Cisco IOS Software, ${m.name}, Version 15.x (lab simulation)`,
+      `cisco ${m.name} processor with 524288K bytes of memory.`,
+      `${d.interfaces.filter((i) => i.type !== 'console').length} network interfaces`,
+      '',
+      '',
+      '         --- System Configuration Dialog ---',
+      '',
+    ].join('\r\n');
+  }
+  private setupPrompt(): string {
+    const s = this.setup!;
+    return {
+      ask: 'Would you like to enter the initial configuration dialog? [yes/no]: ',
+      auto: 'Would you like to terminate autoinstall? [yes]: ',
+      basic: 'Would you like to enter basic management setup? [yes/no]: ',
+      host: `  Enter host name [${this.shown}]: `,
+      secret: '  Enter enable secret: ',
+      vty: '  Enter virtual terminal password: ',
+      save: 'Enter your selection [2]: ',
+    }[s.step];
+  }
+  private setupAnswer(raw: string): string {
+    const s = this.setup!;
+    const a = raw.trim();
+    const yes = /^y(es)?$/i.test(a);
+    const no = /^no?$/i.test(a);
+    const done = (out: string) => {
+      this.setup = null;
+      useLab.getState().updateDevice(this.deviceId, { factory: { ...this.d.factory, dialog: false } });
+      return `${out}\r\n\r\nPress RETURN to get started!\r\n`;
+    };
+    switch (s.step) {
+      case 'ask':
+        if (no) return (s.step = 'auto'), '';
+        if (yes) return (s.step = 'basic'), "\r\nAt any point you may enter a question mark '?' for help.\r\nUse ctrl-c to abort configuration dialog at any prompt.\r\nDefault settings are in square brackets '[]'.\r\n\r\nBasic management setup configures only enough connectivity\r\nfor management of the system, extended setup will ask you\r\nto configure each interface on the system\r\n";
+        return '% Please answer \'yes\' or \'no\'.';
+      case 'auto':
+        return done('');
+      case 'basic':
+        if (no) return done('');
+        if (yes) return (s.step = 'host'), '\r\nConfiguring global parameters:\r\n';
+        return '% Please answer \'yes\' or \'no\'.';
+      case 'host':
+        if (a && !/^[A-Za-z][\w-]{0,62}$/.test(a)) return '% Hostname must start with a letter and use letters, digits, - or _.';
+        s.host = a || this.shown;
+        return (s.step = 'secret'), '\r\n  The enable secret is a password used to protect access to\r\n  privileged EXEC and configuration modes. This password, after\r\n  entered, becomes encrypted in the configuration.';
+      case 'secret':
+        if (!a) return '% No defaulting allowed';
+        s.secret = a;
+        return (s.step = 'vty'), '\r\n  The virtual terminal password is used to protect\r\n  access to the router over a network interface.';
+      case 'vty':
+        if (!a) return '% No defaulting allowed';
+        if (a === s.secret) return '% Please choose a password that is different from the enable secret';
+        s.vty = a;
+        s.step = 'save';
+        return [
+          '',
+          'The following configuration command script was created:',
+          '',
+          `hostname ${s.host}`,
+          'enable secret 5 $1$jAk9$Rr7xN2vqLmE5tWc0YbH6s1',
+          'line vty 0 15',
+          ` password ${s.vty}`,
+          'no ip domain-lookup',
+          '!',
+          'end',
+          '',
+          '[0] Go to the IOS command prompt without saving this config.',
+          '[1] Return back to the setup without saving this config.',
+          '[2] Save this configuration to nvram and exit.',
+          '',
+        ].join('\r\n');
+      case 'save': {
+        const pick = a || '2';
+        if (pick === '1') return (s.step = 'basic'), '';
+        if (pick === '0') return done('');
+        if (pick !== '2') return '% Please enter 0, 1 or 2.';
+        const st = useLab.getState();
+        const d = this.d;
+        st.updateDevice(d.id, { name: s.host, factory: { ...d.factory, dialog: false, stockName: false }, security: { ...this.sec(), enableSecret: true } });
+        this.node = s.host;
+        st.updateDevice(d.id, { startupSaved: runningConfig(this.d) });
+        this.setup = null;
+        return "\r\nBuilding configuration...\r\n[OK]\r\nUse the enabled mode 'configure' command to modify this configuration.\r\n\r\nPress RETURN to get started!\r\n";
+      }
+    }
   }
   private get d(): Device {
     return dev(this.deviceId)!;
@@ -151,11 +257,17 @@ export class DesignCli {
   banner() {
     const d = this.d;
     const m = modelOf(d);
+    if (d.factory?.noOs) return `No operating system found.\r\nNo bootable device -- insert boot disk and press any key\r\n(Install an OS from the ISO list above this terminal.)\r\n`;
+    if (this.host && this.linux) return `${d.os} (GNU/Linux) ${d.name} tty1\r\n\r\nWelcome to ${d.os}. Type help for the commands this lab understands.\r\n`;
     if (this.host) return `Microsoft Windows [Version 10.0.22631]\r\n(lab designer command prompt for ${d.name})\r\nType help for the commands this lab understands.\r\n`;
-    return `${m.vendor} ${m.name} (lab designer CLI) on ${d.name}\r\nPress RETURN to get started. Type ? for help.\r\n`;
+    if (this.setup) return this.bootLog();
+    return `${m.vendor} ${m.name} (lab designer CLI) on ${this.shown}\r\nPress RETURN to get started. Type ? for help.\r\n`;
   }
   prompt() {
-    const n = this.d.name;
+    if (this.d?.factory?.noOs) return '';
+    if (this.setup) return this.setupPrompt();
+    const n = this.shown;
+    if (this.host && this.linux) return `admin@${this.d.name}:~$ `;
     if (this.host) return `C:\\Users\\aegis> `;
     return { user: `${n}>`, priv: `${n}#`, config: `${n}(config)#`, if: `${n}(config-if${this.ifs.length > 1 ? '-range' : ''})#`, router: `${n}(config-router)#`, vlan: `${n}(config-vlan)#`, line: `${n}(config-line)#`, dhcp: `${n}(dhcp-config)#`, acl: `${n}(config-${this.d.acls?.find((a) => a.name === this.aclName)?.type === 'standard' ? 'std' : 'ext'}-nacl)#` }[this.mode] + ' ';
   }
@@ -178,10 +290,29 @@ export class DesignCli {
     return done === null ? null : lead + (isDo ? 'do ' : '') + done;
   }
 
+  /** Read-only output for the Inspect tool: runs a show command whatever mode, setup or boot state the console is in. */
+  inspect(cmd: string): string {
+    if (!this.d) return '';
+    if (this.d.factory?.noOs) return 'No operating system installed.';
+    const m = this.mode;
+    this.mode = 'priv';
+    try {
+      return this.host ? this.hostCmd(cmd) : this.iosCmd(cmd);
+    } catch (e) {
+      return `% ${(e as Error).message}`;
+    } finally {
+      this.mode = m;
+    }
+  }
+
   exec(lineRaw: string): string {
+    if (!this.d) return '% Device no longer exists.';
+    if (this.d.factory?.noOs) return 'No bootable device -- insert boot disk and press any key';
+    const b = useBoot.getState();
+    if (phaseOf(this.d, b.boots, Date.now()).phase === 'post') return '% Still booting (power-on self-test). Wait until the SYST LED is solid green, then press RETURN.';
+    if (this.setup) return this.setupAnswer(lineRaw);
     const line = lineRaw.trim();
     if (!line) return '';
-    if (!this.d) return '% Device no longer exists.';
     this.history.push(line);
     if (this.history.length > 20) this.history.shift();
     try {
@@ -196,7 +327,20 @@ export class DesignCli {
   }
 
   // ---------------- host prompt ----------------
-  private hostCmd(line: string): string {
+  private get linux() {
+    return /ubuntu|debian|rocky|linux|centos|kali/i.test(this.d.os ?? '');
+  }
+  private hostCmd(raw: string): string {
+    // Linux hosts: the common commands map onto the same lab model.
+    const line = this.linux
+      ? raw
+          .replace(/^sudo\s+/, '')
+          .replace(/^(ip\s+(a|addr)(\s+show)?|ifconfig)$/i, 'ipconfig /all')
+          .replace(/^(ip\s+neigh(\s+show)?)$/i, 'arp -a')
+          .replace(/^traceroute\b/i, 'tracert')
+          .replace(/^ping\s+-c\s+(\d+)\s+(\S+)$/i, 'ping $2 -n $1')
+      : raw;
+    if (this.linux && /^help$/i.test(line)) return 'ip a | ifconfig   ping [-c n] <ip|name>   traceroute <ip|name>   ip neigh   hostname   (sudo works too)';
     const [cmd, ...rest] = line.split(/\s+/);
     const c = cmd.toLowerCase();
     const d = this.d;
@@ -404,7 +548,7 @@ export class DesignCli {
     if (has('hostname')) {
       const name = r[1];
       if (!name) return '% Incomplete command.';
-      st.updateDevice(d.id, { name });
+      st.updateDevice(d.id, { name, ...(d.factory?.stockName ? { factory: { ...d.factory, stockName: false } } : {}) });
       this.node = name;
       return '';
     }

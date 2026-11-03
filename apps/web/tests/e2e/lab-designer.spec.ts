@@ -147,6 +147,7 @@ test('a shut-down switch port shows on the cable and in the packet result', asyn
   await page.getByTestId('iface-select').selectOption('Gi0/4');
   await page.getByLabel('Enabled (no shutdown)').uncheck();
   await page.getByRole('button', { name: 'Apply' }).click();
+  await page.getByTestId('tab-group-tools').click();
   await page.getByTestId('tab-logs').click();
   await expect(page.getByTestId('device-logs')).toContainText('Gi0/4, changed state to administratively down');
   await page.getByTestId('tool-simulate').click();
@@ -179,10 +180,12 @@ test('device inspector tabs show real configuration and open a terminal and VM c
   await expect(term).toContainText('USERS');
 
   await device(page, 'FW01').click();
+  await page.getByTestId('tab-group-config').click();
   await page.getByTestId('tab-firewall').click();
   await expect(page.getByTestId('fw-rules')).toContainText('Users to SalonePay (HTTPS)');
 
   await device(page, 'DC01').click();
+  await page.getByTestId('tab-group-tools').click();
   await page.getByTestId('tab-actions').click();
   await page.getByTestId('open-vm').click();
   await expect(page.getByTestId('vm-console').locator('.xterm')).toBeVisible();

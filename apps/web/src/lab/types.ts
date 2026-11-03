@@ -198,6 +198,10 @@ export interface Device {
   powerReason?: string;
   /** Power supplies the operator pulled or failed in the Physical view (by slot name) */
   psuOff?: string[];
+  /** Factory-new device: stock IOS hostname and the setup dialog on first console login, or no OS until one is installed */
+  factory?: { dialog?: boolean; stockName?: boolean; noOs?: boolean };
+  /** Expansion modules by slot name (null = empty slot). Absent slots keep what the model ships with. */
+  modules?: Record<string, string | null>;
 }
 
 export type CableType = 'straight' | 'crossover' | 'fiber' | 'serial' | 'console' | 'trunk' | 'access' | 'wan' | 'virtual' | 'coax' | 'phone';
@@ -225,6 +229,17 @@ export interface Cable {
   fiberMode?: 'mmf' | 'smf';
   /** Link conditioning (CML-style impairment) */
   cond?: { enabled: boolean; latencyMs?: number; jitterMs?: number; lossPct?: number; bandwidthMbps?: number };
+}
+
+/** One end of a cable lying on the canvas: free at a point, or plugged into a port. */
+export type LooseEnd = { x: number; y: number } | CableEnd;
+/** A cable dragged onto the canvas but not yet plugged in at both ends. */
+export interface LooseCable {
+  id: string;
+  /** auto: the right cable is picked once both ends are plugged in */
+  type: CableType | 'auto';
+  a: LooseEnd;
+  b: LooseEnd;
 }
 
 export interface Annotation {
@@ -297,6 +312,8 @@ export interface LabDoc {
   groups: Group[];
   annotations?: Annotation[];
   goals?: Goal[];
+  /** Cables lying on the canvas with at least one end unplugged */
+  loose?: LooseCable[];
   /** Active troubleshooting challenge (the fault is hidden until revealed) */
   challenge?: { id: string; title: string; brief: string; startedAt: string; revealed: boolean; fault: string };
   /** Active guided lab workbook */

@@ -9,6 +9,7 @@ import { useLab } from '@/lab/store';
 import { deviceById } from '@/lab/validate';
 import { Button, cx, IconButton, Input } from '@/components/ui';
 import { DECISION_COLOR, DECISION_LABEL } from './PacketLayer';
+import { osiView, type OsiRow } from '@/lab/osi';
 
 const PRESETS: { label: string; proto: Proto; port?: number }[] = [
   { label: 'Ping (ICMP)', proto: 'icmp' },
@@ -35,7 +36,7 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
   const [port, setPort] = useState('443');
   const [dstIp, setDstIp] = useState('');
   const [hopSel, setHopSel] = useState<number | null>(null);
-  const [evFilter, setEvFilter] = useState<'all' | 'noarp' | 'l3'>('all');
+  const [evFilter, setEvFilter] = useState<'all' | 'noarp' | 'arp' | 'l3' | 'acl'>('all');
   const devices = [...doc.devices].sort((a, b) => a.name.localeCompare(b.name));
   const trace = st.traces.find((t) => t.id === st.activeTrace);
   const dst = dstIp.trim() || st.simDst;
@@ -188,7 +189,9 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
                     <select aria-label="Event filter" className="h-6 rounded border border-line-strong bg-ink px-1" value={evFilter} onChange={(e) => setEvFilter(e.target.value as typeof evFilter)} data-testid="sim-filter">
                       <option value="all">every event</option>
                       <option value="noarp">hide ARP</option>
+                      <option value="arp">ARP only</option>
                       <option value="l3">layer 3 and above</option>
+                      <option value="acl">ACL and firewall decisions</option>
                     </select>
                   </label>
                   {trace.latencyMs !== undefined && <span>round trip ≈ {trace.latencyMs.toFixed(1)} ms</span>}
@@ -203,15 +206,17 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
                 <thead className="sticky top-0 bg-pane text-left text-muted">
                   <tr className="border-b border-line">
                     <th className="px-2 py-1 font-medium">Time ms</th>
+                    <th className="px-2 py-1 font-medium">Last device</th>
                     <th className="px-2 py-1 font-medium">At device</th>
                     <th className="px-2 py-1 font-medium">Type</th>
                     <th className="px-2 py-1 font-medium">Info</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {trace.hops.map((h, k) => ({ h, k })).filter(({ h }) => evFilter === 'all' || (evFilter === 'noarp' ? h.decision !== 'arp' : h.layer === 'L3' || h.layer === 'L4')).map(({ h, k }) => (
+                  {trace.hops.map((h, k) => ({ h, k })).filter(({ h }) => evFilter === 'all' || (evFilter === 'noarp' ? h.decision !== 'arp' : evFilter === 'arp' ? h.decision === 'arp' : evFilter === 'acl' ? !!h.acl || h.decision === 'block' : h.layer === 'L3' || h.layer === 'L4')).map(({ h, k }) => (
                     <tr key={h.seq} className={cx('cursor-pointer border-b border-line align-top hover:bg-pane-2', (hopSel ?? Math.min(player.step, trace.hops.length - 1)) === k && 'bg-pane-2')} onClick={() => { setHopSel(k); player.setStep(k); }} data-testid="sim-hop">
                       <td className="px-2 py-1 font-mono">{h.t.toFixed(2)}</td>
+                      <td className="px-2 py-1 text-muted">{k > 0 ? trace.hops[k - 1].deviceName : '--'}</td>
                       <td className="px-2 py-1">{h.deviceName}</td>
                       <td className="px-2 py-1 font-medium" style={{ color: DECISION_COLOR[h.decision] }}>
                         {DECISION_LABEL[h.decision]}
@@ -278,25 +283,35 @@ export function SimPanel({ onClose }: { onClose: () => void }) {
 
 const OSI = ['7 Application', '6 Presentation', '5 Session', '4 Transport', '3 Network', '2 Data link', '1 Physical'];
 
-/** Packet Tracer's OSI model view: which layers this device processed at this hop. */
+/** Packet Tracer's OSI Model tab: In layers and Out layers, with what each layer did. */
 function OsiStack({ hop }: { hop: import('@/lab/simulate').Hop }) {
-  const top = Number(hop.layer.slice(1));
+  const v = osiView(hop);
   const tone = DECISION_COLOR[hop.decision];
-  return (
-    <div className="rounded border border-line p-2" data-testid="osi-stack">
-      <div className="mb-1 text-[11px] font-semibold text-muted">OSI model at {hop.deviceName}</div>
-      <ol className="space-y-px text-[11px]">
-        {OSI.map((l) => {
-          const n = Number(l[0]);
-          const active = n <= Math.max(top, hop.decision === 'deliver' ? 7 : top);
+  const col = (title: string, rows: OsiRow[]) => (
+    <div className="min-w-0 flex-1">
+      <div className="mb-1 text-[10.5px] font-semibold tracking-wide text-muted uppercase">{title}</div>
+      <ol className="space-y-px">
+        {[7, 6, 5, 4, 3, 2, 1].map((n) => {
+          const r = rows.filter((x) => x.layer === n);
           return (
-            <li key={l} className={cx('rounded px-1.5 py-px', active ? 'text-text' : 'text-faint')} style={active ? { background: `color-mix(in srgb, ${tone} ${n === top ? 30 : 12}%, transparent)` } : undefined}>
-              Layer {l}
-              {n === top && <span className="ml-1 text-muted">· {DECISION_LABEL[hop.decision]}</span>}
+            <li key={n} className={cx('rounded px-1.5 py-0.5 text-[11px]', r.length ? 'text-text' : 'text-faint')} style={r.length ? { background: `color-mix(in srgb, ${tone} 16%, transparent)` } : undefined}>
+              <span className="font-semibold">Layer {n}</span>
+              {r.length ? <span className="block text-[10.5px] leading-snug">{r.map((x) => x.text).join(' ')}</span> : null}
             </li>
           );
         })}
       </ol>
+    </div>
+  );
+  return (
+    <div className="rounded border border-line p-2" data-testid="osi-stack">
+      <div className="mb-1.5 text-[11px] font-semibold">
+        OSI model at {hop.deviceName} <span className="font-normal text-muted">· {DECISION_LABEL[hop.decision]}</span>
+      </div>
+      <div className="flex gap-2">
+        {col('In layers', v.in)}
+        {col('Out layers', v.out)}
+      </div>
     </div>
   );
 }

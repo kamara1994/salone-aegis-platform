@@ -11,9 +11,10 @@ import { applySwitchFeatures } from './l2features';
 import { applyPoe, checkAssociation, dhcpLease, type DhcpResult } from './protocols';
 import type { PacketTrace } from './simulate';
 import { cableStatus, checkConnection, deviceById } from './validate';
+import { getStartMode } from './startMode';
 import type { Annotation, Cable, CableEnd, CableIssue, CableType, Device, FirewallRule, Goal, Iface, LabDoc, LabSite, Rack, Route, Subnet, Vlan } from './types';
 
-export type Tool = 'select' | 'cable' | 'disconnect' | 'simulate';
+export type Tool = 'select' | 'cable' | 'disconnect' | 'simulate' | 'pdu' | 'inspect';
 export type LabBackground = 'grid' | 'blueprint' | 'datacenter' | 'soc' | 'global' | 'custom';
 export interface Selection {
   devices: string[];
@@ -361,6 +362,8 @@ export const useLab = create<LabState>((set, get) => ({
         ...(m.kind === 'switch' ? { stp: { enabled: true, priority: 32768 } } : {}),
         ...(m.kind === 'ap' ? { wireless: { ssid: 'AEGIS-LAB', security: 'wpa2' as const, key: 'changeme123', channel: 6 } } : {}),
         ...(m.kind === 'switch' || m.kind === 'router' ? { security: { ssh: false, telnet: true, enableSecret: false } } : {}),
+        ...(getStartMode() === 'factory' && (m.kind === 'switch' || m.kind === 'router') ? { factory: { dialog: true, stockName: true } } : {}),
+        ...(getStartMode() === 'factory' && (m.kind === 'server' || m.kind === 'vm') ? { factory: { noOs: true }, os: undefined, listening: [] } : {}),
         ...opts,
       };
       doc.devices.push(d);

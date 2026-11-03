@@ -1,7 +1,8 @@
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
-import { Cable, FolderOpen, GitCompare, Image as ImageIcon, Maximize2, MoreHorizontal, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, Tag, Trash, Undo2, Wrench, StickyNote, Search, Scissors, FlaskConical } from 'lucide-react';
+import { Cable, FolderOpen, GitCompare, Image as ImageIcon, Maximize2, MoreHorizontal, MousePointer2, PanelLeftClose, PanelLeftOpen, Plug, Radio, Redo2, Tag, Trash, Undo2, Wrench, StickyNote, Search, Scissors, FlaskConical, Mail, ZoomIn } from 'lucide-react';
+import { usePt } from '@/lab/ptTools';
 import { useRef, useState, type ReactNode } from 'react';
 import { useLab, type LabBackground } from '@/lab/store';
 import { findDevices } from '@/lab/find';
@@ -98,6 +99,12 @@ export function Toolbar({ onLabs, paletteOpen, setPaletteOpen, onLayouts, onStru
       </TB>
       <TB label="Simulation" kbd="S" active={s.tool === 'simulate'} onClick={() => s.setTool(s.tool === 'simulate' ? 'select' : 'simulate')} testid="tool-simulate">
         <Radio className="size-4" /> <span className="hidden lg:inline">Simulate</span>
+      </TB>
+      <TB label="Add Simple PDU: click a source, then a destination" kbd="P" active={s.tool === 'pdu'} onClick={() => (s.setTool(s.tool === 'pdu' ? 'select' : 'pdu'), usePt.getState().setPduSrc(null))} testid="tool-pdu">
+        <Mail className="size-4" /> <span className="hidden xl:inline">PDU</span>
+      </TB>
+      <TB label="Inspect: see a device's ARP, MAC and routing tables" kbd="I" active={s.tool === 'inspect'} onClick={() => s.setTool(s.tool === 'inspect' ? 'select' : 'inspect')} testid="tool-inspect">
+        <ZoomIn className="size-4" /> <span className="hidden xl:inline">Inspect</span>
       </TB>
       <TB label="Audit, goals, troubleshooting, capture and export" active={toolsOpen} onClick={onTools} testid="tool-tools">
         <Wrench className="size-4" /> <span className="hidden lg:inline">Tools</span>

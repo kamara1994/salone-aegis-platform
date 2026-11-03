@@ -1,6 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { bootSpec, phaseOf, STP_MS, useBoot, useBootClock } from '@/lab/boot';
+import { MODE_TEXT, panelOf, type LedMode } from '@/lab/panels';
+import { installed, MODULES, setModule, slotInfo } from '@/lab/modules';
+import { FrontPanel } from './FrontPanel';
+import { plugPort } from '@/lab/plug';
+import type { CableType } from '@/lab/types';
 import { Badge, Button, cx } from '@/components/ui';
 import { modelOf } from '@/lab/catalog';
 import { hardwareOf, livePsus } from '@/lab/hardware';
@@ -65,8 +71,16 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
   const m = modelOf(d);
   const cp = useMemo(() => controlPlane(doc), [doc]);
   const ports = d.interfaces.filter(PHYSICAL);
-  const [sel, setSel] = useState<string | null>(null);
+  // The picked port is shared with the canvas-wide Physical and Rack views.
+  const focus = useBoot((b) => b.focus);
+  const sel = focus?.device === d.id ? focus.port : null;
+  const setSel = (p: string | null) => useBoot.getState().setFocus(p ? { device: d.id, port: p } : null);
   const [face, setFace] = useState<'front' | 'rear'>('front');
+  const panel = panelOf(d);
+  useBootClock();
+  const boot = { boots: useBoot((b) => b.boots), now: useBoot((b) => b.now), mode: useBoot((b) => b.modes[d.id]) };
+  const { phase, pct } = phaseOf(d, boot.boots, boot.now);
+  const mode: LedMode = boot.mode ?? panel?.modes[0] ?? 'STAT';
   const hw = hardwareOf(m);
   const poe = m.poeBudgetW ? poeUsage(doc, d.id) : null;
   const poeOn = new Map((poe?.ports ?? []).map((p) => [p.port, p.watts]));
@@ -114,16 +128,43 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
           </p>
         </div>
       </div>
+      {phase === 'post' && (
+        <div className="flex items-center gap-2 rounded border border-action/40 bg-action/10 px-2 py-1.5 text-[12px]" role="status" data-testid="phys-booting">
+          <span className="size-2 animate-pulse rounded-full bg-healthy" />
+          <span className="min-w-0 flex-1">
+            Booting: power-on self-test {pct}%. SYST blinks green until it finishes. Sped up; real hardware takes {bootSpec(d).real}.
+          </span>
+          <Button size="sm" onClick={() => useBoot.getState().skip(d.id)} data-testid="phys-skip-boot">
+            Skip
+          </Button>
+        </div>
+      )}
       {hw.psus.length > 0 && (
         <div className="flex gap-1" role="radiogroup" aria-label="Panel side">
           {(['front', 'rear'] as const).map((f) => (
-            <button key={f} role="radio" aria-checked={face === f} onClick={() => setFace(f)} className={cx('rounded border px-2 py-0.5 text-[11.5px] capitalize', face === f ? 'border-action bg-action/15' : 'border-line text-muted')} data-testid={`phys-face-${f}`}>
-              {f} panel
+            <button key={f} role="radio" aria-checked={face === f} onClick={() => setFace(f)} className={cx('rounded border px-2 py-0.5 text-[11.5px]', face === f ? 'border-action bg-action/15' : 'border-line text-muted')} data-testid={`phys-face-${f}`}>
+              {panel?.face === 'rear' ? (f === 'front' ? 'Interface side' : 'Power and slots') : f === 'front' ? 'Front panel' : 'Rear panel'}
             </button>
           ))}
         </div>
       )}
-      {face === 'front' ? (
+      {face === 'front' && panel ? (
+        <div className="space-y-1.5">
+          <div className="rounded border border-line bg-[#1b2129] p-1">
+            <FrontPanel d={d} doc={doc} panel={panel} selected={sel} onPort={(p) => setSel(sel === p ? null : p)} />
+          </div>
+          <button type="button" className="text-[11.5px] text-action hover:underline" onClick={() => useBoot.getState().setView('physical')} data-testid="phys-full-size">
+            See it full size with every device (Physical view)
+          </button>
+          {panel.modes.length > 0 && (
+            <p className="text-[11.5px]" data-testid="phys-mode-text">
+              Port LEDs show <span className="font-semibold">{MODE_TEXT[mode]}</span>. Press MODE on the panel to cycle {panel.modes.join(' → ')}.
+            </p>
+          )}
+          <LampLegend mode={panel.modes.length ? mode : 'STAT'} />
+          {panel.note && <p className="text-[11px] text-muted">{panel.note}</p>}
+        </div>
+      ) : face === 'front' ? (
         <div className="overflow-x-auto rounded border border-line bg-[#1b2129] p-1">
           <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="group" aria-label={`${d.name} front panel`}>
             <rect x={1} y={1} width={width - 2} height={height - 2} rx={6} fill="#2a313b" stroke="#55606e" />
@@ -156,7 +197,7 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
           </svg>
         </div>
       ) : (
-        <RearPanel d={d} />
+        <RearPanel d={d} ports={panel?.rear.map((n) => d.interfaces.find((i) => i.name === n)).filter((i): i is Iface => !!i) ?? []} sel={sel} onPort={(p) => setSel(sel === p ? null : p)} ledOf={(i) => ledOf(doc, d, i, blockedOf(i.name))} />
       )}
       {poe && (
         <div className="space-y-1" data-testid="phys-poe">
@@ -172,13 +213,13 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
           {poe.ports.length > 0 && <p className="text-[11px] text-muted">Powering: {poe.ports.map((p) => `${p.device} on ${p.port} (${p.watts} W)`).join(', ')}</p>}
         </div>
       )}
-      <div className="flex flex-wrap gap-2 text-[11px] text-muted">
+      {!panel && <div className="flex flex-wrap gap-2 text-[11px] text-muted">
         {(['up', 'degraded', 'blocking', 'err', 'down', 'off', 'admin'] as Led[]).map((l) => (
           <span key={l} className="flex items-center gap-1">
             <span className="size-2 rounded-full" style={{ background: LED_COLOR[l] }} /> {LED_TEXT[l]}
           </span>
         ))}
-      </div>
+      </div>}
       {sp ? (
         <section className="space-y-2 rounded border border-line p-2" data-testid="phys-port-detail">
           <div className="flex items-center gap-2">
@@ -256,7 +297,7 @@ export function PhysicalView({ d, doc }: { d: Device; doc: LabDoc }) {
 }
 
 /** Rear panel: power supplies (click to pull or insert), fans, module slots. */
-function RearPanel({ d }: { d: Device }) {
+function RearPanel({ d, ports = [], sel, onPort, ledOf: led }: { d: Device; ports?: Iface[]; sel?: string | null; onPort?: (p: string) => void; ledOf?: (i: Iface) => Led }) {
   const st = useLab();
   const m = modelOf(d);
   const hw = hardwareOf(m);
@@ -272,8 +313,58 @@ function RearPanel({ d }: { d: Device }) {
     else if (liveAfter > 0 && live.length === 0 && !on) st.setPower(d.id, 'running');
   };
   let x = 14;
+  const mods = installed(d);
+  const families = new Set(hw.slots.map((sl) => slotInfo(sl.name)?.family).filter(Boolean));
+  const [msg, setMsg] = useState<{ ok: boolean; message: string } | null>(null);
+  const say = (r: { ok: boolean; message: string }) => setMsg(r);
   return (
     <div className="space-y-1.5">
+      {families.size > 0 && (
+        <section className="space-y-1.5 rounded border border-line p-2" data-testid="phys-modules">
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-semibold">Modules</span>
+            <span className="text-[11px] text-muted">Turn the router off, drag a module into an empty slot, turn it back on.</span>
+            <span className="flex-1" />
+            <Button size="sm" variant={on ? 'danger' : 'primary'} onClick={() => st.setPower(d.id, on ? 'stopped' : 'running')} data-testid="phys-power">
+              {on ? 'Power off' : 'Power on'}
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {MODULES.filter((mm) => families.has(mm.family)).map((mm) => (
+              <div
+                key={mm.key}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/aegis-module', mm.key);
+                  e.dataTransfer.effectAllowed = 'copy';
+                }}
+                title={mm.blurb}
+                className="cursor-grab rounded border border-line bg-pane-2/50 px-2 py-1 text-[11px] hover:border-action active:cursor-grabbing"
+                data-testid={`module-${mm.key}`}
+              >
+                <span className="font-mono font-semibold">{mm.name}</span>
+                <span className="block text-[10px] text-muted">{mm.blurb}</span>
+              </div>
+            ))}
+          </div>
+          {msg && <p className={cx('text-[11.5px]', msg.ok ? 'text-healthy' : 'text-down')} role="status" data-testid="module-msg">{msg.message}</p>}
+        </section>
+      )}
+      {ports.length > 0 && (
+        <div className="flex items-center gap-2 rounded border border-line bg-[#1b2129] p-1" data-testid="phys-rear-ports">
+          <svg width={40 + ports.length * 40} height={44} viewBox={`0 0 ${40 + ports.length * 40} 44`} role="group" aria-label={`${d.name} rear ports`}>
+            {ports.map((p, k) => (
+              <g key={p.name}>
+                <PortShape i={p} x={18 + k * 40} y={16} led={led ? led(p) : 'off'} selected={sel === p.name} onClick={() => onPort?.(p.name)} />
+                <text x={30 + k * 40} y={42} textAnchor="middle" fill="#a9b5c2" fontSize={8} fontFamily="ui-sans-serif, system-ui">
+                  {p.type === 'console' ? 'CON' : p.name}
+                </text>
+              </g>
+            ))}
+          </svg>
+          <span className="text-[11px] text-muted">On the back of the switch: plug the console (rollover) cable in here.</span>
+        </div>
+      )}
       <div className="overflow-x-auto rounded border border-line bg-[#1b2129] p-1">
         <svg width={W} height={96} viewBox={`0 0 ${W} 96`} role="group" aria-label={`${d.name} rear panel`} data-testid="phys-rear">
           <rect x={1} y={1} width={W - 2} height={94} rx={6} fill="#262c35" stroke="#55606e" />
@@ -318,15 +409,36 @@ function RearPanel({ d }: { d: Device }) {
           {hw.slots.map((sl) => {
             const sx = x + 6;
             x += 92;
+            const swappable = !!slotInfo(sl.name);
+            const mod = swappable ? mods[sl.name] : sl.module ?? null;
             return (
-              <g key={sl.name} data-testid="phys-slot">
-                <title>{`${sl.name}: ${sl.module ?? 'empty (blank cover)'}`}</title>
-                <rect x={sx} y={24} width={82} height={42} rx={3} fill={sl.module ? '#2f3946' : '#1f252d'} stroke="#6b7684" strokeDasharray={sl.module ? undefined : '3 3'} />
+              <g
+                key={sl.name}
+                data-testid="phys-slot"
+                data-slot={sl.name}
+                data-module={mod ?? ''}
+                role={swappable && mod ? 'button' : undefined}
+                tabIndex={swappable && mod ? 0 : undefined}
+                className={swappable && mod ? 'cursor-pointer' : undefined}
+                onClick={() => swappable && mod && say(setModule(d.id, sl.name, null))}
+                onDragOver={(e) => {
+                  if (swappable && e.dataTransfer.types.includes('application/aegis-module')) e.preventDefault();
+                }}
+                onDrop={(e) => {
+                  const k = e.dataTransfer.getData('application/aegis-module');
+                  if (k && swappable) {
+                    e.preventDefault();
+                    say(setModule(d.id, sl.name, k));
+                  }
+                }}
+              >
+                <title>{`${sl.name}: ${mod ?? 'empty (blank cover)'}${swappable ? (mod ? '. Click to pull it out (power off first).' : '. Drag a module here (power off first).') : ''}`}</title>
+                <rect x={sx} y={24} width={82} height={42} rx={3} fill={mod ? '#2f3946' : '#1f252d'} stroke={swappable ? '#8fb3d9' : '#6b7684'} strokeDasharray={mod ? undefined : '3 3'} />
                 <text x={sx + 41} y={42} textAnchor="middle" fill="#c9d3dd" fontSize={8.5} fontFamily="ui-sans-serif, system-ui">
                   {sl.name}
                 </text>
-                <text x={sx + 41} y={56} textAnchor="middle" fill={sl.module ? '#8fb3d9' : '#6b7684'} fontSize={7.5} fontFamily="ui-sans-serif, system-ui">
-                  {(sl.module ?? 'blank').slice(0, 20)}
+                <text x={sx + 41} y={56} textAnchor="middle" fill={mod ? '#8fb3d9' : '#6b7684'} fontSize={7.5} fontFamily="ui-sans-serif, system-ui">
+                  {(mod ?? 'blank').slice(0, 20)}
                 </text>
               </g>
             );
@@ -384,6 +496,45 @@ function PortSecurityEditor({ d, i }: { d: Device; i: Iface }) {
           <input type="checkbox" checked={!!i.dhcpTrust} onChange={(e) => set({ dhcpTrust: e.target.checked || undefined })} /> DHCP snooping / DAI trust
         </label>
       </div>
+    </div>
+  );
+}
+
+
+const LEGEND: Record<LedMode, [string, string, string][]> = {
+  STAT: [
+    ['#35d07f', 'led-flicker', 'Green, flickering: link up, traffic'],
+    ['#f2a93b', '', 'Amber: STP blocking or listening/learning, or err-disabled'],
+    ['#35d07f', 'led-alt', 'Green/amber alternating: link fault (errors)'],
+    ['#33404d', '', 'Off: no cable, no link, or shut down'],
+  ],
+  DUPLX: [
+    ['#35d07f', '', 'Green: full duplex'],
+    ['#33404d', '', 'Off: half duplex (or no link)'],
+  ],
+  SPEED: [
+    ['#33404d', '', 'Off: 10 Mb/s (or no link)'],
+    ['#35d07f', '', 'Green: 100 Mb/s'],
+    ['#35d07f', 'led-blink', 'Blinking green: 1000 Mb/s'],
+  ],
+  PoE: [
+    ['#35d07f', '', 'Green: supplying power'],
+    ['#33404d', '', 'Off: no powered device'],
+  ],
+};
+
+function LampLegend({ mode }: { mode: LedMode }) {
+  return (
+    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted" data-testid="phys-legend">
+      {LEGEND[mode].map(([c, cls, t]) => (
+        <span key={t} className="flex items-center gap-1">
+          <svg width={10} height={6} aria-hidden>
+            <rect width={10} height={6} rx={1.5} fill={c} className={cls || undefined} />
+          </svg>
+          {t}
+        </span>
+      ))}
+      {mode === 'STAT' && <span>STP timers are sped up (real: {STP_MS.real}). PortFast ports skip them.</span>}
     </div>
   );
 }
