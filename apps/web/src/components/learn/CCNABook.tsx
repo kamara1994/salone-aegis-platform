@@ -18,16 +18,15 @@ type Lesson = {
   title: string;
   subtitle?: string;
   beginner: { definition?: string; analogy?: string; example?: string; remember?: string; analogyParts?: { analogy: string; meaning: string }[] };
-  technical: { definition?: string; explanation?: string; application?: string; remember?: string; deepDive?: string; check?: string };
+  technical: { definition?: string; explanation?: string; application?: string; remember?: string; deepDive?: string };
   why?: string;
   layerContext?: { label?: string; explanation?: string };
   wordHelp?: { term: string; meaning: string }[];
-  teaching?: { problem?: string; steps?: { number?: number; text: string }[]; result?: string; method?: string; verify?: string; practicePrompt?: string; evidence?: { command?: string; output?: string; interpretation?: string } };
-  teachingGuide?: { concept?: string; mechanism?: string; commonTrap?: string; teachBack?: string };
-  masterclass?: { goal?: string; concept?: string; steps?: string[]; worked?: string; diagnosis?: string; challenge?: string };
+  teaching?: { problem?: string; steps?: { number?: number; text: string }[]; result?: string; method?: string; verify?: string; evidence?: { command?: string; output?: string; interpretation?: string } };
+  teachingGuide?: { concept?: string; mechanism?: string; commonTrap?: string };
+  masterclass?: { goal?: string; concept?: string; steps?: string[]; worked?: string; diagnosis?: string };
   depthV8?: { concept?: string; procedure?: string[]; workedExample?: string; verification?: string; commonError?: string };
   commonMistake?: string;
-  interview?: { question?: string; sampleAnswer?: string };
   learningJourney?: { kind?: string; stages?: string[] };
   navigation?: { previous?: string | null; next?: string | null };
 };
@@ -384,9 +383,6 @@ export function CCNABook() {
   if (!lesson) return <div className="p-4 text-muted">The CCNA book could not be loaded.</div>;
 
   const nextLesson = lesson.navigation?.next ? book.lessons.findIndex((entry) => entry.id === lesson.navigation?.next) : -1;
-  const beginner = lesson.beginner;
-  const technical = lesson.technical;
-
   return <div className="flex min-w-0 gap-8" data-testid="ccna-course-book">
     {toc && <BookContents lessonId={lesson.id} completed={completed} onOpen={openLesson} onHide={() => setToc(false)} />}
     <div className="min-w-0 flex-1 space-y-7">
@@ -399,7 +395,6 @@ export function CCNABook() {
         {lesson.id === '8.04' && <p className="mt-2 text-[12px] font-semibold text-action">CCNA v1.1 · 2.2.a Trunk ports · 2.2.b 802.1Q</p>}
         <h1 className="book-title" data-testid="ccna-book-title">{lesson.title}</h1>
         {lesson.subtitle && lesson.subtitle !== lesson.why && <p className="book-sub">{lesson.subtitle}</p>}
-        {(stage === 'meaning' || stage === 'overview') && <p className="book-lead">{level === 'beginner' ? beginner.definition : technical.definition}</p>}
       </header>
 
       <nav className="book-stepper sticky top-0 z-10" aria-label="Lesson steps" data-testid="ccna-book-stepper">
