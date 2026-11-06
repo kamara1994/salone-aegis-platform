@@ -6,8 +6,6 @@ import { BLUE_SOC_ASSETS, BLUE_SOC_CONNECTIONS, BLUE_SOC_MILESTONES, ZONE_STYLES
 
 const W=1200,H=1160;
 const NODE_W=162,NODE_H=82;
-const milestoneDetails=['P1 · Architecture and topology','P2 · Palo Alto, DMZ, NAT and web failover','P3 · Remote-access VPN','P4 · Duo / FreeRADIUS MFA','P5 · Guacamole Zero Trust','P6 · Security Onion detection','P7 · Splunk SIEM log collection','P8 · n8n / AI assisted response'];
-const positions:Record<string,{x:number;y:number}> = Object.fromEntries(BLUE_SOC_ASSETS.map(a=>[a.id,{x:a.x,y:a.y}]));
 
 function endpoint(asset:BlueSocAsset, side:'left'|'right'|'top'|'bottom'){
   switch(side){
@@ -87,7 +85,7 @@ export default function BlueSocProject(){
                   const from=edge.sourcePort??'right',to=edge.targetPort??'left';
                   const p1=endpoint(a,from),p2=endpoint(b,to);
                   const muted=visible!=='all'&&a.zone!==visible&&b.zone!==visible;
-                  return <g key={edge.id} opacity={muted?.14:1}>
+                  return <g key={edge.id} opacity={muted ? 0.14 : 1}>
                     <path d={route(p1,p2,from,to)} stroke="#7daed3" strokeWidth="2.5" fill="none" markerEnd="url(#aegis-arrow)" strokeDasharray={edge.kind==='logical'?'6 5':undefined}/>
                     {showLabels&&edge.label&&<g transform={`translate(${(p1.x+p2.x)/2},${(p1.y+p2.y)/2-9})`}>
                       <rect x={-Math.max(60,edge.label.length*3.7)} y={-12} width={Math.max(120,edge.label.length*7.4)} height="22" rx="4" fill="#13253c" stroke="#3e5f82"/>
@@ -99,7 +97,7 @@ export default function BlueSocProject(){
               {BLUE_SOC_ASSETS.map(a=>{
                 const muted=visible!=='all'&&a.zone!==visible;
                 const color=ZONE_STYLES[a.zone].color;
-                return <button key={a.id} type="button" onClick={()=>setSelected(a.id)} aria-label={`${a.name}, ${a.zone} zone`} aria-pressed={active.id===a.id} style={{position:'absolute',left:a.x,top:a.y,width:NODE_W,minHeight:NODE_H,border:`2px solid ${active.id===a.id?'#f0f9ff':color}`,borderRadius:12,background:'#10253a',color:'#e8f2ff',padding:'8px 10px',opacity:muted?.28:1,textAlign:'left',boxShadow:active.id===a.id?'0 0 0 4px rgba(56,189,248,.2)':'0 5px 18px rgba(0,0,0,.25)',cursor:'pointer'}}>
+                return <button key={a.id} type="button" onClick={()=>setSelected(a.id)} aria-label={`${a.name}, ${a.zone} zone`} aria-pressed={active.id===a.id} style={{position:'absolute',left:a.x,top:a.y,width:NODE_W,minHeight:NODE_H,border:`2px solid ${active.id===a.id?'#f0f9ff':color}`,borderRadius:12,background:'#10253a',color:'#e8f2ff',padding:'8px 10px',opacity:muted ? 0.28 : 1,textAlign:'left',boxShadow:active.id===a.id?'0 0 0 4px rgba(56,189,248,.2)':'0 5px 18px rgba(0,0,0,.25)',cursor:'pointer'}}>
                   <span style={{display:'flex',alignItems:'center',gap:8,fontSize:12,fontWeight:700}}><span style={{color,fontSize:21}}>{mark(a.kind)}</span>{a.name}</span>
                   <span style={{display:'block',marginTop:2,fontSize:11,color:'#b3c9db'}}>{a.detail}</span>
                   {a.address&&<span style={{display:'block',fontSize:11,color:'#89d5b2',marginTop:4}}>{a.address}</span>}
