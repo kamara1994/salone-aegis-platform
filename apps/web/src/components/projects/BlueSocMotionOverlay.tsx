@@ -56,7 +56,7 @@ export function BlueSocMotionOverlay({flow,stepIndex,running,speed,zone}:Props){
       if(a.id===b.id){
         if(!current)return null;
         const cx=a.x+CARD_WIDTH/2,cy=a.y+CARD_HEIGHT/2;
-        return <g key={flow.id+i} opacity={faint?.2:1}>
+        return <g key={flow.id+i} opacity={faint ? 0.2 : 1}>
           <circle cx={cx} cy={cy} r={70} fill="none" stroke={edgeColor} strokeWidth="3" strokeDasharray="8 6">
             {running&&<animate attributeName="r" values="58;100;58" dur={`${2/speed}s`} repeatCount="indefinite"/>}
             {running&&<animate attributeName="opacity" values=".9;.1;.9" dur={`${2/speed}s`} repeatCount="indefinite"/>}
@@ -67,7 +67,7 @@ export function BlueSocMotionOverlay({flow,stepIndex,running,speed,zone}:Props){
       const noDirectCable=leg.layer!=='network'&&leg.layer!=='control';
       const rejected=blocked&&current;
       const duration=2.7/speed;
-      return <g key={flow.id+i} opacity={faint?.12:past?.27:1}>
+      return <g key={flow.id+i} opacity={faint ? 0.12 : past ? 0.27 : 1}>
         {current&&<path d={route.path} fill="none" stroke={edgeColor} strokeWidth="13" opacity=".27" filter="url(#blue-soc-animated-glow)"/>}
         <path d={route.path} fill="none" stroke={edgeColor} strokeWidth={current?3.8:2.2}
           strokeDasharray={noDirectCable?'8 7':undefined}
