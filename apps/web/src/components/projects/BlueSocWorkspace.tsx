@@ -87,6 +87,7 @@ export default function BlueSocWorkspace(){
   const [savedState,setSavedState]=useState<'saved'|'editing'>('saved');
   const [snapToGrid,setSnapToGrid]=useState(true);
   const [draggingId,setDraggingId]=useState<string|null>(null);
+  const [lastMove,setLastMove]=useState<{id:string;position:{x:number;y:number}}|null>(null);
   const dragging=useRef<{id:string;pointerId:number;startX:number;startY:number;originX:number;originY:number;moved:boolean}|null>(null);
   const ignoreClick=useRef(false);
   useEffect(()=>{setChecks(readObject(CHECKLIST_KEY));setCheckedDevices(readObject(VERIFIED_KEY));},[]);
@@ -162,7 +163,10 @@ export default function BlueSocWorkspace(){
     if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
     if(drag.moved){
       ignoreClick.current=true;
+      setLastMove({id:drag.id,position:{x:drag.originX,y:drag.originY}});
       setSelected(drag.id);
+      // Clear suppression even if the browser does not dispatch a click after dragging.
+      window.setTimeout(()=>{ignoreClick.current=false;},0);
     }
     dragging.current=null;
     setDraggingId(null);
@@ -177,6 +181,7 @@ export default function BlueSocWorkspace(){
     event.preventDefault();
     const increment=event.shiftKey?24:12;
     setSelected(asset.id);
+    setLastMove({id:asset.id,position:positions[asset.id]??{x:asset.x,y:asset.y}});
     setPositions(old=>{
       const p=old[asset.id]??{x:asset.x,y:asset.y};
       return {...old,[asset.id]:moveBlueSocPosition({
@@ -184,9 +189,16 @@ export default function BlueSocWorkspace(){
       },snapToGrid)};
     });
   }
+  function undoLastMove(){
+    if(!lastMove)return;
+    setPositions(old=>({...old,[lastMove.id]:lastMove.position}));
+    setSelected(lastMove.id);
+    setLastMove(null);
+  }
   function resetNodePositions(){
     if(!window.confirm('Restore all 19 devices to the positions in your original diagram? Your custom layout will be replaced.'))return;
     setPositions(defaultBlueSocPositions());
+    setLastMove(null);
     setHoveredId(null);
     setSelected('palo');
   }
@@ -236,6 +248,7 @@ export default function BlueSocWorkspace(){
                 <span className="rounded border border-cyan-700/50 bg-cyan-500/10 px-2 py-2 text-[11px] font-medium text-cyan-200">Drag devices to rearrange</span>
                 <Button onClick={()=>setSnapToGrid(v=>!v)} active={snapToGrid}>Grid snap: {snapToGrid?'ON':'OFF'}</Button>
                 <Button onClick={saveNodePositions}><Save className="h-3.5 w-3.5"/> Save layout</Button>
+                <Button onClick={undoLastMove} disabled={!lastMove}><ArrowLeft className="h-3.5 w-3.5"/> Undo move</Button>
                 <Button onClick={resetNodePositions}><RotateCcw className="h-3.5 w-3.5"/> Reset positions</Button>
                 <span aria-live="polite" className="px-2 text-[11px] text-emerald-300">{layoutHydrated?(savedState==='saved'?'Saved locally':'Unsaved'):'Loading layout'}</span>
                 <Button onClick={()=>setZoom(z=>Math.max(0.5,Math.round((z-0.1)*100)/100))}>Zoom −</Button>
@@ -295,6 +308,7 @@ export default function BlueSocWorkspace(){
                   className="group absolute flex touch-none select-none flex-col rounded-xl border-2 bg-[#122840] p-2 text-left shadow-lg transition-[box-shadow,opacity] hover:z-10 hover:shadow-[0_0_20px_#22d3ee55] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
                   style={{left:a.x,top:a.y,width:NODE_WIDTH,height:NODE_HEIGHT,opacity:faded ? 0.25 : 1,borderColor:draggingId===a.id?'#a5f3fc':stepFocus?scenario.color:focus?'#e2faff':ZONE_STYLES[a.zone].color,boxShadow:stepFocus?`0 0 0 5px ${scenario.color}44`:undefined,zIndex:draggingId===a.id?50:undefined,cursor:draggingId===a.id?'grabbing':'grab'}}>
                   <GripVertical className="absolute right-1 top-1 h-3.5 w-3.5 text-cyan-200 opacity-45 group-hover:opacity-100" aria-hidden="true"/>
+                  <span className="sr-only">Drag to move or use arrow keys. Hold Shift for larger keyboard moves.</span>
                   <div className="flex min-h-0 items-center gap-2">
                     <BlueSocDeviceMedia asset={a}/>
                     <div className="min-w-0"><div className="text-[12px] font-bold leading-4">{a.name}</div><div className="mt-1 text-[10px] text-slate-300">{a.zone.toUpperCase()}</div></div>
@@ -323,6 +337,9 @@ export default function BlueSocWorkspace(){
                   <div className="mt-2 text-xs text-slate-300">{hovered.detail}</div>
                 </div>
               )}
+              <div className="pointer-events-none absolute bottom-3 left-4 rounded-md border border-slate-600/70 bg-[#061423]/90 px-3 py-2 text-xs text-slate-200">
+                Drag any device to rearrange it. Arrow keys also work. Cables and animations follow automatically.
+              </div>
             </div>
           </div>
           <aside className="space-y-4">
