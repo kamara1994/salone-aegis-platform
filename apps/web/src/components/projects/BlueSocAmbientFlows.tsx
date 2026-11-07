@@ -1,6 +1,6 @@
 'use client';
 
-import { BLUE_SOC_ASSETS, BLUE_SOC_CONNECTIONS, ZONE_STYLES, type BlueSocAsset, type SecurityZone } from '@/content/blueSocArchitecture';
+import { BLUE_SOC_CONNECTIONS, ZONE_STYLES, type BlueSocAsset, type SecurityZone } from '@/content/blueSocArchitecture';
 
 /**
  * Ambient, simulated traffic that covers every region of the user's original
@@ -17,7 +17,6 @@ const logicalEvents:Relation[]=[
   {from:'duo',to:'radius',kind:'identity'},
 ];
 
-const byId=new Map(BLUE_SOC_ASSETS.map(d=>[d.id,d]));
 const W=170,H=108;
 function end(a:BlueSocAsset, side:'left'|'right'|'top'|'bottom'){
   if(side==='left')return {x:a.x,y:a.y+H/2};
@@ -57,10 +56,11 @@ const eventColor:Record<Relation['kind'],string>={
   automation:'#fb923c',
 };
 
-export function BlueSocAmbientFlows({running,enabled,speed,zone}:{
-  running:boolean;enabled:boolean;speed:number;zone:SecurityZone|'all'
+export function BlueSocAmbientFlows({running,enabled,speed,zone,assets}:{
+  running:boolean;enabled:boolean;speed:number;zone:SecurityZone|'all';assets:BlueSocAsset[]
 }){
   if(!enabled)return null;
+  const byId=new Map(assets.map(d=>[d.id,d]));
   return <g data-testid="blue-soc-all-zones-ambient-flow" aria-hidden="true">
     {BLUE_SOC_CONNECTIONS.map((edge,index)=>{
       const a=byId.get(edge.from),b=byId.get(edge.to);
