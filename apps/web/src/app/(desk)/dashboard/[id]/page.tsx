@@ -19,6 +19,7 @@ import { setTeachingLevel, useLearningPreferences } from '@/state/learning';
 // only when the learner opens that section, then remain cached by the browser.
 const SectionLoading = () => <div className="grid min-h-32 place-items-center text-[13px] text-muted" role="status">Loading section…</div>;
 const LabPage = dynamic(() => import('@/app/(desk)/lab/page'), { loading: SectionLoading });
+const BlueSocProject = dynamic(() => import('@/app/(desk)/projects/blue-soc/page'), { loading: SectionLoading });
 const SettingsPage = dynamic(() => import('@/app/(desk)/settings/page'), { loading: SectionLoading });
 const SkillsPage = dynamic(() => import('@/app/(desk)/skills/page'), { loading: SectionLoading });
 const GamesView = dynamic(() => import('@/components/games/GamesView').then((module) => module.GamesView), { loading: SectionLoading });
@@ -412,9 +413,19 @@ export default function DashboardPage() {
               <SettingsPage />
             </div>
           )}
-          {(section === 'projects' || section === 'career') && (
-            <div className="p-4" data-testid={`playground-${section}`}>
-              <EmptyState title={sectionMeta!.label} body={`The ${dash.title} ${sectionMeta!.label.toLowerCase()} space is reserved and will be designed next.`} />
+          {section === 'projects' && dash.id === 'networking' && (
+            <div className="h-full overflow-auto" data-testid="playground-projects">
+              <BlueSocProject />
+            </div>
+          )}
+          {section === 'projects' && dash.id !== 'networking' && (
+            <div className="p-4" data-testid="playground-projects">
+              <EmptyState title="Projects" body="No reference projects for this dashboard yet." />
+            </div>
+          )}
+          {section === 'career' && (
+            <div className="p-4" data-testid="playground-career">
+              <EmptyState title="Career" body="Career tools are still being developed." />
             </div>
           )}
         </div>

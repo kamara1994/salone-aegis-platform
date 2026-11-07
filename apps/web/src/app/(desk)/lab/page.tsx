@@ -13,6 +13,7 @@ import { Toolbar } from '@/components/lab/Toolbar';
 import type { ToolKey } from '@/components/lab/ToolsPanel';
 import { Button, cx, ErrorState, IconButton, Loading, relTime } from '@/components/ui';
 import { prepareChallenge } from '@/lab/challenges';
+import { createBlueSocProject, BLUE_SOC_PROJECT_NAME } from '@/lab/blueSocSeed';
 import { buildDoc } from '@/lab/inventory';
 import { setFresh, useLab } from '@/lab/store';
 import type { CableEnd, LabDoc } from '@/lab/types';
@@ -137,6 +138,20 @@ function Designer({ lab }: { lab: MockLab | null }) {
   // /lab?workbook=<id> and /lab?challenge=<id> (from the Learn page) start a guided lab or a drill.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    // Launch the original BLUE SOC network as an editable, named project.
+    // A named saved layout makes it visible in the lab's "My Projects" list.
+    const requestedProject = params.get('project');
+    if (requestedProject === 'blue-soc') {
+      const st = useLab.getState();
+      if (!st.doc) return;
+      st.importDoc(createBlueSocProject());
+      st.saveLayout(BLUE_SOC_PROJECT_NAME);
+      params.delete('project');
+      const query = params.toString();
+      window.history.replaceState(null, '', window.location.pathname + (query ? '?' + query : ''));
+      st.setTool('select');
+      return;
+    }
     const wb = params.get('workbook');
     if (wb) {
       window.history.replaceState(null, '', window.location.pathname);
