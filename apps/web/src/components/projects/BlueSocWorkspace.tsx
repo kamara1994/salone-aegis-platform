@@ -196,10 +196,10 @@ export default function BlueSocWorkspace(){
               {hovered&&(
                 <div
                   role="tooltip"
-                  className="pointer-events-none absolute z-50 w-[340px] rounded-xl border border-cyan-300/70 bg-[#071725] p-3 shadow-[0_12px_65px_#000c]"
+                  className="pointer-events-none absolute z-50 w-[440px] rounded-xl border border-cyan-300/70 bg-[#071725] p-3 shadow-[0_12px_65px_#000c]"
                   style={{
-                    left:hovered.x>WIDTH-490?Math.max(8,hovered.x-355):hovered.x+175,
-                    top:hovered.y>HEIGHT-365?Math.max(8,hovered.y-365):hovered.y+5,
+                    left:hovered.x>WIDTH-610?Math.max(8,hovered.x-455):hovered.x+175,
+                    top:hovered.y>HEIGHT-440?Math.max(8,hovered.y-440):hovered.y+5,
                   }}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -209,7 +209,7 @@ export default function BlueSocWorkspace(){
                   <div className="mt-2"><BlueSocDeviceMedia asset={hovered} size="inspector"/></div>
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                     <span className="font-mono text-xs font-semibold text-emerald-300">{hovered.address??'IP not defined in source'}</span>
-                    <span className="text-[10px] text-amber-200">SOURCE-DIAGRAM IMAGE</span>
+                    <span className="text-[10px] text-amber-200">STUDIO RENDER · CONCEPTUAL</span>
                   </div>
                   <div className="mt-2 text-xs text-slate-300">{hovered.detail}</div>
                 </div>
