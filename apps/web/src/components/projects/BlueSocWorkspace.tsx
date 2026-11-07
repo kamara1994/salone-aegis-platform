@@ -174,22 +174,16 @@ export default function BlueSocWorkspace(){
                   if(!a||!b)return null;
                   const from=e.sourcePort??'right',to=e.targetPort??'left';
                   const path=cablePath(point(a,from),point(b,to),from,to);
-                  const illuminated=activeEdges.has(e.id);
                   const subdued=zone!=='all'&&a.zone!==zone&&b.zone!==zone;
                   return <g key={e.id} opacity={subdued ? 0.13 : 1}>
-                    <path d={path} stroke={illuminated?scenario.color:'#54708c'} strokeWidth={illuminated?3.8:2} strokeDasharray={e.kind==='logical'?'8 6':undefined} fill="none" markerEnd="url(#blue-soc-arrow)"/>
-                    {illuminated&&running&&<g>
-                      <circle r="7" fill={scenario.color} stroke="#fff" strokeWidth="1.8">
-                        <animateMotion dur={`${2.2/speed}s`} repeatCount="indefinite" path={path}/>
-                      </circle>
-                      <circle r="3" fill="#fff"><animateMotion dur={`${2.2/speed}s`} repeatCount="indefinite" begin={`${1.1/speed}s`} path={path}/></circle>
-                    </g>}
+                    <path d={path} stroke="#54708c" strokeWidth="2" strokeDasharray={e.kind==='logical'?'8 6':undefined} fill="none" markerEnd="url(#blue-soc-arrow)"/>
                     {e.label&&<g transform={`translate(${(point(a,from).x+point(b,to).x)/2},${(point(a,from).y+point(b,to).y)/2-14})`}>
                       <rect x={-Math.max(66,e.label.length*3.6)} y={-12} height="23" width={Math.max(132,e.label.length*7.2)} rx="5" fill="#16263a" stroke="#36506c"/>
                       <text fill="#a1cceb" fontSize="11" y="4" textAnchor="middle">{e.label}</text>
                     </g>}
                   </g>;
                 })}
+                <BlueSocMotionOverlay flow={scenario} stepIndex={playbackStep} running={running} speed={speed} zone={zone}/>
               </svg>
               {BLUE_SOC_ASSETS.map(a=>{
                 const faded=zone!=='all'&&a.zone!==zone;
