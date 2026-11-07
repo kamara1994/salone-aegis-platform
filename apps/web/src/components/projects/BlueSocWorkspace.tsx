@@ -9,7 +9,10 @@ import {
   SlidersHorizontal, Wifi,
 } from 'lucide-react';
 import { BLUE_SOC_ASSETS, BLUE_SOC_CONNECTIONS, ZONE_STYLES, type BlueSocAsset, type SecurityZone } from '@/content/blueSocArchitecture';
-import { BLUE_SOC_REQUIREMENTS, BLUE_SOC_TEAM_REQUIREMENTS, BLUE_SOC_TRAFFIC_SCENARIOS } from '@/content/blueSocRequirements';
+import { BLUE_SOC_REQUIREMENTS, BLUE_SOC_TEAM_REQUIREMENTS } from '@/content/blueSocRequirements';
+import { BLUE_SOC_FLOWS, FLOW_LAYER_NAMES } from '@/content/blueSocMotion';
+import { BlueSocMotionOverlay } from '@/components/projects/BlueSocMotionOverlay';
+import { BlueSocDeviceMedia } from '@/components/projects/BlueSocDeviceMedia';
 
 const WIDTH=1240;
 const HEIGHT=1250;
@@ -18,22 +21,6 @@ const NODE_HEIGHT=108;
 const CHECKLIST_KEY='aegis.blue-soc.requirement-checks.v1';
 const VERIFIED_KEY='aegis.blue-soc.confirmed-devices.v1';
 const BLUE_SOC_URL='https://blue-dashboard-ten.vercel.app';
-
-const deviceAssets: Record<BlueSocAsset['kind'],string>={
-  cloud:'/lab/devices/cloud.svg',
-  firewall:'/lab/devices/firewall.svg',
-  workstation:'/lab/devices/pc.svg',
-  server:'/lab/devices/server.svg',
-  service:'/lab/devices/server.svg',
-};
-
-const scenarioEdges:Record<string,string[]>={
-  web:['wan-pa','pa-dmz','dmz-web1'],
-  vpn:['admin-vpn','vpn-pa','pa-inter','inter-forti','forti-inside','inside-duo','secure-radius'],
-  deny:['inside-n8n','forti-inside'],
-  detect:['dmz-web1','secure-onion','secure-splunk'],
-  respond:['secure-onion','secure-splunk','inside-n8n','vpn-pa'],
-};
 
 function point(d:BlueSocAsset,side:'left'|'right'|'top'|'bottom') {
   return side==='left'?{x:d.x,y:d.y+NODE_HEIGHT/2}
@@ -73,17 +60,10 @@ function InfoStat({value,label,foot}: {value:string;label:string;foot:string}){
     <div className="mt-1 text-xs text-slate-400">{foot}</div>
   </div>;
 }
-function NodeImage({asset}:{asset:BlueSocAsset}){
-  return <div className="flex h-[54px] w-[66px] shrink-0 items-center justify-center rounded-lg border border-slate-600/70 bg-slate-800/60 p-1">
-    {/* The application's existing illustrated device artwork, not a claimed photograph of the deployed equipment. */}
-    <img src={deviceAssets[asset.kind]} alt={`${asset.kind} illustration`} className="max-h-full max-w-full object-contain" draggable={false} />
-  </div>;
-}
-
 export default function BlueSocWorkspace(){
   const [selected,setSelected]=useState('palo');
   const [zone,setZone]=useState<SecurityZone|'all'>('all');
-  const [scenarioId,setScenarioId]=useState<string>(BLUE_SOC_TRAFFIC_SCENARIOS[0].id);
+  const [scenarioId,setScenarioId]=useState<string>(BLUE_SOC_FLOWS[0].id);
   const [running,setRunning]=useState(true);
   const [playbackStep,setPlaybackStep]=useState(0);
   const [speed,setSpeed]=useState(1);
@@ -94,23 +74,22 @@ export default function BlueSocWorkspace(){
   const [search,setSearch]=useState('');
   const [notesOpen,setNotesOpen]=useState(false);
   useEffect(()=>{setChecks(readObject(CHECKLIST_KEY));setCheckedDevices(readObject(VERIFIED_KEY));},[]);
-  const scenario=BLUE_SOC_TRAFFIC_SCENARIOS.find(s=>s.id===scenarioId)!;
+  const scenario=BLUE_SOC_FLOWS.find(s=>s.id===scenarioId)!;
+  const currentHop=scenario.steps[playbackStep]??scenario.steps[0];
   const active=BLUE_SOC_ASSETS.find(d=>d.id===selected)??BLUE_SOC_ASSETS[0];
   const selectedRequirement=BLUE_SOC_REQUIREMENTS.find(r=>r.id===milestone)!;
   const allTasks=BLUE_SOC_REQUIREMENTS.flatMap(r=>r.tasks.map((_,i)=>`${r.id}:${i}`));
   const completed=allTasks.filter(k=>checks[k]).length;
   const currentTaskCount=selectedRequirement.tasks.filter((_,i)=>checks[`${selectedRequirement.id}:${i}`]).length;
   const byId=useMemo(()=>new Map(BLUE_SOC_ASSETS.map(d=>[d.id,d])),[]);
-  const flowingIds=new Set<string>(scenario.nodes);
-  const activeEdges=new Set<string>(scenarioEdges[scenarioId]??[]);
   useEffect(()=>{
     setPlaybackStep(0);
   },[scenarioId]);
   useEffect(()=>{
     if(!running)return;
-    const token=window.setInterval(()=>setPlaybackStep(n=>(n+1)%scenario.nodes.length),Math.round(1700/speed));
+    const token=window.setInterval(()=>setPlaybackStep(n=>(n+1)%scenario.steps.length),Math.round(2700/speed));
     return ()=>window.clearInterval(token);
-  },[running,scenario.nodes.length,speed]);
+  },[running,scenario.steps.length,speed]);
   const toggleCheck=(key:string)=>{
     setChecks(old=>{const next={...old,[key]:!old[key]};persist(CHECKLIST_KEY,next);return next;});
   };
@@ -162,7 +141,7 @@ export default function BlueSocWorkspace(){
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            {BLUE_SOC_TRAFFIC_SCENARIOS.map(sc=><Button key={sc.id} active={scenarioId===sc.id} onClick={()=>setScenarioId(sc.id)}>{sc.title}</Button>)}
+            {BLUE_SOC_FLOWS.map(sc=><Button key={sc.id} active={scenarioId===sc.id} onClick={()=>setScenarioId(sc.id)}>{sc.name}</Button>)}
           </div>
           <div className="mt-4 flex flex-col justify-between gap-3 rounded-lg border border-slate-700 bg-[#0b192b] px-3 py-3 sm:flex-row sm:items-center">
             <div className="text-sm"><span className="font-semibold" style={{color:scenario.color}}>{scenario.title}:</span> <span className="text-slate-300">{scenario.detail}</span></div>
@@ -215,13 +194,13 @@ export default function BlueSocWorkspace(){
               {BLUE_SOC_ASSETS.map(a=>{
                 const faded=zone!=='all'&&a.zone!==zone;
                 const focus=a.id===selected;
-                const stepFocus=scenario.nodes[playbackStep]===a.id;
+                const stepFocus=currentHop.to===a.id;
                 return <button type="button" key={a.id} onClick={()=>setSelected(a.id)}
                   aria-label={`${a.name} ${a.address??''}`} aria-pressed={focus}
                   className="absolute flex flex-col rounded-xl border-2 bg-[#122840] p-2 text-left shadow-lg transition-[box-shadow,opacity] hover:z-10 hover:shadow-[0_0_20px_#22d3ee55]"
                   style={{left:a.x,top:a.y,width:NODE_WIDTH,height:NODE_HEIGHT,opacity:faded ? 0.25 : 1,borderColor:stepFocus?scenario.color:focus?'#e2faff':ZONE_STYLES[a.zone].color,boxShadow:stepFocus?`0 0 0 5px ${scenario.color}44`:undefined}}>
                   <div className="flex min-h-0 items-center gap-2">
-                    <NodeImage asset={a}/>
+                    <BlueSocDeviceMedia asset={a}/>
                     <div className="min-w-0"><div className="text-[12px] font-bold leading-4">{a.name}</div><div className="mt-1 text-[10px] text-slate-300">{a.zone.toUpperCase()}</div></div>
                   </div>
                   <div className="mt-2 truncate font-mono text-[11px] text-emerald-300">{a.address??a.detail}</div>
@@ -232,7 +211,8 @@ export default function BlueSocWorkspace(){
           <aside className="space-y-4">
             <section className="rounded-xl border border-slate-700 bg-[#11243a] p-4" data-testid="blue-soc-device-inspector">
               <div className="text-xs font-semibold uppercase tracking-widest" style={{color:ZONE_STYLES[active.zone].color}}>{ZONE_STYLES[active.zone].title}</div>
-              <div className="mt-3 flex items-center gap-3"><NodeImage asset={active}/><div><h2 className="text-xl font-semibold">{active.name}</h2><p className="text-xs text-slate-400">{active.detail}</p></div></div>
+              <div className="mt-3 flex items-center gap-3"><BlueSocDeviceMedia asset={active}/><div><h2 className="text-xl font-semibold">{active.name}</h2><p className="text-xs text-slate-400">{active.detail}</p></div></div>
+              <div className="mt-4"><BlueSocDeviceMedia asset={active} size="inspector"/></div>
               {active.address&&<div className="mt-3 rounded-lg bg-[#0c192c] px-3 py-2 font-mono text-sm text-emerald-300">{active.address}</div>}
               <h3 className="mt-5 text-sm font-semibold">Responsibilities and verification</h3>
               <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-300">{active.responsibilities.map(x=><li key={x}>{x}</li>)}</ul>
