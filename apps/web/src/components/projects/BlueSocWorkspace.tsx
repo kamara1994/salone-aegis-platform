@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import Link from 'next/link';
 import {
   Activity, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, Circle,
   ExternalLink, FileText, Gauge, Globe2, Monitor, Network, Pause, Play,
-  RotateCcw, Router, Search, Server, ShieldAlert, ShieldCheck, ShieldX,
+  RotateCcw, Router, Search, Server, ShieldAlert, ShieldCheck, ShieldX, GripVertical, Save,
   SlidersHorizontal, Wifi,
 } from 'lucide-react';
 import { BLUE_SOC_ASSETS, BLUE_SOC_CONNECTIONS, ZONE_STYLES, type BlueSocAsset, type SecurityZone } from '@/content/blueSocArchitecture';
@@ -14,11 +14,16 @@ import { BLUE_SOC_FLOWS, FLOW_LAYER_NAMES } from '@/content/blueSocMotion';
 import { BlueSocMotionOverlay } from '@/components/projects/BlueSocMotionOverlay';
 import { BlueSocAmbientFlows } from '@/components/projects/BlueSocAmbientFlows';
 import { BlueSocDeviceMedia } from '@/components/projects/BlueSocDeviceMedia';
+import {
+  BLUE_SOC_CANVAS_WIDTH, BLUE_SOC_CANVAS_HEIGHT, BLUE_SOC_NODE_WIDTH, BLUE_SOC_NODE_HEIGHT,
+  BLUE_SOC_LAYOUT_KEY, defaultBlueSocPositions, loadBlueSocPositions,
+  serializeBlueSocPositions, moveBlueSocPosition, type BlueSocPositions,
+} from '@/content/blueSocEditableLayout';
 
-const WIDTH=1240;
-const HEIGHT=1250;
-const NODE_WIDTH=170;
-const NODE_HEIGHT=108;
+const WIDTH=BLUE_SOC_CANVAS_WIDTH;
+const HEIGHT=BLUE_SOC_CANVAS_HEIGHT;
+const NODE_WIDTH=BLUE_SOC_NODE_WIDTH;
+const NODE_HEIGHT=BLUE_SOC_NODE_HEIGHT;
 const CHECKLIST_KEY='aegis.blue-soc.requirement-checks.v1';
 const VERIFIED_KEY='aegis.blue-soc.confirmed-devices.v1';
 const BLUE_SOC_URL='https://blue-dashboard-ten.vercel.app';
@@ -77,16 +82,44 @@ export default function BlueSocWorkspace(){
   const [checkedDevices,setCheckedDevices]=useState<Record<string,boolean>>({});
   const [search,setSearch]=useState('');
   const [notesOpen,setNotesOpen]=useState(false);
+  const [positions,setPositions]=useState<BlueSocPositions>(defaultBlueSocPositions);
+  const [layoutHydrated,setLayoutHydrated]=useState(false);
+  const [savedState,setSavedState]=useState<'saved'|'editing'>('saved');
+  const [snapToGrid,setSnapToGrid]=useState(true);
+  const [draggingId,setDraggingId]=useState<string|null>(null);
+  const dragging=useRef<{id:string;pointerId:number;startX:number;startY:number;originX:number;originY:number;moved:boolean}|null>(null);
+  const ignoreClick=useRef(false);
   useEffect(()=>{setChecks(readObject(CHECKLIST_KEY));setCheckedDevices(readObject(VERIFIED_KEY));},[]);
+  // Saved diagrams are per-browser; no credentials, firewall rules or packet state are stored.
+  useEffect(()=>{
+    let raw:string|null=null;
+    try{raw=window.localStorage.getItem(BLUE_SOC_LAYOUT_KEY);}catch{}
+    setPositions(loadBlueSocPositions(raw));
+    setLayoutHydrated(true);
+  },[]);
+  useEffect(()=>{
+    if(!layoutHydrated)return;
+    setSavedState('editing');
+    const pending=window.setTimeout(()=>{
+      try{
+        window.localStorage.setItem(BLUE_SOC_LAYOUT_KEY,serializeBlueSocPositions(positions));
+        setSavedState('saved');
+      }catch{
+        setSavedState('editing');
+      }
+    },300);
+    return ()=>window.clearTimeout(pending);
+  },[positions,layoutHydrated]);
   const scenario=BLUE_SOC_FLOWS.find(s=>s.id===scenarioId)!;
   const currentHop=scenario.steps[playbackStep]??scenario.steps[0];
-  const active=BLUE_SOC_ASSETS.find(d=>d.id===selected)??BLUE_SOC_ASSETS[0];
-  const hovered=BLUE_SOC_ASSETS.find(d=>d.id===hoveredId);
+  const placedAssets=useMemo(()=>BLUE_SOC_ASSETS.map(d=>({...d,...(positions[d.id]??{x:d.x,y:d.y})})),[positions]);
+  const active=placedAssets.find(d=>d.id===selected)??placedAssets[0];
+  const hovered=placedAssets.find(d=>d.id===hoveredId);
   const selectedRequirement=BLUE_SOC_REQUIREMENTS.find(r=>r.id===milestone)!;
   const allTasks=BLUE_SOC_REQUIREMENTS.flatMap(r=>r.tasks.map((_,i)=>`${r.id}:${i}`));
   const completed=allTasks.filter(k=>checks[k]).length;
   const currentTaskCount=selectedRequirement.tasks.filter((_,i)=>checks[`${selectedRequirement.id}:${i}`]).length;
-  const byId=useMemo(()=>new Map(BLUE_SOC_ASSETS.map(d=>[d.id,d])),[]);
+  const byId=useMemo(()=>new Map(placedAssets.map(d=>[d.id,d])),[placedAssets]);
   useEffect(()=>{
     setPlaybackStep(0);
   },[scenarioId]);
@@ -101,8 +134,70 @@ export default function BlueSocWorkspace(){
   const toggleVerified=(id:string)=>{
     setCheckedDevices(old=>{const next={...old,[id]:!old[id]};persist(VERIFIED_KEY,next);return next;});
   };
+  function beginNodeDrag(event:ReactPointerEvent<HTMLButtonElement>,asset:BlueSocAsset){
+    if(event.button!==0 || dragging.current)return;
+    const current=positions[asset.id]??{x:asset.x,y:asset.y};
+    dragging.current={
+      id:asset.id,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,
+      originX:current.x,originY:current.y,moved:false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function moveNode(event:ReactPointerEvent<HTMLButtonElement>){
+    const drag=dragging.current;
+    if(!drag || drag.pointerId!==event.pointerId)return;
+    const dx=(event.clientX-drag.startX)/zoom,dy=(event.clientY-drag.startY)/zoom;
+    if(!drag.moved && Math.hypot(dx,dy)<5)return;
+    drag.moved=true;
+    setDraggingId(drag.id);
+    setHoveredId(null);
+    setPositions(old=>({
+      ...old,
+      [drag.id]:moveBlueSocPosition({x:drag.originX+dx,y:drag.originY+dy},snapToGrid),
+    }));
+  }
+  function finishNodeDrag(event:ReactPointerEvent<HTMLButtonElement>){
+    const drag=dragging.current;
+    if(!drag || drag.pointerId!==event.pointerId)return;
+    if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
+    if(drag.moved){
+      ignoreClick.current=true;
+      setSelected(drag.id);
+    }
+    dragging.current=null;
+    setDraggingId(null);
+  }
+  function keyboardNodeMove(event:ReactKeyboardEvent<HTMLButtonElement>,asset:BlueSocAsset){
+    const moves:Record<string,{x:number;y:number}>={
+      ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},
+      ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
+    };
+    const delta=moves[event.key];
+    if(!delta)return;
+    event.preventDefault();
+    const increment=event.shiftKey?24:12;
+    setSelected(asset.id);
+    setPositions(old=>{
+      const p=old[asset.id]??{x:asset.x,y:asset.y};
+      return {...old,[asset.id]:moveBlueSocPosition({
+        x:p.x+delta.x*increment,y:p.y+delta.y*increment,
+      },snapToGrid)};
+    });
+  }
+  function resetNodePositions(){
+    if(!window.confirm('Restore all 19 devices to the positions in your original diagram? Your custom layout will be replaced.'))return;
+    setPositions(defaultBlueSocPositions());
+    setHoveredId(null);
+    setSelected('palo');
+  }
+  function saveNodePositions(){
+    try{
+      window.localStorage.setItem(BLUE_SOC_LAYOUT_KEY,serializeBlueSocPositions(positions));
+      setSavedState('saved');
+    }catch{setSavedState('editing');}
+  }
   const percent=Math.round(100*completed/allTasks.length);
-  const visibleAssets=BLUE_SOC_ASSETS.filter(a=>(zone==='all'||a.zone===zone)&&(`${a.name} ${a.address??''} ${a.detail}`.toLowerCase().includes(search.toLowerCase())));
+  const visibleAssets=placedAssets.filter(a=>(zone==='all'||a.zone===zone)&&(`${a.name} ${a.address??''} ${a.detail}`.toLowerCase().includes(search.toLowerCase())));
   return <div className="min-h-full bg-[#081423] text-slate-100" data-testid="blue-soc-workspace">
     <div className="mx-auto max-w-[1700px] space-y-5 p-3 sm:p-5 lg:p-7">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -138,6 +233,11 @@ export default function BlueSocWorkspace(){
             <div className="flex flex-wrap items-center gap-2 border-b border-slate-700 p-3">
               {(['all','outside','interconnect','dmz','inside','secure'] as const).map(z=><Button key={z} active={zone===z} onClick={()=>setZone(z)}>{z==='all'?'All zones':ZONE_STYLES[z].title}</Button>)}
               <div className="ml-auto flex flex-wrap items-center gap-1">
+                <span className="rounded border border-cyan-700/50 bg-cyan-500/10 px-2 py-2 text-[11px] font-medium text-cyan-200">Drag devices to rearrange</span>
+                <Button onClick={()=>setSnapToGrid(v=>!v)} active={snapToGrid}>Grid snap: {snapToGrid?'ON':'OFF'}</Button>
+                <Button onClick={saveNodePositions}><Save className="h-3.5 w-3.5"/> Save layout</Button>
+                <Button onClick={resetNodePositions}><RotateCcw className="h-3.5 w-3.5"/> Reset positions</Button>
+                <span aria-live="polite" className="px-2 text-[11px] text-emerald-300">{layoutHydrated?(savedState==='saved'?'Saved locally':'Unsaved'):'Loading layout'}</span>
                 <Button onClick={()=>setZoom(z=>Math.max(0.5,Math.round((z-0.1)*100)/100))}>Zoom −</Button>
                 <span className="px-1 text-xs text-slate-400">{Math.round(zoom*100)}%</span>
                 <Button onClick={()=>setZoom(z=>Math.min(1.25,Math.round((z+0.1)*100)/100))}>Zoom +</Button>
@@ -173,19 +273,28 @@ export default function BlueSocWorkspace(){
                     </g>}
                   </g>;
                 })}
-                <BlueSocAmbientFlows running={running} enabled={ambient} speed={speed} zone={zone}/>
-                <BlueSocMotionOverlay flow={scenario} stepIndex={playbackStep} running={running} speed={speed} zone={zone}/>
+                <BlueSocAmbientFlows running={running} enabled={ambient} speed={speed} zone={zone} assets={placedAssets}/>
+                <BlueSocMotionOverlay flow={scenario} stepIndex={playbackStep} running={running} speed={speed} zone={zone} assets={placedAssets}/>
               </svg>
-              {BLUE_SOC_ASSETS.map(a=>{
+              {placedAssets.map(a=>{
                 const faded=zone!=='all'&&a.zone!==zone;
                 const focus=a.id===selected;
                 const stepFocus=currentHop.to===a.id;
-                return <button type="button" key={a.id} onClick={()=>setSelected(a.id)}
-                  onMouseEnter={()=>setHoveredId(a.id)} onMouseLeave={()=>setHoveredId(null)}
-                  onFocus={()=>setHoveredId(a.id)} onBlur={()=>setHoveredId(null)}
+                return <button type="button" key={a.id}
+                  onPointerDown={event=>beginNodeDrag(event,a)}
+                  onPointerMove={moveNode}
+                  onPointerUp={finishNodeDrag}
+                  onPointerCancel={finishNodeDrag}
+                  onKeyDown={event=>keyboardNodeMove(event,a)}
+                  onClick={()=>{if(ignoreClick.current){ignoreClick.current=false;return;}setSelected(a.id);}}
+                  onMouseEnter={()=>{if(!dragging.current)setHoveredId(a.id);}}
+                  onMouseLeave={()=>{if(!dragging.current)setHoveredId(null);}}
+                  onFocus={()=>{if(!dragging.current)setHoveredId(a.id);}}
+                  onBlur={()=>setHoveredId(null)}
                   aria-label={`${a.name} ${a.address??''}`} aria-pressed={focus}
-                  className="absolute flex flex-col rounded-xl border-2 bg-[#122840] p-2 text-left shadow-lg transition-[box-shadow,opacity] hover:z-10 hover:shadow-[0_0_20px_#22d3ee55]"
-                  style={{left:a.x,top:a.y,width:NODE_WIDTH,height:NODE_HEIGHT,opacity:faded ? 0.25 : 1,borderColor:stepFocus?scenario.color:focus?'#e2faff':ZONE_STYLES[a.zone].color,boxShadow:stepFocus?`0 0 0 5px ${scenario.color}44`:undefined}}>
+                  className="group absolute flex touch-none select-none flex-col rounded-xl border-2 bg-[#122840] p-2 text-left shadow-lg transition-[box-shadow,opacity] hover:z-10 hover:shadow-[0_0_20px_#22d3ee55] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                  style={{left:a.x,top:a.y,width:NODE_WIDTH,height:NODE_HEIGHT,opacity:faded ? 0.25 : 1,borderColor:draggingId===a.id?'#a5f3fc':stepFocus?scenario.color:focus?'#e2faff':ZONE_STYLES[a.zone].color,boxShadow:stepFocus?`0 0 0 5px ${scenario.color}44`:undefined,zIndex:draggingId===a.id?50:undefined,cursor:draggingId===a.id?'grabbing':'grab'}}>
+                  <GripVertical className="absolute right-1 top-1 h-3.5 w-3.5 text-cyan-200 opacity-45 group-hover:opacity-100" aria-hidden="true"/>
                   <div className="flex min-h-0 items-center gap-2">
                     <BlueSocDeviceMedia asset={a}/>
                     <div className="min-w-0"><div className="text-[12px] font-bold leading-4">{a.name}</div><div className="mt-1 text-[10px] text-slate-300">{a.zone.toUpperCase()}</div></div>
