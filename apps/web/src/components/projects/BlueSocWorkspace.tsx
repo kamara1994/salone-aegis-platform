@@ -67,6 +67,7 @@ export default function BlueSocWorkspace(){
   const [scenarioId,setScenarioId]=useState<string>(BLUE_SOC_FLOWS[0].id);
   const [running,setRunning]=useState(true);
   const [ambient,setAmbient]=useState(true);
+  const [zoom,setZoom]=useState(0.78);
   const [hoveredId,setHoveredId]=useState<string|null>(null);
   const [playbackStep,setPlaybackStep]=useState(0);
   const [speed,setSpeed]=useState(1);
@@ -185,8 +186,14 @@ export default function BlueSocWorkspace(){
           <div className="min-w-0 overflow-auto rounded-xl border border-slate-700 bg-[#0b192b]" aria-label="Original project network architecture" data-testid="blue-soc-network-map">
             <div className="flex flex-wrap items-center gap-2 border-b border-slate-700 p-3">
               {(['all','outside','interconnect','dmz','inside','secure'] as const).map(z=><Button key={z} active={zone===z} onClick={()=>setZone(z)}>{z==='all'?'All zones':ZONE_STYLES[z].title}</Button>)}
+              <div className="ml-auto flex flex-wrap items-center gap-1">
+                <Button onClick={()=>setZoom(z=>Math.max(0.5,Math.round((z-0.1)*100)/100))}>Zoom −</Button>
+                <span className="px-1 text-xs text-slate-400">{Math.round(zoom*100)}%</span>
+                <Button onClick={()=>setZoom(z=>Math.min(1.25,Math.round((z+0.1)*100)/100))}>Zoom +</Button>
+                <Button onClick={()=>setZoom(0.65)}>Fit</Button>
+              </div>
             </div>
-            <div className="relative" style={{width:WIDTH,height:HEIGHT}}>
+            <div className="relative" style={{width:WIDTH,height:HEIGHT,zoom}}>
               <div className="absolute inset-0" style={{backgroundImage:'linear-gradient(rgba(110,148,184,.07) 1px, transparent 1px),linear-gradient(90deg,rgba(110,148,184,.07) 1px,transparent 1px)',backgroundSize:'24px 24px'}}/>
               {([
                 {zone:'outside' as const,x:175,y:15,w:795,h:367},
