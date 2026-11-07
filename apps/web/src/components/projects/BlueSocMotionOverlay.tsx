@@ -1,7 +1,7 @@
 'use client';
 
 import type { BlueSocFlow } from '@/content/blueSocMotion';
-import { BLUE_SOC_ASSETS, type BlueSocAsset, type SecurityZone } from '@/content/blueSocArchitecture';
+import type { BlueSocAsset, SecurityZone } from '@/content/blueSocArchitecture';
 
 /** SVG overlay: a moving packet follows one step at a time, and previous hops remain highlighted. */
 const CARD_WIDTH=170;
@@ -32,10 +32,10 @@ function trace(a:BlueSocAsset,b:BlueSocAsset){
     target:q,
   };
 }
-const flowNodeMap=new Map(BLUE_SOC_ASSETS.map(a=>[a.id,a]));
-type Props={flow:BlueSocFlow;stepIndex:number;running:boolean;speed:number;zone:SecurityZone|'all'};
+type Props={flow:BlueSocFlow;stepIndex:number;running:boolean;speed:number;zone:SecurityZone|'all';assets:BlueSocAsset[]};
 
-export function BlueSocMotionOverlay({flow,stepIndex,running,speed,zone}:Props){
+export function BlueSocMotionOverlay({flow,stepIndex,running,speed,zone,assets}:Props){
+  const flowNodeMap=new Map(assets.map(a=>[a.id,a]));
   return <g aria-hidden="true" data-motion-layer="illustrative-replay">
     <defs>
       <filter id="blue-soc-animated-glow" x="-100%" y="-100%" width="300%" height="300%">
