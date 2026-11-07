@@ -158,7 +158,7 @@ export default function BlueSocWorkspace(){
             <div className="flex flex-wrap gap-2">
               <Button onClick={()=>setRunning(s=>!s)} active={running}>{running?<><Pause className="h-4 w-4"/> Pause</>:<><Play className="h-4 w-4"/> Play</>}</Button>
               <Button onClick={()=>{setPlaybackStep(0);setRunning(false);}}><RotateCcw className="h-4 w-4"/> Reset</Button>
-              <Button onClick={()=>setSpeed(s=>s===1?2:s===2?.5:1)}><Gauge className="h-4 w-4"/> {speed}× speed</Button>
+              <Button onClick={()=>setSpeed(s=>s===1?2:s===2 ? 0.5 : 1)}><Gauge className="h-4 w-4"/> {speed}× speed</Button>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -197,7 +197,7 @@ export default function BlueSocWorkspace(){
                   const path=cablePath(point(a,from),point(b,to),from,to);
                   const illuminated=activeEdges.has(e.id);
                   const subdued=zone!=='all'&&a.zone!==zone&&b.zone!==zone;
-                  return <g key={e.id} opacity={subdued?.13:1}>
+                  return <g key={e.id} opacity={subdued ? 0.13 : 1}>
                     <path d={path} stroke={illuminated?scenario.color:'#54708c'} strokeWidth={illuminated?3.8:2} strokeDasharray={e.kind==='logical'?'8 6':undefined} fill="none" markerEnd="url(#blue-soc-arrow)"/>
                     {illuminated&&running&&<g>
                       <circle r="7" fill={scenario.color} stroke="#fff" strokeWidth="1.8">
@@ -219,7 +219,7 @@ export default function BlueSocWorkspace(){
                 return <button type="button" key={a.id} onClick={()=>setSelected(a.id)}
                   aria-label={`${a.name} ${a.address??''}`} aria-pressed={focus}
                   className="absolute flex flex-col rounded-xl border-2 bg-[#122840] p-2 text-left shadow-lg transition-[box-shadow,opacity] hover:z-10 hover:shadow-[0_0_20px_#22d3ee55]"
-                  style={{left:a.x,top:a.y,width:NODE_WIDTH,height:NODE_HEIGHT,opacity:faded?.25:1,borderColor:stepFocus?scenario.color:focus?'#e2faff':ZONE_STYLES[a.zone].color,boxShadow:stepFocus?`0 0 0 5px ${scenario.color}44`:undefined}}>
+                  style={{left:a.x,top:a.y,width:NODE_WIDTH,height:NODE_HEIGHT,opacity:faded ? 0.25 : 1,borderColor:stepFocus?scenario.color:focus?'#e2faff':ZONE_STYLES[a.zone].color,boxShadow:stepFocus?`0 0 0 5px ${scenario.color}44`:undefined}}>
                   <div className="flex min-h-0 items-center gap-2">
                     <NodeImage asset={a}/>
                     <div className="min-w-0"><div className="text-[12px] font-bold leading-4">{a.name}</div><div className="mt-1 text-[10px] text-slate-300">{a.zone.toUpperCase()}</div></div>
