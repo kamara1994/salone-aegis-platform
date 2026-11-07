@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Activity, ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, Circle,
@@ -11,7 +11,7 @@ import {
 import { BLUE_SOC_ASSETS, BLUE_SOC_CONNECTIONS, ZONE_STYLES, type BlueSocAsset, type SecurityZone } from '@/content/blueSocArchitecture';
 import { BLUE_SOC_REQUIREMENTS, BLUE_SOC_TEAM_REQUIREMENTS, BLUE_SOC_TRAFFIC_SCENARIOS } from '@/content/blueSocRequirements';
 
-const WIDTH=1200;
+const WIDTH=1240;
 const HEIGHT=1250;
 const NODE_WIDTH=170;
 const NODE_HEIGHT=108;
