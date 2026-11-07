@@ -12,6 +12,7 @@ import { BLUE_SOC_ASSETS, BLUE_SOC_CONNECTIONS, ZONE_STYLES, type BlueSocAsset, 
 import { BLUE_SOC_REQUIREMENTS, BLUE_SOC_TEAM_REQUIREMENTS } from '@/content/blueSocRequirements';
 import { BLUE_SOC_FLOWS, FLOW_LAYER_NAMES } from '@/content/blueSocMotion';
 import { BlueSocMotionOverlay } from '@/components/projects/BlueSocMotionOverlay';
+import { BlueSocAmbientFlows } from '@/components/projects/BlueSocAmbientFlows';
 import { BlueSocDeviceMedia } from '@/components/projects/BlueSocDeviceMedia';
 
 const WIDTH=1240;
@@ -65,6 +66,8 @@ export default function BlueSocWorkspace(){
   const [zone,setZone]=useState<SecurityZone|'all'>('all');
   const [scenarioId,setScenarioId]=useState<string>(BLUE_SOC_FLOWS[0].id);
   const [running,setRunning]=useState(true);
+  const [ambient,setAmbient]=useState(true);
+  const [hoveredId,setHoveredId]=useState<string|null>(null);
   const [playbackStep,setPlaybackStep]=useState(0);
   const [speed,setSpeed]=useState(1);
   const [tab,setTab]=useState<'overview'|'requirements'|'inventory'>('overview');
@@ -77,6 +80,7 @@ export default function BlueSocWorkspace(){
   const scenario=BLUE_SOC_FLOWS.find(s=>s.id===scenarioId)!;
   const currentHop=scenario.steps[playbackStep]??scenario.steps[0];
   const active=BLUE_SOC_ASSETS.find(d=>d.id===selected)??BLUE_SOC_ASSETS[0];
+  const hovered=BLUE_SOC_ASSETS.find(d=>d.id===hoveredId);
   const selectedRequirement=BLUE_SOC_REQUIREMENTS.find(r=>r.id===milestone)!;
   const allTasks=BLUE_SOC_REQUIREMENTS.flatMap(r=>r.tasks.map((_,i)=>`${r.id}:${i}`));
   const completed=allTasks.filter(k=>checks[k]).length;
@@ -132,10 +136,11 @@ export default function BlueSocWorkspace(){
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-base font-semibold"><Activity className="h-5 w-5 text-cyan-300"/> Network flow demonstration</div>
-              <p className="mt-1 text-xs text-slate-400">Choose a scenario and follow its ordered hops. Physical data, authentication, IDS mirrors, SIEM logs and automation are shown as different paths. This is an illustrative replay, not a real packet capture.</p>
+              <p className="mt-1 text-xs text-slate-400">Traffic is simulated across every zone. The glowing packets show background network activity, while the selected scenario shows the ordered hops of one security event. Hover over any device to preview the image from your original diagram.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={()=>setRunning(s=>!s)} active={running}>{running?<><Pause className="h-4 w-4"/> Pause</>:<><Play className="h-4 w-4"/> Play</>}</Button>
+              <Button onClick={()=>setRunning(s=>!s)} active={running}>{running?<><Pause className="h-4 w-4"/> Pause all</>:<><Play className="h-4 w-4"/> Play all</>}</Button>
+              <Button onClick={()=>setAmbient(x=>!x)} active={ambient}><Activity className="h-4 w-4"/> All zones: {ambient?'ON':'OFF'}</Button>
               <Button onClick={()=>{setPlaybackStep(0);setRunning(false);}}><RotateCcw className="h-4 w-4"/> Reset</Button>
               <Button onClick={()=>{setPlaybackStep(n=>(n+scenario.steps.length-1)%scenario.steps.length);setRunning(false);}}><ArrowLeft className="h-4 w-4"/> Back</Button>
               <Button onClick={()=>{setPlaybackStep(n=>(n+1)%scenario.steps.length);setRunning(false);}}>Next <ArrowRight className="h-4 w-4"/></Button>
@@ -210,6 +215,7 @@ export default function BlueSocWorkspace(){
                     </g>}
                   </g>;
                 })}
+                <BlueSocAmbientFlows running={running} enabled={ambient} speed={speed} zone={zone}/>
                 <BlueSocMotionOverlay flow={scenario} stepIndex={playbackStep} running={running} speed={speed} zone={zone}/>
               </svg>
               {BLUE_SOC_ASSETS.map(a=>{
@@ -217,6 +223,8 @@ export default function BlueSocWorkspace(){
                 const focus=a.id===selected;
                 const stepFocus=currentHop.to===a.id;
                 return <button type="button" key={a.id} onClick={()=>setSelected(a.id)}
+                  onMouseEnter={()=>setHoveredId(a.id)} onMouseLeave={()=>setHoveredId(null)}
+                  onFocus={()=>setHoveredId(a.id)} onBlur={()=>setHoveredId(null)}
                   aria-label={`${a.name} ${a.address??''}`} aria-pressed={focus}
                   className="absolute flex flex-col rounded-xl border-2 bg-[#122840] p-2 text-left shadow-lg transition-[box-shadow,opacity] hover:z-10 hover:shadow-[0_0_20px_#22d3ee55]"
                   style={{left:a.x,top:a.y,width:NODE_WIDTH,height:NODE_HEIGHT,opacity:faded ? 0.25 : 1,borderColor:stepFocus?scenario.color:focus?'#e2faff':ZONE_STYLES[a.zone].color,boxShadow:stepFocus?`0 0 0 5px ${scenario.color}44`:undefined}}>
@@ -227,6 +235,27 @@ export default function BlueSocWorkspace(){
                   <div className="mt-2 truncate font-mono text-[11px] text-emerald-300">{a.address??a.detail}</div>
                 </button>;
               })}
+              {hovered&&(
+                <div
+                  role="tooltip"
+                  className="pointer-events-none absolute z-50 w-[340px] rounded-xl border border-cyan-300/70 bg-[#071725] p-3 shadow-[0_12px_65px_#000c]"
+                  style={{
+                    left:hovered.x>WIDTH-490?Math.max(8,hovered.x-355):hovered.x+175,
+                    top:hovered.y>HEIGHT-365?Math.max(8,hovered.y-365):hovered.y+5,
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-base font-semibold text-white">{hovered.name}</div>
+                    <div className="rounded border border-cyan-500/40 px-2 py-1 text-[10px] uppercase text-cyan-200">{hovered.zone}</div>
+                  </div>
+                  <div className="mt-2"><BlueSocDeviceMedia asset={hovered} size="inspector"/></div>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-mono text-xs font-semibold text-emerald-300">{hovered.address??'IP not defined in source'}</span>
+                    <span className="text-[10px] text-amber-200">SOURCE-DIAGRAM IMAGE</span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-300">{hovered.detail}</div>
+                </div>
+              )}
             </div>
           </div>
           <aside className="space-y-4">
@@ -313,7 +342,7 @@ export default function BlueSocWorkspace(){
         <p className="mt-4 text-xs leading-5 text-slate-400">Interface numbers, public web VIP, precise WAF/NLB placement, and full routing policies require reconciliation against the original lab configuration. No completion or live availability is inferred from this table.</p>
       </section>}
       <footer className="rounded-lg border border-slate-700/70 bg-[#102237] px-4 py-3 text-xs leading-5 text-slate-400">
-        <strong className="text-slate-200">Architecture status:</strong> User-provided source diagram and project requirements. Representative genuine hardware photos or software identifiers appear where sourced; other nodes use generic device-type illustrations. None are claimed to depict your exact lab machines. Network activity is a simulation. The independently hosted BLUE SOC application may have different data and availability.
+        <strong className="text-slate-200">Architecture status:</strong> User-provided source diagram and project requirements. Original diagram screenshots are used where available, with credited representative hardware photos as fallback. All-zone ambient packet movement remains a simulation rather than live network telemetry. Network activity is a simulation. The independently hosted BLUE SOC application may have different data and availability.
       </footer>
     </div>
   </div>;
