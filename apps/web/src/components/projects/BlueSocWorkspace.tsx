@@ -132,11 +132,13 @@ export default function BlueSocWorkspace(){
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-base font-semibold"><Activity className="h-5 w-5 text-cyan-300"/> Network flow demonstration</div>
-              <p className="mt-1 text-xs text-slate-400">Choose a security scenario. Colored dots animate along logical connections. The packet path is illustrative, not live telemetry.</p>
+              <p className="mt-1 text-xs text-slate-400">Choose a scenario and follow its ordered hops. Physical data, authentication, IDS mirrors, SIEM logs and automation are shown as different paths. This is an illustrative replay, not a real packet capture.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={()=>setRunning(s=>!s)} active={running}>{running?<><Pause className="h-4 w-4"/> Pause</>:<><Play className="h-4 w-4"/> Play</>}</Button>
               <Button onClick={()=>{setPlaybackStep(0);setRunning(false);}}><RotateCcw className="h-4 w-4"/> Reset</Button>
+              <Button onClick={()=>{setPlaybackStep(n=>(n+scenario.steps.length-1)%scenario.steps.length);setRunning(false);}}><ArrowLeft className="h-4 w-4"/> Back</Button>
+              <Button onClick={()=>{setPlaybackStep(n=>(n+1)%scenario.steps.length);setRunning(false);}}>Next <ArrowRight className="h-4 w-4"/></Button>
               <Button onClick={()=>setSpeed(s=>s===1?2:s===2 ? 0.5 : 1)}><Gauge className="h-4 w-4"/> {speed}× speed</Button>
             </div>
           </div>
@@ -144,10 +146,35 @@ export default function BlueSocWorkspace(){
             {BLUE_SOC_FLOWS.map(sc=><Button key={sc.id} active={scenarioId===sc.id} onClick={()=>setScenarioId(sc.id)}>{sc.name}</Button>)}
           </div>
           <div className="mt-4 flex flex-col justify-between gap-3 rounded-lg border border-slate-700 bg-[#0b192b] px-3 py-3 sm:flex-row sm:items-center">
-            <div className="text-sm"><span className="font-semibold" style={{color:scenario.color}}>{scenario.title}:</span> <span className="text-slate-300">{scenario.detail}</span></div>
-            <span className="shrink-0 rounded-md border border-slate-600 px-2 py-1 text-xs text-cyan-100">Step {playbackStep+1} / {scenario.nodes.length}: {byId.get(scenario.nodes[playbackStep])?.name}</span>
+            <div className="text-sm"><span className="font-semibold" style={{color:scenario.color}}>{scenario.name}:</span> <span className="text-slate-300">{scenario.subtitle}</span></div>
+            <span className="shrink-0 rounded-md border border-slate-600 px-2 py-1 text-xs text-cyan-100">Hop {playbackStep+1} / {scenario.steps.length}: {byId.get(currentHop.to)?.name}</span>
           </div>
-          <p className="mt-2 text-xs text-slate-400">{scenario.outcome}</p>
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-lg border border-slate-700 bg-[#081a2c] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-wider text-cyan-300">
+                <span>{FLOW_LAYER_NAMES[currentHop.layer]}</span>
+                <span className={currentHop.status==='deny'?'text-rose-400':'text-emerald-300'}>{currentHop.status}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-xs text-slate-400">
+                <span>{byId.get(currentHop.from)?.name}</span><ArrowRight className="h-3.5 w-3.5"/><span>{byId.get(currentHop.to)?.name}</span>
+              </div>
+              <h3 className="mt-3 text-base font-semibold">{currentHop.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-300">{currentHop.explanation}</p>
+              <p className="mt-3 rounded border border-slate-700 px-2 py-1.5 font-mono text-xs text-cyan-100">{currentHop.protocol}{currentHop.port?` · Port ${currentHop.port}`:''}</p>
+            </div>
+            <div className="overflow-hidden rounded-lg border border-slate-700 bg-[#081a2c]">
+              <div className="flex justify-between border-b border-slate-700 px-3 py-2 text-xs"><span className="font-semibold text-slate-300">Traffic and event timeline</span><span className="text-amber-300">SIMULATED REPLAY</span></div>
+              <div className="max-h-56 overflow-y-auto p-2">
+                {scenario.steps.map((leg,i)=><button key={i} type="button" onClick={()=>{setPlaybackStep(i);setRunning(false);}}
+                    className={`flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-xs hover:bg-slate-800/80 ${i===playbackStep?'bg-cyan-600/20 text-white':'text-slate-400'}`}>
+                  <span className="shrink-0 font-mono text-slate-500">T+{String(i*3).padStart(2,'0')}s</span>
+                  <span className="flex-1"><span className="block font-medium">{leg.title}</span><span className="mt-0.5 block text-[11px] opacity-75">{leg.protocol} · {FLOW_LAYER_NAMES[leg.layer]}</span></span>
+                  {i<playbackStep&&<CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400"/>}
+                  {i===playbackStep&&<span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{background:scenario.color}}/>}
+                </button>)}
+              </div>
+            </div>
+          </div>
         </div>
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_350px]">
           <div className="min-w-0 overflow-auto rounded-xl border border-slate-700 bg-[#0b192b]" aria-label="Original project network architecture" data-testid="blue-soc-network-map">
@@ -286,7 +313,7 @@ export default function BlueSocWorkspace(){
         <p className="mt-4 text-xs leading-5 text-slate-400">Interface numbers, public web VIP, precise WAF/NLB placement, and full routing policies require reconciliation against the original lab configuration. No completion or live availability is inferred from this table.</p>
       </section>}
       <footer className="rounded-lg border border-slate-700/70 bg-[#102237] px-4 py-3 text-xs leading-5 text-slate-400">
-        <strong className="text-slate-200">Architecture status:</strong> User-provided source diagram and project requirements. The illustrations are existing device-type assets shipped with Salone Aegis; they are not verified photographs of the deployed Palo Alto/FortiGate hardware. Network activity is a simulation. The independently hosted BLUE SOC application may have different data and availability.
+        <strong className="text-slate-200">Architecture status:</strong> User-provided source diagram and project requirements. Representative genuine hardware photos or software identifiers appear where sourced; other nodes use generic device-type illustrations. None are claimed to depict your exact lab machines. Network activity is a simulation. The independently hosted BLUE SOC application may have different data and availability.
       </footer>
     </div>
   </div>;
