@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 // Learn with images (CCNA): every picture card in the deck, grouped by topic.

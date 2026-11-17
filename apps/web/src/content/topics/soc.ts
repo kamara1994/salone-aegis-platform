@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // SOC analyst and blue team topics. Original explanations and questions written for this project.
 import { q, topic, type Topic } from './types';
 

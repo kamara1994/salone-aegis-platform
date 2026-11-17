@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Rule-based stand-in for the AI client persona (services/ai in live mode).
 // It only knows symptoms, answers from real lab state, and can only do what a user could do.
 import { ipConfig, renewLease, type LabState } from './lab';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 import { Command, LogOut, Moon, Pin, PinOff, Sun } from 'lucide-react';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Contract 3: one WebSocket carries everything live. The UI never polls.
 import type { AegisEvent } from './types';
 

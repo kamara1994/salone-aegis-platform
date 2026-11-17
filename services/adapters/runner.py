@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Optional privileged runner, deployed only on the management network.
 Commands come exclusively from an administrator-owned manifest, never request text.
 Run: uvicorn services.adapters.runner:create_runner --factory --port 9100

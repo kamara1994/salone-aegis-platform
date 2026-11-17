@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Compare the current design with the baseline: what was added, removed or changed.
 import { CABLE_LABEL } from './validate';
 import type { Cable, Device, Iface, LabDoc } from './types';

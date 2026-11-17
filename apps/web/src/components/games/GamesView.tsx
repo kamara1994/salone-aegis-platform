@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 import { ArrowLeft, CheckCircle2, FlaskConical, Lightbulb, Mail, MessageSquare, Phone, RotateCcw, Siren, User, XCircle } from 'lucide-react';

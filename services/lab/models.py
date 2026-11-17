@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 from ipaddress import ip_interface, ip_network
 from typing import Literal
 from uuid import UUID

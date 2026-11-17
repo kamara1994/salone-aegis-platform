@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // The lab designer's model. One document describes every device, interface, cable, site, rack,
 // VLAN and subnet on the canvas. Inventory devices mirror nodes the back end reports; design
 // devices exist only in the document until someone builds them in the real lab.

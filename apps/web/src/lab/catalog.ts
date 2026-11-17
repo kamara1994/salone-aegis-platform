@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Device catalog: real-world models with their actual port layouts. Every device placed on the
 // canvas is created from one of these, so its ports, speeds and cabling rules are realistic.
 import { macFor } from './net';

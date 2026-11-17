@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Chapter 8, VLANs and trunking: six assessed labs from first VLAN to timed build.
 // Modelled on what the best CCNA labs do well (Packet Tracer skills assessments, NetAcad
 // troubleshooting challenges, Boson-style multi-fault tickets), written fresh for this platform.

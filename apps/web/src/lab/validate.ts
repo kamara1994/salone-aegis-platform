@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Cabling rules. Physical problems (wrong port family, occupied port, wrong cable) block the
 // connection. Configuration problems (speed, duplex, VLAN, shutdown) let the cable exist but
 // keep the link down or degraded, the way a real switch would.

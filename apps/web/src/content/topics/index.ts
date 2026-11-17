@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // The topic catalog: courses, units and every topic, plus lookups used by the Learn page.
 import { ADVANCED_NETWORKING } from './advanced-networking';
 import { CLOUD_SECURITY } from './cloud-security';

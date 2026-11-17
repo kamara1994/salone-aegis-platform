@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Mock implementations of each scenario pack's setup / cleanup / check scripts.
 // The real scripts live in scenarios/<id>/scripts and run against the real lab via the back end.
 import { anyLogonServer, BASE_RULES, duplexMismatch, hasAccess, initialLab, ipConfig, isServiceUp, reach, renewLease, resolveName, type LabState } from './lab';

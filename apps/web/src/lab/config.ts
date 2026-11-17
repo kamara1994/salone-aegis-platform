@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Running configuration generated from the model, in each platform's own syntax.
 import { modelOf } from './catalog';
 import { ciscoMac, prefixToMask } from './net';

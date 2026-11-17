@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 // CCNA/CCNP switching and routing features: port security, BPDU/root guard, DTP, VTP, DHCP snooping,
 // DAI, layer 3 switching, IOS ACLs, static NAT, VRRP/GLBP and EIGRP, driven through the CLI.

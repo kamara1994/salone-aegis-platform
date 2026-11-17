@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 // Editor state for the lab designer: the document, selection, tools, undo/redo history,
 // packet traces and saved layouts. Every change to the document goes through `commit`,

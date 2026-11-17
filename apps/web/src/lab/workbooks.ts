@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Guided lab workbooks, in the spirit of Cisco NetAcad Packet Tracer activities and CCNA/CCNP lab
 // guides: each one builds a starter topology, lists the tasks, and grades them automatically from
 // the live design (configuration, control plane and real packet simulation), not from typed answers.

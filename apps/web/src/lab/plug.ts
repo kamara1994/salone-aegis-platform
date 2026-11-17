@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Plugging cables in from anywhere (canvas, Physical view, Rack view): the first port you pick holds
 // the cable end, the second port completes it. Same rules and errors as the canvas.
 import { useLab } from './store';

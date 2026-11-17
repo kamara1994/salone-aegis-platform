@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Local-only progress, bookmarks and imported content packs. Everything lives in this browser's
 // storage; nothing is sent anywhere. Export/import lets the user move it between machines.
 import type { GameTemplate, Lesson } from './types';

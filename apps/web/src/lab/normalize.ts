@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Repairs lab documents saved by older versions (autosaved drafts, saved layouts, imported files and
 // content packs) so a missing field can never crash the Lab page. Unknown or broken parts are
 // filled with safe defaults or dropped.

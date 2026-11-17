@@ -1,5 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
+import { ABOUT } from '@/about';
 import { useState } from 'react';
 import { Button, ConfirmDialog, Kbd, Pane } from '@/components/ui';
 import { useUi } from '@/state/ui';
@@ -71,6 +74,18 @@ export default function SettingsPage() {
           <Button variant="danger" onClick={() => setResetOpen(true)}>
             Reset progress…
           </Button>
+        </div>
+      </Pane>
+      <Pane title="About AEGIS">
+        <div className="space-y-1 p-4 text-[13px]" data-testid="about-aegis">
+          <p className="font-medium">Created by {ABOUT.author}</p>
+          <p className="text-muted">{ABOUT.copyright}. Free and open source under the {ABOUT.license}.</p>
+          <p>
+            <a href={ABOUT.source} target="_blank" rel="noreferrer" className="text-action hover:underline">
+              Source code
+            </a>
+          </p>
+          <p className="text-[11.5px] text-muted">Cisco, Catalyst, IOS and Packet Tracer are trademarks of Cisco Systems, Inc. AEGIS is independent and not affiliated with Cisco.</p>
         </div>
       </Pane>
       <ConfirmDialog open={resetOpen} onClose={() => setResetOpen(false)} onConfirm={resetProgress} typed="RESET" title="Reset your progress?" confirmLabel="Reset everything" body="Lab attempts, scores, saved designs and projects in this browser are deleted. This cannot be undone." />

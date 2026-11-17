@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // POST /api/tutor: the live study tutor. GET /api/tutor: is a live AI configured, and which one.
 // Runs on the server only. The ".api.ts" extension keeps it out of the static recruiter export.
 import { NextResponse } from 'next/server';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 import { Award, BookOpenText, BrainCircuit, Calculator, ChevronDown, Compass, History, Images, Joystick, Layers, MessagesSquare, MousePointerClick, PanelLeftClose, PanelLeftOpen, Route, ScrollText, Settings2, Sparkles, Tags, Timer, TrendingUp, Wrench, type LucideIcon } from 'lucide-react';

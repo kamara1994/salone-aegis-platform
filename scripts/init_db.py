@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 from services.common.config import Settings
 from services.common.store import Store
 from services.common.seed import seed

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Content registry: built-in lessons, games and tracks, plus anything imported from local packs.
 import { GAME_TEMPLATES } from './games';
 import { arpLesson, cableTraceLesson, closeTicketLesson, escalationLesson, macLesson, outageLesson, priorityLesson, ticketLesson } from './lessons/helpdesk';

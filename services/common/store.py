@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """DB-API persistence. PostgreSQL in deployment; SQLite for offline domain tests.
 Writes and event allocation commit together. A transaction-wide advisory lock orders
 commands across workers; replace with aggregate locks when scaling beyond one lab.

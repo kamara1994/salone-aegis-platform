@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // IOS command grammar for context help (?), Tab completion and ambiguity checks.
 // The executor in cli.ts still runs the commands; this tree only describes what can be typed in each
 // mode, the way IOS answers "show ?" or completes "conf<Tab>". Keep it in step with cli.ts.

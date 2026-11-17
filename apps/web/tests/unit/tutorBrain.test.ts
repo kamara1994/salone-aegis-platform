@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 import { describe, expect, it } from 'vitest';
 import { act, chat, findPair, gradeTeach, keyIdeas, lessonById, mapReply, patterns, resolveLesson, welcome, type Memory } from '@/learn/tutorBrain';
 

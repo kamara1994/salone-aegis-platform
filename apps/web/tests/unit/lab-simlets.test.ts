@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 // Simlets: every answer key is checked against the simulator, so a question can never claim
 // something the network does not actually do. Also covers the config lock and question grading.

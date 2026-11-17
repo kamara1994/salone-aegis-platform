@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // The live tutor's instructions, grounded in the lesson the student is on.
 
 export type TutorPayload = {

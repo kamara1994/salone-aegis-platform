@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Additive lab API. Shared /api/v1 contracts are intentionally unchanged."""
 from typing import Any, Literal
 from uuid import UUID

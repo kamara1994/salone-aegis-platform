@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 import { applyNodeChanges, Background, BackgroundVariant, ConnectionMode, ControlButton, Controls, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, ViewportPortal, type Edge, type EdgeChange, type Node, type NodeChange } from '@xyflow/react';

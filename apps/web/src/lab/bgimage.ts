@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Prepares a user-chosen canvas background so it fits in browser storage. Images stay on this computer.
 export const BG_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 export const BG_MAX_BYTES = 4 * 1024 * 1024;

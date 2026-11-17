@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 import { Award, BriefcaseBusiness, FolderGit2, GraduationCap, Joystick, Network, Settings2, TrendingUp } from 'lucide-react';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Browser side of the live tutor. Calls our own /api/tutor route (never a provider directly),
 // so API keys stay on the server. If no AI is configured or it fails, the dock falls back to the
 // offline tutor in tutorBrain.ts.

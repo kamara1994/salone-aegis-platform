@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Chapter 8 simlets: live networks you investigate with show, ping and traceroute, then answer
 // questions about. Modelled on the Cisco exam simlet (config locked, you run the commands yourself)
 // and the CCNP TSHOOT ticket (device, technology, fix). Distractors use real terms in the wrong place,

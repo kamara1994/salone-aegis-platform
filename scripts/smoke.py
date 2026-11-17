@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Compose acceptance smoke: real Keycloak, API, Postgres and background workers."""
 import json
 import time

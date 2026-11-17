@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 import { duplexMismatch, effectiveSpeed, type PortCfg } from '../lab';
 import { pad, pingOutput, type Shell, type ShellCtx, type ShellResult } from './common';
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 // The classic CCNA lab gear added to the library: 2960-24TT, 3650 multilayer switch and ISR 2911.
 import { beforeEach, describe, expect, it } from 'vitest';

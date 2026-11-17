@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Switch features that change port state on their own, the way a real switch does after a change:
 // DTP trunk negotiation, VTP VLAN database sync (including the "VTP bomb"), port security with
 // sticky learning and violations, and BPDU guard. The store runs these after every commit.

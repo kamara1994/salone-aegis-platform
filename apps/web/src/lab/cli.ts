@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // IOS-style CLI for devices designed on the canvas (Packet Tracer's CLI tab), and a Windows-style
 // command prompt for hosts. Commands read and change the lab document through the store, so a
 // change typed here shows up on the canvas, in the inspector and in packet simulation at once.

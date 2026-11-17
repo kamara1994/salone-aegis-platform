@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // The simulated lab. Every command output, check and chat answer is computed from this state,
 // so a fault and its fix behave the way they would on the real network.
 import type { Client, Link, Node, Site } from '@/api/types';

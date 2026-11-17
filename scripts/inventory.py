@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Import trusted inventory; no credentials allowed in this file. Run as deployment admin."""
 import argparse
 import ipaddress

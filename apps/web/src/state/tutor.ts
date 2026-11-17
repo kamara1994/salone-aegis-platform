@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Shared state for the study tutor. Kept light (no lesson data here) so any page can add an
 // "Ask AI" button without loading the tutor. The dock does the thinking.
 import { create } from 'zustand';

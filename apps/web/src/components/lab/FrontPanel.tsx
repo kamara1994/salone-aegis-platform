@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 // Draws a model's panel from lab/panels.ts with live LEDs. Used by the inspector's Physical tab and

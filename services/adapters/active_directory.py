@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """WinRM read tools and hash-allowlisted PowerShell lifecycle scripts."""
 import hashlib
 from pathlib import Path

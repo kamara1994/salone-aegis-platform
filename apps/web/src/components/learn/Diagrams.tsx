@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 // Teaching diagrams as inline SVG: they scale cleanly, follow the theme colours and need no image files.

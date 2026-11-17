@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Live hardware state that is not part of the saved design: boot (power-on self-test), spanning
 // tree listening/learning after a link comes up, the LED mode each switch shows, and which view
 // and port the operator is looking at. Times are sped up so a lab does not stall; the real values

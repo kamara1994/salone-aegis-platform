@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 // Blank-canvas labs: the student places, names, cables and configures everything, like Packet Tracer
 // with no starting network. Grading matches devices by hostname against the lab's reference design.

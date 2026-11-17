@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // "How should new devices start?" Factory new: the device boots, a Cisco box shows its stock
 // hostname and runs the initial configuration dialog, a server has no operating system until you
 // install one from an ISO. Ready: the device is already booted and named, which is faster for labs.

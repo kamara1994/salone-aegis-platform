@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Lab Arena: Packet Tracer style assessed activities, organised by CCNA topic.
 // Each lab ships an initial network, a weighted assessment tree, connectivity tests and a debrief.
 // Grading reads the live design (configuration, control plane and simulated packets), never typed answers.

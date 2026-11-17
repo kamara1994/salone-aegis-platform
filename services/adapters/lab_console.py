@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Narrow HTTPS console-broker adapter for Guacamole/noVNC and device consoles.
 
 Vault's console-broker document owns the endpoint, credential, public origin and

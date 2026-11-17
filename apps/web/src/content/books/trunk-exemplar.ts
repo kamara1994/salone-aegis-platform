@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 /** Authored example for CCNA v1.1 objective 2.2: interswitch trunks and 802.1Q. */
 export const trunkExemplar = {
   why: 'Two PCs can be correctly assigned to VLAN 20 on different switches and still fail to communicate when their interswitch trunk does not carry VLAN 20.',

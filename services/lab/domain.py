@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Atomic topology commands; no infrastructure calls occur inside these transactions."""
 import hashlib
 import json

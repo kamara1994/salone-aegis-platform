@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Scoring for the triage games. Pure functions so they can be unit-tested and reused by imported packs.
 import type { GameCase, Impact, Urgency } from './types';
 

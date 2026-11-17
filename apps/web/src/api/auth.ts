@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Keycloak OIDC (authorization code + PKCE) in live mode. Mock mode signs in a local operator.
 import type { UserManager } from 'oidc-client-ts';
 

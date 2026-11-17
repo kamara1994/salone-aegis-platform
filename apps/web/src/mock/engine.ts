@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // MockEngine: a complete in-browser implementation of the AEGIS contract (REST + events),
 // backed by the simulated lab. Lets the cockpit run end to end before the real back end exists.
 import { ApiRequestError, type AegisApi } from '@/api/client';

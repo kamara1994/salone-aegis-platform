@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Live integrations. No raw commands supplied by API clients are executed.
 All credentials are retrieved from Vault; scenario scripts go through a separately
 administered runner which must enforce script hashes, scopes and idempotency.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Certification focus: the drop-down in the top bar. Choosing one scopes the cockpit, Learn (topics,
 // exams, flashcards, tracks), the Labs picker and Games to that certification.
 // Exam domain names are summarised from each vendor's public exam outline; always check the vendor's

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Packet Tracer's working tools that live outside the saved design: Realtime vs Simulation mode,
 // Simple PDUs (the envelope) with their list, and Inspect (magnifying glass) windows.
 import { create } from 'zustand';

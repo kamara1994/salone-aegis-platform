@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Packet capture for the lab designer: turns simulated packet traces into frames as they would
 // appear on a wire, lists them like Wireshark does, and writes a real libpcap file (Ethernet,
 // 802.1Q, ARP, IPv4, ICMP, TCP, UDP, with valid IP and ICMP checksums) that Wireshark opens.

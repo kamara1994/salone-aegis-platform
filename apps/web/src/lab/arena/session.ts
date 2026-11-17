@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Running an Arena attempt: load the initial network, track hints and time, submit and record.
 import { create } from 'zustand';
 import { useLab } from '../store';

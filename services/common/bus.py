@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Transactional outbox to Redis Streams. SQL remains authoritative for replay.
 At-least-once delivery: consumers deduplicate by seq. No stream trimming in v1.
 """

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Lab Arena catalog: CCNA lab topics in book order. Topics marked 'soon' are listed so the
 // student can see the whole path; their labs ship in later releases.
 import { VLAN_LABS } from './labs-vlans';

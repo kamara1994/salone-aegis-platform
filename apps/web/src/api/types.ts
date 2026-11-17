@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Friendly aliases over the types generated from contracts/openapi.yaml.
 // Regenerate with `npm run gen:api` whenever the contract changes. Never hand-edit schema.d.ts.
 import type { components } from './schema';

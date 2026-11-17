@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Scores an Arena lab against the live design: weighted assessment items plus connectivity tests.
 // A hinted item earns half its points. Nothing here reads what the student typed, only the result.
 import { MODEL_BY_KEY } from '../catalog';

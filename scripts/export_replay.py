@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Export an allowlisted, disconnected recruiter replay; excludes raw chat and logs."""
 import argparse
 import json

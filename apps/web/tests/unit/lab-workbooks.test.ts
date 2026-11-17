@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 // Guided lab workbooks: every starter topology is valid, nothing is solved at the start, and solving
 // a workbook through the CLI (the way a student would) turns its tasks green.

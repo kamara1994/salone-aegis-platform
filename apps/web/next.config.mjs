@@ -4,8 +4,9 @@ const nextConfig = {
   reactStrictMode: true,
   // Recruiter mode is a separate static export with no connection to the live platform.
   output: process.env.AEGIS_RECRUITER_EXPORT === '1' ? 'export' : undefined,
-  // Server route files end in .api.ts. The static recruiter export leaves them out, since it has no server.
-  pageExtensions: process.env.AEGIS_RECRUITER_EXPORT === '1' ? ['tsx', 'ts', 'jsx', 'js'] : ['api.ts', 'tsx', 'ts', 'jsx', 'js'],
+  // The recruiter export has no server, so exclude the server-only route.ts file.
+  // App pages use .tsx; omitting .ts keeps the API route out of the static export.
+  pageExtensions: process.env.AEGIS_RECRUITER_EXPORT === '1' ? ['tsx', 'jsx', 'js'] : ['tsx', 'ts', 'jsx', 'js'],
   async rewrites() {
     if (!live || !process.env.AEGIS_API_ORIGIN) return [];
     return [{ source: '/api/v1/:path*', destination: `${process.env.AEGIS_API_ORIGIN}/api/v1/:path*` }];

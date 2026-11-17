@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Topic catalog: hundreds of short topics grouped by course and unit. Each topic has a beginner
 // explanation and a technical explanation with professional depth, plus a level-aware question bank.
 export type CourseId = 'networking' | 'advanced-networking' | 'security-plus' | 'soc' | 'pentest' | 'cloud-security' | 'linux' | 'windows-ad' | 'it-support' | 'incident-response' | 'automation';

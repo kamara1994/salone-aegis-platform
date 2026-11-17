@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Lab Arena attempt history: every submitted attempt, best score per lab and topic mastery.
 // Stored in this browser only, like the rest of Learn progress.
 import { useSyncExternalStore } from 'react';

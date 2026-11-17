@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Deterministic packet-level model (not an operating-system or IOS emulator)."""
 import hashlib
 from collections import deque

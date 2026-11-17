@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Single-use connection grants and scoped Guacamole JSON-auth exchange.
 The encrypted assertion remains server-side. Browser receives a scoped Guacamole
 session token only after redeeming its one-use 5-minute AEGIS grant.

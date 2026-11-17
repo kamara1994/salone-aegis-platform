@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Server-only AI layer. Talks to whichever AI provider has a key configured.
 // Keys live in environment variables on the server (apps/web/.env.local) and never reach the browser.
 //

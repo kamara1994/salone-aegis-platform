@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 import { Binary, Calculator, Clock, FileCode2, Fingerprint, Hash, NotebookPen, Pause, Play, RotateCcw, ShieldOff, Square, TimerReset, Volume2, type LucideIcon } from 'lucide-react';

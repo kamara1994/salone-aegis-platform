@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 import { useReactFlow } from '@xyflow/react';
@@ -234,8 +236,10 @@ function DeviceLibrary() {
         onDragStart={(e) => {
           e.dataTransfer.setData('application/aegis-model', m.key);
           e.dataTransfer.effectAllowed = 'copy';
-          pushRecent(m.key);
+          setHover(null);
         }}
+        // Update the Recent row after the drop: changing the list mid-drag can cancel the drag.
+        onDragEnd={(e) => e.dataTransfer.dropEffect !== 'none' && pushRecent(m.key)}
         onClick={() => {
           const c = center();
           add(m.key, c.x, c.y);

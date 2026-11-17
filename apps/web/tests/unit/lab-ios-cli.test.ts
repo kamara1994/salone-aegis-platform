@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 // IOS habits a CCNA student types without thinking: abbreviations, ? help, Tab, pipes, ambiguity.
 import { beforeEach, describe, expect, it } from 'vitest';

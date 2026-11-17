@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // One interface, two implementations: `live` speaks the real REST contract,
 // `mock` runs the built-in simulated lab in the browser. Screens only ever see AegisApi.
 import type * as T from './types';

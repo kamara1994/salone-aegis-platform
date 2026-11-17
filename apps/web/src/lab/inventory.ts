@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Builds the designer document from what the platform reports.
 // Simulated lab: full detail (ports, VLANs, firewall rules, leases, counters) read from the lab state,
 //   so an injected fault shows up on the canvas exactly where it is.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Subnetting drills. Generated and checked by arithmetic, so they work offline and never repeat.
 import { intToIp, ipToInt, maskOf, prefixToMask } from '@/lab/net';
 

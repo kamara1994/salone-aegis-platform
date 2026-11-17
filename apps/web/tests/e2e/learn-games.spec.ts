@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs';

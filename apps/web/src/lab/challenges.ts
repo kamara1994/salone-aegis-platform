@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Troubleshooting practice (Packet Tracer activities / CCNA troubleshooting labs): inject one
 // realistic hidden fault into the design, let the operator find it with the CLI, simulation and
 // capture, then reveal what was changed. Also: connectivity goals with pass/fail checking, and

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 /**
  * Contract tests: the in-browser mock must speak exactly the contracts Codex's back end implements.

@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use or build on AEGIS, please cite it as below."
+title: "AEGIS: certification study app and network lab"
+type: software
+authors:
+  - family-names: Kamara
+    given-names: Joseph Allan
+    email: kamarajosephallan@gmail.com
+repository-code: "https://github.com/kamara1994/salone-aegis-platform"
+license: AGPL-3.0-only
+date-released: 2026-11-04

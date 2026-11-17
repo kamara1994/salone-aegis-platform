@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 /** Authored reference lesson for CCNA v1.1 objective 2.1.a/b. */
 const authoredLesson = {
   why: 'A switchport placed in the wrong VLAN can give a working PC the wrong neighbors, DHCP scope, and gateway. The link light can be green while the user still cannot reach the intended service.',

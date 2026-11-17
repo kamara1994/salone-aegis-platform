@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Local content model for lessons, games and tracks. Content is plain data (no code), so it can be
 // authored in TypeScript files in this folder or imported at runtime as a JSON content pack.
 

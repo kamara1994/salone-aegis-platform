@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 import { nodeByName } from '../lab';
 import type { Shell, ShellCtx } from './common';
 import { IosShell } from './ios';

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Picks the implementation once per browser tab. Screens import from here, never from mock/.
 import { API_MODE, getToken } from './auth';
 import { LiveApi, type AegisApi } from './client';

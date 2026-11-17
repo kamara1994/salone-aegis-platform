@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // AEGIS study tutor: the local "brain" used until the server tutor exists.
 // It is grounded in the CCNA book: every answer comes from a lesson and says which one.
 // It knows how chapters build on each other, checks what you already know from your progress,

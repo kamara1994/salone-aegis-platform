@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 import hmac
 from services.common.errors import DomainError
 from services.common.store import uid, now

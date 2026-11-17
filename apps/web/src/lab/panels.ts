@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Front panels drawn from data. Each CCNA lab model gets a 19-inch panel laid out like the real
 // unit (port banks, uplinks, system LEDs, the MODE button), and every port LED follows the rules
 // printed in the vendor hardware guide. Simplified line art, no vendor artwork.

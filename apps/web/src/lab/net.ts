@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // IPv4 helpers for the lab designer and packet simulator.
 
 /** Salt for stable lab MAC addresses. */

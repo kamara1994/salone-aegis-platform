@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 // A floating device window, like Packet Tracer: drag it by the title bar, resize it from the corner,

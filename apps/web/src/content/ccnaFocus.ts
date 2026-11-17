@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 /** Original CCNA-aligned written lab briefs. These are prompts only; no topology or answer key. */
 export type CCNAFocusFormat = 'Guided & Basic Labs' | 'Scenario Labs' | 'Troubleshooting Labs' | 'Simlet Labs' | 'Automation Labs' | 'Challenge Mode';
 

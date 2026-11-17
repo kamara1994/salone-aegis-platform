@@ -1,4 +1,51 @@
-# SALONE AEGIS — integrated platform
+# AEGIS
+
+A free, open source study app and network lab for IT certifications, starting with the Cisco CCNA.
+Created by Joseph Allan Kamara.
+
+**What it does**
+
+- **Learn:** an interactive CCNA book, flashcards (easy and hard decks), learning with images, scenario case files, interactive lessons, and an AI study tutor that works offline and can use any AI provider's API key.
+- **Practice exams:** timed mock exams, exams by domain, and custom exams with a review screen.
+- **Lab:** a Packet Tracer style network lab in the browser. Drag devices and cables onto the canvas, plug cables into real-looking front panels with live port lights, configure devices in an IOS-style CLI, and test with Simple PDUs, the Inspect tool and step-by-step packet simulation (OSI layers in and out). Physical and Rack views, factory-new devices with the IOS setup dialog, and router modules you install with the power off.
+- **Lab Arena:** graded labs, troubleshooting tickets and simlets.
+
+**Run it on your computer (no back end needed)**
+
+```bash
+cd apps/web
+npm ci --no-audit --no-fund
+cp .env.example .env.local
+npm run dev
+```
+
+Open http://localhost:3000. The app runs in mock mode with a built-in simulated lab.
+To turn on the live AI tutor, add one API key to `apps/web/.env.local` (see `.env.example`).
+Keys stay on the server and are never sent to the browser.
+
+**Tests**
+
+```bash
+cd apps/web
+npm test                 # unit tests
+npx playwright test      # browser tests
+```
+
+**License**
+
+AEGIS is free software under the GNU Affero General Public License v3.0 (see `LICENSE`).
+You can use, change and share it. If you run a changed version for other people, you must share your
+source code and keep the author credit described in `NOTICE`.
+
+Cisco, Catalyst, IOS and Packet Tracer are trademarks of Cisco Systems, Inc. AEGIS is independent and
+not affiliated with or endorsed by Cisco.
+
+**Cite:** see `CITATION.cff`, or use GitHub's "Cite this repository" button.
+
+---
+
+## Operator platform (back end)
+
 
 This repository contains the integrated SALONE AEGIS FastAPI backend and Next.js operator cockpit.
 The backend lives in `services/`; the frontend lives in `apps/web/`; shared API and event contracts

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 /**
  * Writes contracts/examples/*.json from the simulated lab, so the back end has a concrete payload

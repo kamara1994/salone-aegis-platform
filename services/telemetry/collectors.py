@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 import urllib.parse
 from services.adapters.live import request, Vault
 from .service import health, flows, alert

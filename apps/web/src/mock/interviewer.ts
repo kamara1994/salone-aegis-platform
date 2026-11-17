@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Rule-based stand-in for the AI interviewer. It reads the evidence trail of the exact ticket,
 // drills from the story into protocol depth, then what-ifs, then prevention at scale.
 import type { AnswerScore, DebriefQuestion } from '@/api/types';

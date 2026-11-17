@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Router expansion modules, like Packet Tracer's Physical tab: turn the router off, drag a module
 // into an empty slot, turn it back on, and its ports appear. Pulling a module removes its ports
 // and unplugs their cables. Hot-swapping is refused, as on the real ISR.

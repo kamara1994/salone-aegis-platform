@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Client for the Learn endpoints (/learn/*). The questions, grading and interviews come from the
 // back end's AI provider; the model key never reaches the browser. In mock mode, or when the back
 // end has no model configured, every call fails with a clear reason and the page says so.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Control plane for the lab designer: what the devices would agree on by themselves.
 // Spanning tree (root election, port roles, blocking), EtherChannel bundling, HSRP active
 // routers, OSPF adjacencies and SPF routes, plus derived tables (MAC, ARP, CDP), DHCP leases,

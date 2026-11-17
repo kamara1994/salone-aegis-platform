@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 'use client';
 
 // Cables lying on the canvas. Grab a plug and drop it on a device to plug it in; grab the middle

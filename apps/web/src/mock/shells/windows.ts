@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 import { anyLogonServer, computeLease, hasAccess, ipConfig, isServiceUp, nodeByName, renewLease, type AdUser } from '../lab';
 import { hasFlag, nslookupOutput, pad, param, pingOutput, positional, tcpTest, tokenize, tracertOutput, type Shell, type ShellCtx, type ShellResult } from './common';
 

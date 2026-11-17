@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Game scenarios. Each template is a role (help desk, NOC, SOC…) with cases written as data: who calls,
 // what they say, which questions are useful, the evidence each tool shows, and the right triage,
 // diagnosis, fix and escalation. All content is original and fictional.

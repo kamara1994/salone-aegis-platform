@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 // Lab Arena: every lab starts unsolved with a valid topology, and solving it through the CLI the
 // way a student would scores 100%. Also covers voice VLANs, hint penalties and attempt history.

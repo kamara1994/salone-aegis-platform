@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Exports the lab design as a standalone SVG diagram (devices, cables with port labels, notes and zones).
 import type { LabDoc } from './types';
 import { cableStatus } from './validate';

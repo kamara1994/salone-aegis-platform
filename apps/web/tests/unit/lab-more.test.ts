@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // @vitest-environment jsdom
 // The newer lab types (getting started, enterprise builds, security, SOC, wireless): each one is
 // solved the way a student would, through the CLI and the editor actions, and must turn fully green.

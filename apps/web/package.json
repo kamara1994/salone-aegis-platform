@@ -1,6 +1,8 @@
 {
   "name": "@aegis/web",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "author": "Joseph Allan Kamara <kamarajosephallan@gmail.com>",
   "private": true,
   "description": "AEGIS Operator Platform cockpit (front end)",
   "scripts": {

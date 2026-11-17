@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Deterministic persistent lab simulation. Caller saves returned node changes."""
 from copy import deepcopy
 from .base import ACTIONS, READ_TOOLS, guard

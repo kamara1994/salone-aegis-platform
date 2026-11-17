@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Rear-panel hardware for each catalog model: power supplies, fans, module slots and system LEDs.
 // Drawn in the Physical view. Generic and simplified; no vendor artwork.
 import type { DeviceModel } from './catalog';

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Server-owned scenario packs for the interactive topology.
 
 Existing script packs remain subject to contracts/scenario.schema.json. These

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Packet simulator. Walks a packet through the designed lab the way the real devices would:
 // source address choice, ARP and the default gateway (including HSRP virtual gateways),
 // 802.1Q switching per VLAN with spanning-tree blocked ports and EtherChannel bundles,

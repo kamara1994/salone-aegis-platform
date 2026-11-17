@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 import { expect, test, type Page } from '@playwright/test';
 
 // The Packet Tracer-style lab designer at /lab, run against the simulated lab (mock mode).
@@ -70,7 +72,8 @@ test('cable validation: rejects wrong cables and ports with clear errors, accept
   await expect(dlg).toBeHidden();
   await expect(page.getByTestId('cable-inspector')).toContainText('Router0 Gi0/0/0 ↔ Switch0 Gi0/1');
   await expect(page.getByTestId('cable-inspector')).toContainText('Ethernet straight-through');
-  await expect(page.getByTestId('cable-inspector')).toContainText('link up');
+  // Routers ship with their interfaces shut down, like IOS: the link stays down until no shutdown.
+  await expect(page.getByTestId('cable-inspector')).toContainText('administratively down');
 
   // Occupied port: Switch0 Gi0/1 is now taken.
   await page.getByTestId('palette-optiplex').focus();
@@ -192,17 +195,23 @@ test('device inspector tabs show real configuration and open a terminal and VM c
 });
 
 test('cable context menu: test link, disable, and compare with baseline', async ({ page }) => {
-  // Right-click the middle of the SW-ACC-01 to DC01 cable.
-  const a = (await device(page, 'SW-ACC-01').boundingBox())!;
-  const b = (await device(page, 'DC01').boundingBox())!;
-  const mid = { x: (a.x + a.width / 2 + b.x + b.width / 2) / 2, y: (a.y + a.height / 2 + b.y + b.height / 2) / 2 };
-  await page.mouse.click(mid.x, mid.y, { button: 'right' });
+  // Right-click a point on the SW-ACC-01 to DC01 cable itself (35% along it, clear of other devices).
+  const onCable = async () => {
+    const p = await page.evaluate(() => {
+      const path = document.querySelector('[data-testid="rf__edge-cable:link:SW-ACC-01--DC01"] path.react-flow__edge-path') as SVGPathElement;
+      const pt = path.getPointAtLength(path.getTotalLength() * 0.35);
+      const m = path.getScreenCTM()!;
+      return { x: pt.x * m.a + pt.y * m.c + m.e, y: pt.x * m.b + pt.y * m.d + m.f };
+    });
+    await page.mouse.click(p.x, p.y, { button: 'right' });
+  };
+  await onCable();
   await page.getByRole('menuitem', { name: 'Test link' }).click();
   await expect(page.getByTestId('lab-error')).toHaveAttribute('data-tone', 'ok');
   await expect(page.getByTestId('lab-error')).toContainText('Link test passed');
   await page.getByTestId('lab-error').getByRole('button', { name: 'Dismiss' }).click();
 
-  await page.mouse.click(mid.x, mid.y, { button: 'right' });
+  await onCable();
   await page.getByRole('menuitem', { name: 'Take link down (keep cable)' }).click();
   await page.getByTestId('tool-compare').click();
   await expect(page.getByTestId('diff-panel')).toContainText('disabled');

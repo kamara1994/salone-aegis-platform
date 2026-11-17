@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Timed exam builder: draws questions from the topic catalog.
 import { certById, certTopics } from './certs';
 import { ALL_TOPICS, type CourseId, type ExamDifficulty, type Topic, type TopicQuestion } from './topics';

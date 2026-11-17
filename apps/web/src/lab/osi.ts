@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Packet Tracer's "OSI Model" tab for one event: what each layer did on the way in and on the way out.
 import { serviceName, type Hop } from './simulate';
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Cables as objects you can drop on the canvas and plug in end by end, like holding a real cable.
 // A loose cable lives in the design until both ends are plugged in; then it becomes a normal cable.
 import { useLab } from './store';

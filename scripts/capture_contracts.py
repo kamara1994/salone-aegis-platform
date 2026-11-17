@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Copyright (c) 2026 Joseph Allan Kamara
 """Validate real HTTP responses captured by integration tests, never just fixtures."""
 import json
 import re

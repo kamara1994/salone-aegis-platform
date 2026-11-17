@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // What each cable type is for, as shown in the Cables tab of the library (Packet Tracer's "Connections").
 import type { CableType } from './types';
 

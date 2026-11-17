@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Design audit: everything a senior network engineer would flag in a review, in one list.
 // Combines control-plane problems (STP, EtherChannel, OSPF, HSRP, DHCP, PoE) with link checks,
 // addressing mistakes, firewall rule hygiene and management-plane hardening. Every finding says

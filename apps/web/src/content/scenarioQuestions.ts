@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 // Scenario questions: built from the ticket cases in Games (cause, fix, escalation). Original content, not exam questions.
 import { allGames } from './index';
 import { shuffle } from './exam';

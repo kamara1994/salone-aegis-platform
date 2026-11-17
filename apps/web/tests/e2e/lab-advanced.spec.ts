@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Joseph Allan Kamara
 import { expect, test, type Page } from '@playwright/test';
 
 // Advanced lab features: design CLI, services, control plane on the canvas, engineering tools.
